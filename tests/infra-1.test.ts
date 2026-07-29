@@ -1,7 +1,11 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
+
+import { alunos, cursos, grupos, repositorios } from '@/db/schema'
+import { EXEMPLO, semeia } from '@/db/seed'
 
 import { criaBancoEfemero } from './suporte/banco-efemero'
 
@@ -44,7 +48,31 @@ describe('INFRA-1 — scaffold e pipeline', () => {
     expect(workflow).toContain('npm run typecheck')
   })
 
-  // Depende de Curso, Turma, Aluno e Grupo, que são da issue 1 e estão
-  // explicitamente fora do escopo da INFRA-1.
-  it.todo('seed_cria_curso_completo')
+  it('seed_cria_curso_completo', async () => {
+    const banco = await criaBancoEfemero()
+    try {
+      const { cursoId, turmaId } = await semeia(banco.db)
+
+      const [curso] = await banco.db.select().from(cursos).where(eq(cursos.id, cursoId))
+      expect(curso).toBeDefined()
+
+      const daTurma = await banco.db.select().from(alunos).where(eq(alunos.turmaId, turmaId))
+      const gruposDaTurma = await banco.db.select().from(grupos).where(eq(grupos.turmaId, turmaId))
+      const repos = await banco.db.select().from(repositorios)
+
+      const esperados = EXEMPLO.grupos.flat().length
+      expect(gruposDaTurma).toHaveLength(EXEMPLO.grupos.length)
+      expect(daTurma).toHaveLength(esperados)
+      // Curso "completo" inclui o repositório individual de cada aluno.
+      expect(repos).toHaveLength(esperados)
+
+      // O exemplo cobre o grupo cheio e o aluno solo, que é caso válido.
+      const tamanhos = gruposDaTurma
+        .map((g) => daTurma.filter((a) => a.grupoId === g.id).length)
+        .sort()
+      expect(tamanhos).toEqual([...EXEMPLO.grupos.map((g) => g.length)].sort())
+    } finally {
+      await banco.encerra()
+    }
+  })
 })
