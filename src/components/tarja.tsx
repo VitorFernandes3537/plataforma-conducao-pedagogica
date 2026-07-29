@@ -1,13 +1,17 @@
 export type EstadoDaTarja = 'rascunho' | 'submetido' | 'aprovado' | 'devolvido'
 
-type Props = {
-  /** Nomes dos integrantes. Um só é caso válido, não exceção (Doc 2 §2.4.1). */
+export type DadosDaTarja = {
+  /** Um integrante só é caso válido, não exceção (Doc 2 §2.4.1). */
   integrantes: readonly string[]
   tema: string | null
   trilha?: 'padrao' | 'desafio' | undefined
   estado: EstadoDaTarja
-  /** Linha curta com o que exige ação. Vazio quando não há nada pendente. */
-  pendencia?: string | undefined
+  /**
+   * O que o instrutor precisa ler para decidir. Em dia de parede é o sintoma
+   * observável do obstáculo — Doc 3 §2: "10 duplas, 3h: o diagnóstico precisa
+   * levar 30 segundos".
+   */
+  sintoma?: string | undefined
   bloqueado?: boolean | undefined
 }
 
@@ -19,47 +23,75 @@ const ROTULO: Record<EstadoDaTarja, string> = {
 }
 
 /**
- * Uma ficha do quadro. Cada `Grupo` é uma tarja que atravessa portões.
+ * Tarja em forma de ação: exige leitura e decisão agora.
  *
- * A tarja é sempre clara sobre o quadro escuro: é a superfície de trabalho, e
- * o portão não a tinge. O bloqueio aparece como uma barra na borda esquerda,
- * não como fundo colorido — texto sobre vermelho é ilegível e grita.
+ * Cresce e mostra o sintoma. Hierarquia por TAMANHO, não por rótulo — a
+ * versão anterior dava peso idêntico a seis fichas e por isso não ajudava a
+ * triar nada.
  */
-export function Tarja({ integrantes, tema, trilha, estado, pendencia, bloqueado }: Props) {
+export function TarjaEmAcao({
+  integrantes,
+  tema,
+  trilha,
+  estado,
+  sintoma,
+  bloqueado,
+}: DadosDaTarja) {
   return (
     <article
-      className="relative flex flex-col gap-2 bg-tarja px-4 py-3 text-tinta shadow-[2px_2px_0_0_var(--color-tarja-sombra)]"
-      style={bloqueado ? { borderLeft: '4px solid var(--color-portao-duro)' } : undefined}
+      className="flex flex-col gap-2 bg-tarja px-4 py-3 text-tinta"
+      style={
+        bloqueado
+          ? { borderLeft: '3px solid var(--color-portao-duro)' }
+          : { borderLeft: '3px solid transparent' }
+      }
     >
       <header className="flex items-baseline justify-between gap-3">
-        <h3 className="truncate text-sm font-semibold tracking-tight">
+        <h3 className="truncate text-[0.9375rem] font-semibold leading-tight">
           {integrantes.join(' · ')}
           {integrantes.length === 1 && (
-            <span className="ml-2 text-[0.6875rem] font-normal uppercase tracking-[0.14em] text-tinta-fraca">
+            <span className="ml-2 text-[0.625rem] font-normal uppercase tracking-[0.14em] text-tinta-fraca">
               sozinho
             </span>
           )}
         </h3>
-        <span className="dado shrink-0 text-[0.6875rem] uppercase tracking-[0.1em] text-tinta-fraca">
+        <span className="dado shrink-0 text-[0.625rem] uppercase tracking-[0.1em] text-tinta-fraca">
           {ROTULO[estado]}
         </span>
       </header>
 
-      <p className="text-sm">
+      <p className="flex items-center gap-2 text-[0.8125rem] leading-tight">
         {tema ?? <span className="text-tinta-fraca">sem tema alocado</span>}
         {trilha === 'desafio' && (
-          <span className="ml-2 border border-tinta-fraca px-1 text-[0.625rem] uppercase tracking-[0.14em]">
+          <span className="border border-tinta-fraca px-1 text-[0.5625rem] uppercase tracking-[0.14em]">
             desafio
           </span>
         )}
       </p>
 
-      {pendencia && (
-        <p className="dado text-[0.75rem] text-tinta-fraca">
-          <span aria-hidden="true">▸ </span>
-          {pendencia}
-        </p>
+      {sintoma && (
+        <p className="border-t border-tarja-sombra pt-2 text-[0.8125rem] leading-snug">{sintoma}</p>
       )}
+    </article>
+  )
+}
+
+/**
+ * Tarja resolvida: encolhe para uma linha.
+ *
+ * Quem já está resolvido sai do caminho. Continua visível — o instrutor
+ * precisa saber que existe e está fechado — mas não disputa atenção.
+ */
+export function TarjaResolvida({ integrantes, tema, estado }: DadosDaTarja) {
+  return (
+    <article className="flex items-baseline justify-between gap-3 border-b border-regua-fraca px-1 py-1.5">
+      <h3 className="truncate text-[0.8125rem] text-clara-fraca">
+        {integrantes.join(' · ')}
+        <span className="ml-2 text-clara-fraca/70">{tema}</span>
+      </h3>
+      <span className="dado shrink-0 text-[0.625rem] uppercase tracking-[0.1em] text-clara-fraca">
+        {ROTULO[estado]}
+      </span>
     </article>
   )
 }

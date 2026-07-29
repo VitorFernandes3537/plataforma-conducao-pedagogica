@@ -56,19 +56,40 @@ Descartado: `Geist`, que o `create-next-app` instala. É a fonte-padrão do ecos
 
 **Fundo escuro sempre.** Não é omissão de tema claro: é a escolha de parecer painel, e não documento. `color-scheme: dark` declarado.
 
-### 5. Signature: a régua do dia
+### 5. Design de informação antes de cromagem
+
+A primeira versão desta ADR decidiu paleta e tipografia e deixou o conteúdo cair em caixas de peso igual. O resultado não comunicava: estado virava **cor**, mas nunca **forma**.
+
+O Doc 3 §2 resolve isso, porque especifica nove campos do obstáculo e diz quais vão para a plataforma:
+
+| Campo | O que o Doc 3 §2 determina | Consequência de layout |
+|---|---|---|
+| **Pergunta do aluno** | *"enunciada como problema dele, não como aula numerada. É o que vai no mural e na plataforma. Separa PBL de currículo"* | É o **herói** da tela do aluno. Serifada, grande, medida curta. O ordinal "obstáculo 4" é referência, nunca título |
+| **Critério de superação** | *"comportamento verificável, binário. Vira checklist na plataforma"* | Lista com marca binária — preenchida ou vazia. Nada de porcentagem |
+| **Escopo fora** | *"impede que a aula cresça no calor do momento"* | Painel visível de **o que não fazer hoje** |
+| **Sintoma observável** | *"10 duplas, 3h: o diagnóstico precisa levar 30 segundos"* | Vai na ficha do instrutor. Trinta segundos é requisito de projeto, não meta |
+
+**Hierarquia por tamanho, não por rótulo.** Na fila do instrutor, quem exige decisão cresce e mostra o sintoma; quem está aprovado encolhe para uma linha e sai do caminho. Seis fichas de peso idêntico não trocam informação com quem precisa triar.
+
+**Mostrar o que não fazer é o movimento mais incomum daqui**, e é carga pedagógica, não estilo: o `Escopo fora` existe justamente para conter o crescimento da aula.
+
+### 6. O repositório aparece como produto, não como link
+
+Doc 5 §6.2 enquadra o repositório como **produto público** do curso: declarado no D1, compartilhado no D15, e permanece no ar depois. A primeira versão não o mostrava em lugar nenhum — a tela do aluno era só cobrança. Agora ele tem lugar próprio, com a frase que diz o que ele é.
+
+### 7. Signature: a régua do dia
 
 Barra proporcional às durações reais, persistente em toda tela, com o bloco corrente aceso. As larguras **são** as proporções — 75 minutos ocupam cinco vezes o espaço de 15, sem largura mínima e sem arredondamento, porque um bloco curto deve parecer curto.
 
 Responde a única pergunta que o instrutor faz o tempo todo: *estou no tempo?*
 
-### 6. O risco assumido: estado pedagógico como ambiente
+### 8. O risco assumido: estado pedagógico como ambiente
 
 Em dia de marco, o portão tinge a régua e as divisórias da tela inteira. A tela diz "hoje reprova" sem escrever isso em lugar nenhum.
 
 **Limite que impede virar semáforo:** o portão tinge régua e divisória — **nunca a tarja, nunca o texto**. Bloqueio aparece como barra na borda esquerda da ficha, não como fundo colorido. Texto sobre vermelho é ilegível e grita.
 
-### 7. Ausência é projetada, não é card vazio
+### 9. Ausência é projetada, não é card vazio
 
 "Aluno não vê nota antes da agregação" (Doc 7 §3) virou **ausência declarada**: borda tracejada e uma frase dizendo quando aparece e por quê. Card vazio dizendo "sem dados" parece defeito; ausência declarada parece regra.
 
@@ -89,6 +110,12 @@ Em dia de marco, o portão tinge a régua e as divisórias da tela inteira. A te
 - A régua ocupa altura fixa no topo de toda tela. É espaço caro, gasto de propósito
 
 ---
+
+## Achado para a issue do obstáculo
+
+O design tornou explícito que `Obstaculo` precisa de quatro campos que o modelo ainda não tem, todos vindos do Doc 3 §2: `perguntaDoAluno`, `criterioDeSuperacao` (lista, binária), `escopoFora` (lista) e `sintomaObservavel`.
+
+Isto não é decisão desta ADR — é insumo para quando a issue do obstáculo for construída. Registrado aqui porque foi descoberto desenhando, e se perderia.
 
 ## O que esta ADR não decide
 
