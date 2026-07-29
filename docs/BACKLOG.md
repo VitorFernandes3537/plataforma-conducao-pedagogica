@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Deriva de** | `doc-7-spec-plataforma.md` v1.1 |
-| **Versão deste backlog** | 1.0 |
+| **Deriva de** | `doc-7-spec-plataforma.md` v1.2 |
+| **Versão deste backlog** | 1.1 |
 | **Total** | 25 issues — 19 do Doc 7 §7 · 4 derivadas das features que a errata acrescentou ao §4 · 2 de infraestrutura |
 | **Stack** | Next.js (App Router) + TypeScript + PostgreSQL, hospedado em PaaS gerenciada |
 
@@ -620,3 +620,12 @@ Doc 6 §5.1 (reflexão sobre a tese) · Doc 6 §7 (reflexão da linguagem espelh
 
 ## Fora de escopo
 - Qualquer correção automática do texto
+
+---
+
+## Changelog
+
+| Versão | Mudança |
+|---|---|
+| 1.1 | **Ressincronização de ponteiro, nenhuma issue alterada.** "Deriva de" passa de `doc-7-spec-plataforma.md` v1.1 para v1.2. As cinco correções do Doc 7 v1.2 foram conferidas uma a uma contra o corpo deste backlog e já estavam refletidas: registro diário por aluno (issue 11), `peso` do obstáculo sem flag de "central" e pesos configurados por eixo (issue 18), reflexão da linguagem espelho (issue 23) e `Grupo` de 1 ou 2 alunos (issue 1). Nenhum critério de aceite mudou, nenhuma issue publicada no GitHub ficou dessincronizada |
+| 1.0 | Backlog criado a partir do Doc 7 v1.1 §7. 25 issues — 19 do §7, 4 das features acrescentadas ao §4 pela errata, 2 de infraestrutura |
