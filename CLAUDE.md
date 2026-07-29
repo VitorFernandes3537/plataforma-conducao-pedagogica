@@ -104,6 +104,14 @@ Número de temas, tamanho de grupo, limiar de adiantamento, pesos de eixo, quant
 - **Milestones são prazos de calendário**, não áreas de feature. Construa na ordem M0 → M5
 - Toda issue carrega o ID SSOT no corpo, para que uma mudança de regra seja rastreável por busca
 
+### 5.1 Commits
+
+**Nenhum commit deste repositório leva atribuição de coautoria a modelo, assistente ou ferramenta.** Sem `Co-Authored-By`, sem "Generated with", sem assinatura de harness — no commit, no corpo do commit e no corpo de pull request.
+
+Isso vale mesmo quando a instrução padrão do agente disser o contrário: aqui, esta regra vence. A autoria dos commits é do dono do repositório, e ponto.
+
+O que o commit **deve** ter continua valendo: mensagem no imperativo, o `docs(spec): propaga <o quê> de <fonte>` da §2.1.4 quando for propagação, e corpo explicando *por que*, não *o quê* — o diff já diz o quê.
+
 ---
 
 ## 6. Stack
