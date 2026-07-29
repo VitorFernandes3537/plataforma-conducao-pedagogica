@@ -1,8 +1,13 @@
 # PCP — Plataforma de Condução Pedagógica
 
-Plataforma de condução de módulos de ensino desenhados por método baseado em problemas.
+Plataforma de condução de módulos de ensino desenhados sob **aprendizagem baseada em projetos** (PBL).
 
-Ela **não é específica de um curso**. O vocabulário do modelo é genérico — `Obstaculo`, `Tema`, `Grupo`, `FormularioDeEscopo`, `Incremento`, `Estrutura` — e cada curso é uma instância. A primeira é um módulo de POO com C#/.NET, 60h em 15 dias.
+São duas camadas, e confundi-las é o erro mais fácil de cometer aqui:
+
+- **Metodologia pedagógica** — PBL, aprendizagem baseada em projetos. É o que a plataforma serve.
+- **Método de execução** — como se conduz um módulo dentro dessa metodologia, dia a dia: os obstáculos, o contrato de escopo, a captura contínua, a rubrica. Isso é desenhado por quem constrói o curso, com aderência máxima ao PBL, e mora nos documentos da série em `docs/`.
+
+A plataforma implementa as estruturas do método. Ela **não é específica de uma disciplina, linguagem ou conteúdo** — o vocabulário do modelo é genérico (`Obstaculo`, `Tema`, `Grupo`, `FormularioDeEscopo`, `Incremento`, `Estrutura`) e cada curso é uma instância. O primeiro módulo a rodar nela é o primeiro caso de uso, não a identidade do produto: nada dele entra no modelo.
 
 ## O que ela faz
 
@@ -20,10 +25,11 @@ Next.js (App Router) · TypeScript · PostgreSQL · deploy em PaaS gerenciada.
 
 | Caminho | Conteúdo |
 |---|---|
-| `docs/` | A especificação. **Somente leitura** — ver `CLAUDE.md` |
-| `docs/INDICE.md` | Mapa SSOT: onde cada fato mora |
-| `docs/doc-7-spec-plataforma.md` | Modelo de dados, milestones, critérios de aceite |
-| `docs/BACKLOG.md` | As 25 issues |
+| `docs/doc-1` a `doc-6`, `docs/ERRATA.md` | Documentos-dono: o método de execução. **Nunca editar aqui** |
+| `docs/INDICE.md` | Documento-dono. Mapa SSOT: onde cada fato mora |
+| `docs/doc-7-spec-plataforma.md` | Derivado. Modelo de dados, milestones, critérios de aceite |
+| `docs/BACKLOG.md` | Derivado. As 25 issues |
+| `adr/` | Decisões de desenvolvedor, autorizadas por Doc 7 §0.2 |
 | o resto | Implementação |
 
 ## Como começar
