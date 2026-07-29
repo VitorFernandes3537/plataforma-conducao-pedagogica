@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { duracaoTotalPorDia } from '@/db/calendario'
+import { temasComDisponibilidade } from '@/db/temas'
 import { alunos, cursos, grupos, marcos, repositorios } from '@/db/schema'
 import { EXEMPLO, semeia } from '@/db/seed'
 
@@ -52,7 +53,7 @@ describe('INFRA-1 — scaffold e pipeline', () => {
   it('seed_cria_curso_completo', async () => {
     const banco = await criaBancoEfemero()
     try {
-      const { cursoId, turmaId } = await semeia(banco.db)
+      const { cursoId, turmaId, bancoDeTemasId } = await semeia(banco.db)
 
       const [curso] = await banco.db.select().from(cursos).where(eq(cursos.id, cursoId))
       expect(curso).toBeDefined()
@@ -82,6 +83,13 @@ describe('INFRA-1 — scaffold e pipeline', () => {
 
       const marcosDoCurso = await banco.db.select().from(marcos)
       expect(marcosDoCurso).toHaveLength(EXEMPLO.dias.filter((d) => d.marco !== null).length)
+
+      // Banco de temas, com um tema já alocado e o resto livre — os dois
+      // estados que a listagem precisa mostrar.
+      const listados = await temasComDisponibilidade(banco.db, bancoDeTemasId, turmaId)
+      expect(listados).toHaveLength(EXEMPLO.temas.length)
+      expect(listados.filter((t) => !t.disponivel)).toHaveLength(1)
+      expect(listados.find((t) => t.trilha === 'desafio')?.briefing).toBeTruthy()
     } finally {
       await banco.encerra()
     }

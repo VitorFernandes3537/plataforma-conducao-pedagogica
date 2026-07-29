@@ -122,11 +122,55 @@ export const turmas = pgTable('turmas', {
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
 })
 
+// Doc 2 §3.1 e §3.2 · `D2-TRILHAS`. Não é taxonomia do curso: é distinção
+// estrutural, porque a trilha desafio é opt-in e exige briefing.
+export const trilhaEnum = pgEnum('trilha', ['padrao', 'desafio'])
+
+/** Doc 7 §2.1 nomeia o banco como entidade própria, filha de `Curso`. */
+export const bancosDeTemas = pgTable('bancos_de_temas', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cursoId: uuid('curso_id')
+    .notNull()
+    .references(() => cursos.id, { onDelete: 'cascade' }),
+  nome: text('nome').notNull(),
+  criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const temas = pgTable(
+  'temas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    bancoDeTemasId: uuid('banco_de_temas_id')
+      .notNull()
+      .references(() => bancosDeTemas.id, { onDelete: 'cascade' }),
+    nome: text('nome').notNull(),
+    // TEXTO, não enum: o Doc 2 §3.1 usa Fácil/Médio/Difícil neste curso, e
+    // enumerar fixaria três níveis. O uso do nível na alocação é julgamento
+    // do instrutor, não do sistema, então ordenação não é requisito.
+    dificuldade: text('dificuldade').notNull(),
+    trilha: trilhaEnum('trilha').notNull(),
+    briefing: text('briefing'),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Doc 2 §3.4: sem janela de pesquisa prévia, o briefing é o que substitui
+    // a pesquisa. Trilha desafio sem briefing é tema inutilizável em sala.
+    check(
+      'desafio_exige_briefing',
+      sql`${t.trilha} <> 'desafio' or ${t.briefing} is not null`,
+    ),
+  ],
+)
+
 export const grupos = pgTable('grupos', {
   id: uuid('id').primaryKey().defaultRandom(),
   turmaId: uuid('turma_id')
     .notNull()
     .references(() => turmas.id, { onDelete: 'cascade' }),
+  // A unicidade "um Tema por Grupo por Turma" (Doc 7 §2.4, `D2-BANCO`) é
+  // critério da issue 8, junto com o teste de alocação concorrente. Aqui
+  // entra só o vínculo, que a listagem de disponibilidade precisa ler.
+  temaId: uuid('tema_id').references(() => temas.id, { onDelete: 'set null' }),
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
 })
 

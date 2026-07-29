@@ -1,5 +1,5 @@
 {
-  "id": "219022b4-be5c-442a-9591-89e56980ab15",
+  "id": "d2221f26-a1cf-43ca-8745-e3337fc1496d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -126,6 +126,59 @@
           "value": "(\"alunos\".\"grupo_id\" is null) = (\"alunos\".\"posicao_no_grupo\" is null)"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.bancos_de_temas": {
+      "name": "bancos_de_temas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "curso_id": {
+          "name": "curso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "bancos_de_temas_curso_id_cursos_id_fk": {
+          "name": "bancos_de_temas_curso_id_cursos_id_fk",
+          "tableFrom": "bancos_de_temas",
+          "tableTo": "cursos",
+          "columnsFrom": [
+            "curso_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.blocos": {
@@ -339,6 +392,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "tema_id": {
+          "name": "tema_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "criado_em": {
           "name": "criado_em",
           "type": "timestamp with time zone",
@@ -360,6 +419,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "grupos_tema_id_temas_id_fk": {
+          "name": "grupos_tema_id_temas_id_fk",
+          "tableFrom": "grupos",
+          "tableTo": "temas",
+          "columnsFrom": [
+            "tema_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -505,6 +577,83 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.temas": {
+      "name": "temas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "banco_de_temas_id": {
+          "name": "banco_de_temas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dificuldade": {
+          "name": "dificuldade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trilha": {
+          "name": "trilha",
+          "type": "trilha",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "briefing": {
+          "name": "briefing",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "temas_banco_de_temas_id_bancos_de_temas_id_fk": {
+          "name": "temas_banco_de_temas_id_bancos_de_temas_id_fk",
+          "tableFrom": "temas",
+          "tableTo": "bancos_de_temas",
+          "columnsFrom": [
+            "banco_de_temas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "desafio_exige_briefing": {
+          "name": "desafio_exige_briefing",
+          "value": "\"temas\".\"trilha\" <> 'desafio' or \"temas\".\"briefing\" is not null"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.turmas": {
       "name": "turmas",
       "schema": "",
@@ -634,6 +783,14 @@
       "values": [
         "instrutor",
         "aluno"
+      ]
+    },
+    "public.trilha": {
+      "name": "trilha",
+      "schema": "public",
+      "values": [
+        "padrao",
+        "desafio"
       ]
     }
   },

@@ -1,7 +1,19 @@
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import * as schema from './schema'
-import { alunos, blocos, cursos, dias, grupos, marcos, repositorios, turmas, usuarios } from './schema'
+import {
+  alunos,
+  bancosDeTemas,
+  blocos,
+  cursos,
+  dias,
+  grupos,
+  marcos,
+  repositorios,
+  temas,
+  turmas,
+  usuarios,
+} from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
@@ -14,8 +26,24 @@ export const EXEMPLO = {
   curso: { nome: 'Curso de exemplo', tamanhoMaximoDeGrupo: 2 },
   turma: { nome: 'Turma de exemplo' },
   instrutor: { githubUserId: 1000, githubLogin: 'instrutor-exemplo', nome: 'Instrutor' },
+  // Rótulos de dificuldade são dado, não enum. Um deles é de trilha desafio
+  // e por isso carrega briefing — sem ele o banco rejeita a linha.
+  temas: [
+    { nome: 'Tema fácil de exemplo', dificuldade: 'Fácil', trilha: 'padrao' as const },
+    { nome: 'Tema médio de exemplo', dificuldade: 'Médio', trilha: 'padrao' as const },
+    { nome: 'Tema difícil de exemplo', dificuldade: 'Difícil', trilha: 'padrao' as const },
+    {
+      nome: 'Tema de trilha desafio',
+      dificuldade: 'Difícil',
+      trilha: 'desafio' as const,
+      briefing:
+        'O que a organização faz · quem solicita e quem executa · etapas do atendimento · ' +
+        'qual recurso é escasso · três categorias com tratamento diferente · vocabulário do setor.',
+    },
+  ],
   // Um grupo com dois alunos e um grupo solo — o solo é caso válido pelo
-  // Doc 2 §2.4.1, não exceção.
+  // Doc 2 §2.4.1, não exceção. O primeiro já tem tema alocado, para que a
+  // listagem de disponibilidade tenha os dois estados em desenvolvimento.
   grupos: [
     ['Ana', 'Bruno'],
     ['Carla'],
@@ -81,10 +109,28 @@ export async function semeia(db: Db) {
     }
   }
 
+  const [bancoDeTemas] = await db
+    .insert(bancosDeTemas)
+    .values({ cursoId: curso.id, nome: 'Banco de exemplo' })
+    .returning()
+  if (!bancoDeTemas) throw new Error('seed: banco de temas não foi criado')
+
+  const temasCriados = await db
+    .insert(temas)
+    .values(EXEMPLO.temas.map((t) => ({ ...t, bancoDeTemasId: bancoDeTemas.id })))
+    .returning()
+
   let proximoGithubId = 1
 
-  for (const integrantes of EXEMPLO.grupos) {
-    const [grupo] = await db.insert(grupos).values({ turmaId: turma.id }).returning()
+  for (const [indiceDoGrupo, integrantes] of EXEMPLO.grupos.entries()) {
+    // Só o primeiro grupo recebe tema, para a listagem de disponibilidade ter
+    // os dois estados em desenvolvimento.
+    const temaId = indiceDoGrupo === 0 ? (temasCriados[0]?.id ?? null) : null
+
+    const [grupo] = await db
+      .insert(grupos)
+      .values({ turmaId: turma.id, temaId })
+      .returning()
     if (!grupo) throw new Error('seed: grupo não foi criado')
 
     for (const [indice, nome] of integrantes.entries()) {
@@ -118,5 +164,10 @@ export async function semeia(db: Db) {
     }
   }
 
-  return { cursoId: curso.id, turmaId: turma.id, instrutorId: instrutor.id }
+  return {
+    cursoId: curso.id,
+    turmaId: turma.id,
+    instrutorId: instrutor.id,
+    bancoDeTemasId: bancoDeTemas.id,
+  }
 }
