@@ -4,22 +4,60 @@ Instruções permanentes para o Claude Code neste repositório.
 
 ---
 
-## 1. Regra de propriedade — leia antes de qualquer edição
+## 1. Propriedade dos documentos
 
-Este repositório tem **duas fontes com donos diferentes**.
+`docs/` não é um bloco único. Tem três camadas, com permissões diferentes.
 
-| Caminho | Dono | Você pode |
+| Caminho | Natureza | Você pode |
 |---|---|---|
-| `docs/**` | O designer do curso, via sessão Cowork | **Somente leitura.** Nunca criar, editar, mover ou apagar |
-| todo o resto | Você | Escrever à vontade |
+| `docs/doc-1` a `doc-6`, `docs/INDICE.md`, `docs/ERRATA.md` | **Documentos-dono.** Possuem fatos | Ler. **Nunca editar** |
+| `docs/doc-7-spec-plataforma.md`, `docs/BACKLOG.md` | **Derivados.** Não possuem fato próprio | Ler e **corrigir propagação** — regras em §2 |
+| `docs/artefatos/` | Conteúdo do curso | Ler |
+| todo o resto | Implementação | Escrever à vontade |
 
-`docs/` é a especificação. Ela é mantida fora deste repositório e sincronizada para cá como distribuição somente-leitura. Uma edição sua em `docs/` seria sobrescrita na próxima sincronização e, pior, criaria uma regra que existe só no código — o que a própria spec define como **desvio, não decisão**.
-
-**Se você concluir que um documento em `docs/` está errado, incompleto ou contraditório: pare, não edite, e me diga qual arquivo, qual trecho e por quê.** Eu levo a questão para a sessão que é dona dos documentos, a mudança é feita lá com versionamento e changelog, e volta para cá sincronizada.
+O Doc 7 declara na própria §9: *"Nenhum SSOT. Este documento é derivado e não possui fatos próprios. Se algo neste documento contradisser os Docs 1 a 6, o erro está aqui."* Um trecho do Doc 7 que contradiz um documento-dono é **defeito**, não decisão pendente — e consertar defeito não exige autorização de ninguém.
 
 ---
 
-## 2. Como navegar a spec sem ler tudo
+## 2. Propagação × decisão
+
+A distinção que governa tudo neste repositório:
+
+> **A pergunta que decide:** o valor correto está escrito, hoje, em algum documento-dono?
+>
+> - **Sim** → é **propagação**. Corrija você mesmo, seguindo §2.1.
+> - **Não** → é **decisão**. Pare e reporte, seguindo §2.2.
+
+### 2.1 Propagação — você corrige
+
+Aplica-se apenas a `doc-7-spec-plataforma.md` e `BACKLOG.md`. Requisitos, todos obrigatórios:
+
+1. **Cite a fonte.** Você precisa conseguir apontar o documento, a seção ou a linha de changelog que já carrega a decisão. Se não conseguir citar, não é propagação
+2. **Versione.** Incremente a versão do documento derivado e escreva uma linha no changelog dizendo o que propagou e de onde
+3. **Não invente número.** Limiar, peso, prazo ou quantidade que você não consegue rastrear até um documento-dono não se corrige — se reporta
+4. **Commit separado**, sem código junto, com mensagem no formato `docs(spec): propaga <o quê> de <fonte>`
+5. **Avise no fim da sessão** quais documentos derivados você tocou, para que a cópia do Project seja ressincronizada
+
+### 2.2 Decisão — você para
+
+Pare e reporte, sem editar, quando:
+
+- Dois documentos-dono discordam entre si. **Nunca escolha um vencedor** — o protocolo do Doc 1 §0.3 exige alterar o dono, versionar e propagar, e isso acontece fora daqui
+- A regra que você precisa não existe em documento nenhum
+- Um documento-dono está errado, incompleto ou ambíguo
+- A correção exigiria mudar um fato, e não apenas o texto que descreve um fato já decidido
+
+No relatório, diga: **qual arquivo, qual trecho, o que está escrito, o que deveria estar, e por quê.** Isso vira uma alteração versionada no documento-dono e volta sincronizado.
+
+### 2.3 Um caso que vai se repetir
+
+Os Docs 1 a 6 descrevem **um curso específico** e podem falar em POO, C#, parede, dupla, Python, biblioteca. Isso é correto lá.
+
+O Doc 7 descreve a **plataforma genérica** e não pode. Quando o Doc 6 diz "reflexão do Python", a tradução para o Doc 7 é "reflexão da linguagem espelho". Não é contradição entre os dois — é a fronteira funcionando. Traduzir esses termos no Doc 7 é propagação, e você corrige.
+
+---
+
+## 3. Como navegar a spec sem ler tudo
 
 Ler os oito documentos por reflexo é desperdício. A ordem é:
 
@@ -31,15 +69,15 @@ Ler os oito documentos por reflexo é desperdício. A ordem é:
 
 ---
 
-## 3. As três regras invioláveis
+## 4. As três regras invioláveis do modelo
 
-### 3.1 A spec não inventa fato
+### 4.1 A spec não inventa fato
 
-Toda regra de comportamento aponta para um ID SSOT dos Docs 1 a 6. Se você precisar de uma regra que não existe em documento nenhum — **pare e pergunte**. Não decida no terminal. Decisão tomada no terminal e não registrada na spec deixa de existir na semana seguinte.
+Toda regra de comportamento aponta para um ID SSOT dos Docs 1 a 6. Decisão tomada no terminal e não registrada na spec deixa de existir na semana seguinte.
 
-### 3.2 O vocabulário do modelo é genérico
+### 4.2 O vocabulário do modelo é genérico
 
-A plataforma não é específica de um curso. Nenhuma entidade, coluna, rota, componente ou nome de teste pode mencionar POO, C#, parede, dupla ou biblioteca.
+Nenhuma entidade, coluna, rota, componente ou nome de teste pode mencionar POO, C#, parede, dupla, Python ou biblioteca.
 
 | Conceito do curso | Nome no código |
 |---|---|
@@ -53,13 +91,13 @@ A plataforma não é específica de um curso. Nenhuma entidade, coluna, rota, co
 
 Hardcode de conceito do curso é bug, não atalho.
 
-### 3.3 Nenhuma quantidade é constante
+### 4.3 Nenhuma quantidade é constante
 
 Número de temas, tamanho de grupo, limiar de adiantamento, pesos de eixo, quantidade de perguntas do formulário, número de dias — **tudo é configuração por curso**. Um literal numérico com significado pedagógico no código é bug.
 
 ---
 
-## 4. Processo
+## 5. Processo
 
 - **SDD:** a spec gera o backlog. O backlog gera as issues. A issue referencia o comportamento, nunca o redefine
 - **TDD:** os critérios de aceite do `BACKLOG.md` **são** os nomes dos testes. Escreva o teste com o nome dado, veja falhar, implemente
@@ -68,7 +106,7 @@ Número de temas, tamanho de grupo, limiar de adiantamento, pesos de eixo, quant
 
 ---
 
-## 5. Stack
+## 6. Stack
 
 | Decisão | Valor |
 |---|---|
@@ -83,7 +121,7 @@ O resto — ORM, biblioteca de UI, estrutura de pastas, estratégia de autentica
 
 ---
 
-## 6. O que a plataforma não faz
+## 7. O que a plataforma não faz
 
 Está em `docs/doc-7-spec-plataforma.md` §6, e vale repetir porque é onde o escopo mais tende a inflar:
 
