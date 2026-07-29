@@ -4,6 +4,7 @@ import {
   boolean,
   check,
   integer,
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -16,6 +17,28 @@ import {
 // Nenhum nome aqui pode mencionar conceito de curso (CLAUDE.md §4.2), e
 // nenhuma quantidade com significado pedagógico é constante (§4.3) — por
 // isso o tamanho do grupo é coluna de `cursos`, não literal.
+
+// Doc 7 §3 fixa exatamente dois papéis. Não é quantidade pedagógica
+// configurável — é a matriz de permissão da spec.
+export const papelEnum = pgEnum('papel', ['instrutor', 'aluno'])
+
+/**
+ * Identidade. Uma pessoa, um registro — seja ela instrutor ou aluno.
+ *
+ * `alunos` deixa de carregar identidade e passa a ser a matrícula de um
+ * usuário numa turma: o mesmo GitHub pode ser aluno numa turma e instrutor
+ * em outro curso sem duplicar pessoa.
+ */
+export const usuarios = pgTable('usuarios', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Chave imutável (ADR 0002 §2). O login é exibição: o GitHub deixa trocar,
+  // e o antigo fica livre para outra pessoa registrar.
+  githubUserId: bigint('github_user_id', { mode: 'number' }).notNull().unique(),
+  githubLogin: text('github_login').notNull(),
+  nome: text('nome').notNull(),
+  papel: papelEnum('papel').notNull(),
+  criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+})
 
 export const cursos = pgTable(
   'cursos',
@@ -55,12 +78,9 @@ export const alunos = pgTable(
       .notNull()
       .references(() => turmas.id, { onDelete: 'cascade' }),
 
-    // Identidade é o ID numérico do GitHub, imutável (ADR 0002 §2). O login
-    // é exibição: o usuário pode trocá-lo, e o antigo fica livre para outra
-    // pessoa registrar.
-    githubUserId: bigint('github_user_id', { mode: 'number' }).notNull().unique(),
-    githubLogin: text('github_login').notNull(),
-    nome: text('nome').notNull(),
+    usuarioId: uuid('usuario_id')
+      .notNull()
+      .references(() => usuarios.id, { onDelete: 'cascade' }),
 
     // Doc 6 §9.1: altera a origem da nota do Eixo 1, e não tem teto de nota.
     copiloto: boolean('copiloto').notNull().default(false),
@@ -71,6 +91,8 @@ export const alunos = pgTable(
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    // Uma matrícula por pessoa por turma.
+    unique('aluno_unico_por_turma').on(t.usuarioId, t.turmaId),
     // Duas vagas iguais no mesmo grupo não existem. É isto que serializa
     // duas alocações concorrentes.
     unique('aluno_posicao_unica_no_grupo').on(t.grupoId, t.posicaoNoGrupo),

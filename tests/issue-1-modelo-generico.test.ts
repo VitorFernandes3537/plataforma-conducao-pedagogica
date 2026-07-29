@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { alunos, cursos, grupos, repositorios, turmas } from '@/db/schema'
+import { alunos, cursos, grupos, repositorios, turmas, usuarios } from '@/db/schema'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
 
@@ -39,8 +39,13 @@ describe('Issue 1 — modelo genérico: Curso, Turma, Aluno, Grupo', () => {
     return { curso: curso!, turma: turma!, grupo: grupo! }
   }
 
-  function novoAluno(turmaId: string, githubUserId: number, nome: string) {
-    return { turmaId, githubUserId, githubLogin: `user${githubUserId}`, nome }
+  /** Identidade mora em `usuarios`; `alunos` é a matrícula numa turma. */
+  async function novoAluno(turmaId: string, githubUserId: number, nome: string) {
+    const [usuario] = await banco.db
+      .insert(usuarios)
+      .values({ githubUserId, githubLogin: `user${githubUserId}`, nome, papel: 'aluno' })
+      .returning()
+    return { turmaId, usuarioId: usuario!.id }
   }
 
   beforeEach(async () => {
@@ -58,10 +63,10 @@ describe('Issue 1 — modelo genérico: Curso, Turma, Aluno, Grupo', () => {
 
     await banco.db
       .insert(alunos)
-      .values({ ...novoAluno(turma.id, 1, 'Primeiro'), grupoId: grupo.id, posicaoNoGrupo: 1 })
+      .values({ ...(await novoAluno(turma.id, 1, 'Primeiro')), grupoId: grupo.id, posicaoNoGrupo: 1 })
     await banco.db
       .insert(alunos)
-      .values({ ...novoAluno(turma.id, 2, 'Segundo'), grupoId: grupo.id, posicaoNoGrupo: 2 })
+      .values({ ...(await novoAluno(turma.id, 2, 'Segundo')), grupoId: grupo.id, posicaoNoGrupo: 2 })
 
     const doGrupo = await banco.db.select().from(alunos).where(eq(alunos.grupoId, grupo.id))
     expect(doGrupo).toHaveLength(2)
@@ -71,7 +76,7 @@ describe('Issue 1 — modelo genérico: Curso, Turma, Aluno, Grupo', () => {
     // que rejeitou por isso, e não por outra constraint da tabela.
     const erro = await banco.db
       .insert(alunos)
-      .values({ ...novoAluno(turma.id, 3, 'Terceiro'), grupoId: grupo.id, posicaoNoGrupo: 3 })
+      .values({ ...(await novoAluno(turma.id, 3, 'Terceiro')), grupoId: grupo.id, posicaoNoGrupo: 3 })
       .then(
         () => null,
         (e: unknown) => e,
@@ -86,11 +91,11 @@ describe('Issue 1 — modelo genérico: Curso, Turma, Aluno, Grupo', () => {
 
     const [a] = await banco.db
       .insert(alunos)
-      .values({ ...novoAluno(turma.id, 10, 'A'), grupoId: grupo.id, posicaoNoGrupo: 1 })
+      .values({ ...(await novoAluno(turma.id, 10, 'A')), grupoId: grupo.id, posicaoNoGrupo: 1 })
       .returning()
     const [b] = await banco.db
       .insert(alunos)
-      .values({ ...novoAluno(turma.id, 11, 'B'), grupoId: grupo.id, posicaoNoGrupo: 2 })
+      .values({ ...(await novoAluno(turma.id, 11, 'B')), grupoId: grupo.id, posicaoNoGrupo: 2 })
       .returning()
 
     await banco.db.insert(repositorios).values({ alunoId: a!.id, url: 'https://github.com/a/p' })
@@ -111,7 +116,7 @@ describe('Issue 1 — modelo genérico: Curso, Turma, Aluno, Grupo', () => {
 
     const [aluno] = await banco.db
       .insert(alunos)
-      .values({ ...novoAluno(turma.id, 20, 'C'), grupoId: grupo.id, posicaoNoGrupo: 1 })
+      .values({ ...(await novoAluno(turma.id, 20, 'C')), grupoId: grupo.id, posicaoNoGrupo: 1 })
       .returning()
 
     expect(aluno!.copiloto).toBe(false)
@@ -130,7 +135,7 @@ describe('Issue 1 — modelo genérico: Curso, Turma, Aluno, Grupo', () => {
 
     const [solo] = await banco.db
       .insert(alunos)
-      .values({ ...novoAluno(turma.id, 30, 'Solo'), grupoId: grupo.id, posicaoNoGrupo: 1 })
+      .values({ ...(await novoAluno(turma.id, 30, 'Solo')), grupoId: grupo.id, posicaoNoGrupo: 1 })
       .returning()
 
     await banco.db

@@ -1,5 +1,5 @@
 {
-  "id": "a951c30f-f331-48b2-a10b-0efcad3172dd",
+  "id": "c3ccd945-23a8-4c4f-9aba-093d875b161c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -21,21 +21,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "github_user_id": {
-          "name": "github_user_id",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "github_login": {
-          "name": "github_login",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "nome": {
-          "name": "nome",
-          "type": "text",
+        "usuario_id": {
+          "name": "usuario_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -81,6 +69,19 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "alunos_usuario_id_usuarios_id_fk": {
+          "name": "alunos_usuario_id_usuarios_id_fk",
+          "tableFrom": "alunos",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "usuario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "alunos_grupo_id_grupos_id_fk": {
           "name": "alunos_grupo_id_grupos_id_fk",
           "tableFrom": "alunos",
@@ -97,11 +98,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "alunos_github_user_id_unique": {
-          "name": "alunos_github_user_id_unique",
+        "aluno_unico_por_turma": {
+          "name": "aluno_unico_por_turma",
           "nullsNotDistinct": false,
           "columns": [
-            "github_user_id"
+            "usuario_id",
+            "turma_id"
           ]
         },
         "aluno_posicao_unica_no_grupo": {
@@ -337,9 +339,78 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.usuarios": {
+      "name": "usuarios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "github_user_id": {
+          "name": "github_user_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "github_login": {
+          "name": "github_login",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "papel": {
+          "name": "papel",
+          "type": "papel",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "usuarios_github_user_id_unique": {
+          "name": "usuarios_github_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "github_user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.papel": {
+      "name": "papel",
+      "schema": "public",
+      "values": [
+        "instrutor",
+        "aluno"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

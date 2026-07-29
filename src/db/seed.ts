@@ -1,7 +1,7 @@
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import * as schema from './schema'
-import { alunos, cursos, grupos, repositorios, turmas } from './schema'
+import { alunos, cursos, grupos, repositorios, turmas, usuarios } from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
@@ -13,6 +13,7 @@ type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 export const EXEMPLO = {
   curso: { nome: 'Curso de exemplo', tamanhoMaximoDeGrupo: 2 },
   turma: { nome: 'Turma de exemplo' },
+  instrutor: { githubUserId: 1000, githubLogin: 'instrutor-exemplo', nome: 'Instrutor' },
   // Um grupo com dois alunos e um grupo solo — o solo é caso válido pelo
   // Doc 2 §2.4.1, não exceção.
   grupos: [
@@ -31,6 +32,13 @@ export async function semeia(db: Db) {
     .returning()
   if (!turma) throw new Error('seed: turma não foi criada')
 
+  // Sem instrutor não há como abrir a área de instrutor em desenvolvimento.
+  const [instrutor] = await db
+    .insert(usuarios)
+    .values({ ...EXEMPLO.instrutor, papel: 'instrutor' })
+    .returning()
+  if (!instrutor) throw new Error('seed: instrutor não foi criado')
+
   let proximoGithubId = 1
 
   for (const integrantes of EXEMPLO.grupos) {
@@ -38,16 +46,24 @@ export async function semeia(db: Db) {
     if (!grupo) throw new Error('seed: grupo não foi criado')
 
     for (const [indice, nome] of integrantes.entries()) {
-      const githubUserId = proximoGithubId++
+      const [usuario] = await db
+        .insert(usuarios)
+        .values({
+          githubUserId: proximoGithubId++,
+          githubLogin: nome.toLowerCase(),
+          nome,
+          papel: 'aluno',
+        })
+        .returning()
+      if (!usuario) throw new Error('seed: usuário não foi criado')
+
       const [aluno] = await db
         .insert(alunos)
         .values({
           turmaId: turma.id,
+          usuarioId: usuario.id,
           grupoId: grupo.id,
           posicaoNoGrupo: indice + 1,
-          githubUserId,
-          githubLogin: nome.toLowerCase(),
-          nome,
         })
         .returning()
       if (!aluno) throw new Error('seed: aluno não foi criado')
@@ -60,5 +76,5 @@ export async function semeia(db: Db) {
     }
   }
 
-  return { cursoId: curso.id, turmaId: turma.id }
+  return { cursoId: curso.id, turmaId: turma.id, instrutorId: instrutor.id }
 }

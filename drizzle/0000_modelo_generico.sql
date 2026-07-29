@@ -1,14 +1,13 @@
+CREATE TYPE "public"."papel" AS ENUM('instrutor', 'aluno');--> statement-breakpoint
 CREATE TABLE "alunos" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"turma_id" uuid NOT NULL,
-	"github_user_id" bigint NOT NULL,
-	"github_login" text NOT NULL,
-	"nome" text NOT NULL,
+	"usuario_id" uuid NOT NULL,
 	"copiloto" boolean DEFAULT false NOT NULL,
 	"grupo_id" uuid,
 	"posicao_no_grupo" integer,
 	"criado_em" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "alunos_github_user_id_unique" UNIQUE("github_user_id"),
+	CONSTRAINT "aluno_unico_por_turma" UNIQUE("usuario_id","turma_id"),
 	CONSTRAINT "aluno_posicao_unica_no_grupo" UNIQUE("grupo_id","posicao_no_grupo"),
 	CONSTRAINT "posicao_no_grupo_positiva" CHECK ("alunos"."posicao_no_grupo" is null or "alunos"."posicao_no_grupo" >= 1),
 	CONSTRAINT "posicao_coerente_com_grupo" CHECK (("alunos"."grupo_id" is null) = ("alunos"."posicao_no_grupo" is null))
@@ -44,7 +43,18 @@ CREATE TABLE "turmas" (
 	"criado_em" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "usuarios" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"github_user_id" bigint NOT NULL,
+	"github_login" text NOT NULL,
+	"nome" text NOT NULL,
+	"papel" "papel" NOT NULL,
+	"criado_em" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "usuarios_github_user_id_unique" UNIQUE("github_user_id")
+);
+--> statement-breakpoint
 ALTER TABLE "alunos" ADD CONSTRAINT "alunos_turma_id_turmas_id_fk" FOREIGN KEY ("turma_id") REFERENCES "public"."turmas"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "alunos" ADD CONSTRAINT "alunos_usuario_id_usuarios_id_fk" FOREIGN KEY ("usuario_id") REFERENCES "public"."usuarios"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "alunos" ADD CONSTRAINT "alunos_grupo_id_grupos_id_fk" FOREIGN KEY ("grupo_id") REFERENCES "public"."grupos"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "grupos" ADD CONSTRAINT "grupos_turma_id_turmas_id_fk" FOREIGN KEY ("turma_id") REFERENCES "public"."turmas"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "repositorios" ADD CONSTRAINT "repositorios_aluno_id_alunos_id_fk" FOREIGN KEY ("aluno_id") REFERENCES "public"."alunos"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
