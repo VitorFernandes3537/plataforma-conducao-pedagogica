@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+  Rumo visual da PCP.
+
+  A plataforma é um instrumento de condução de tempo, não um dashboard.
+  Referência estrutural: quadro de tarjas de despacho, onde cada Grupo é uma
+  ficha que atravessa portões numa régua de tempo.
+
+  Regra que governa a paleta: COR SIGNIFICA ESTADO. Nada aqui é decoração.
+  Os dois tons de portão existem porque os documentos distinguem marco `duro`
+  de marco `triagem` (Doc 4 §4) — é semântica, não gosto.
+
+  Compromisso deliberado com um único mundo visual: fundo escuro sempre. Não
+  é omissão de tema claro — é a escolha de parecer painel, e não documento.
+*/
+
+@theme {
+  /* Superfícies */
+  --color-quadro: #1f2a2e;
+  --color-quadro-fundo: #161f22;
+  --color-tarja: #e8e4da;
+  --color-tarja-sombra: #d3cec1;
+
+  /* Tinta */
+  --color-tinta: #16201f;
+  --color-tinta-fraca: #5b625d;
+  --color-clara: #e8ece9;
+  --color-clara-fraca: #97a3a4;
+
+  /* Estrutura */
+  --color-regua: #5c6b6e;
+  --color-regua-fraca: #33454a;
+
+  /* Portões — uso restrito a marco e estado bloqueante */
+  --color-portao-duro: #c2352b;
+  --color-portao-triagem: #c98a1e;
+
+  /* Escala de obstáculo 0–3 (`D6-ESCALA`). Sequencial, não semáforo:
+     0 é ausência, 3 é domínio. Superado é >= 1 (Doc 6 §2). */
+  --color-escala-0: #3d4a4d;
+  --color-escala-1: #6b7f6a;
+  --color-escala-2: #8aa473;
+  --color-escala-3: #b6c98a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Cromagem do instrumento: rótulo, cabeçalho, tarja. */
+  --font-chrome: var(--font-archivo);
+  /* Tempo e número. Tabular é requisito: coluna que dança é ilegível. */
+  --font-dado: var(--font-dado-mono);
+  /* Prosa de aluno: log, reflexão, briefing, contrato. */
+  --font-prosa: var(--font-literata);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-quadro-fundo);
+  color: var(--color-clara);
+  font-family: var(--font-chrome), system-ui, sans-serif;
+}
+
+/* Numeral tabular onde há número, sem precisar lembrar de pedir. */
+.dado {
+  font-family: var(--font-dado), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Foco visível é piso de qualidade, não enfeite. */
+:focus-visible {
+  outline: 2px solid var(--color-portao-triagem);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
