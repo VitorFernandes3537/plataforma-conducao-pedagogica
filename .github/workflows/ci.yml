@@ -1,0 +1,40 @@
+name: CI
+
+# "Suíte roda em CI a cada push" é critério de aceite da INFRA-1. O gatilho
+# de pull_request sozinho não atende — e falha em silêncio, porque o
+# workflow fica verde sem nunca ter rodado num push.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificacao:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tipos em modo estrito
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # PGlite roda Postgres em processo — sem service container, sem
+      # DATABASE_URL, e sem gastar branch do Neon (o teto é 10, e o plano
+      # pago não aumenta).
+      - name: Testes
+        run: npm run test
+
+      - name: Build
+        run: npm run build

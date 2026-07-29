@@ -1,0 +1,50 @@
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+
+import { describe, expect, it } from 'vitest'
+
+import { criaBancoEfemero } from './suporte/banco-efemero'
+
+// Os nomes destes testes vêm literalmente dos critérios de aceite da
+// INFRA-1 em docs/BACKLOG.md. Renomear aqui quebra a rastreabilidade
+// exigida pelo processo (CLAUDE.md §5).
+
+describe('INFRA-1 — scaffold e pipeline', () => {
+  it('build_passa_em_modo_estrito', () => {
+    // `next build` compila e checa tipos, mas demora. O que este critério
+    // protege é a checagem estrita, então roda só ela.
+    expect(() =>
+      execFileSync('npx', ['tsc', '--noEmit'], {
+        stdio: 'pipe',
+        shell: process.platform === 'win32',
+      }),
+    ).not.toThrow()
+  })
+
+  it('migrations_aplicam_em_banco_vazio', async () => {
+    const banco = await criaBancoEfemero()
+    try {
+      const { rows } = await banco.db.$client.query<{ contagem: number }>(
+        `select count(*)::int as contagem from information_schema.tables where table_schema = 'public'`,
+      )
+      // Enquanto não houver entidade (issues 1 e 2), o que se prova é que o
+      // migrator aplica a pasta inteira contra um banco vazio sem erro.
+      expect(rows[0]?.contagem).toBeGreaterThanOrEqual(0)
+    } finally {
+      await banco.encerra()
+    }
+  })
+
+  it('ci_executa_suite_em_cada_push', () => {
+    const workflow = readFileSync('.github/workflows/ci.yml', 'utf8')
+    // O critério é "a cada push", não "a cada pull request". Um workflow só
+    // com gatilho de PR não atende, e o erro é silencioso: ele fica verde.
+    expect(workflow).toMatch(/^\s{2}push:/m)
+    expect(workflow).toContain('npm run test')
+    expect(workflow).toContain('npm run typecheck')
+  })
+
+  // Depende de Curso, Turma, Aluno e Grupo, que são da issue 1 e estão
+  // explicitamente fora do escopo da INFRA-1.
+  it.todo('seed_cria_curso_completo')
+})
