@@ -53,6 +53,66 @@ export const cursos = pgTable(
   (t) => [check('tamanho_maximo_de_grupo_positivo', sql`${t.tamanhoMaximoDeGrupo} >= 1`)],
 )
 
+// Doc 4 §4 e Doc 7 §2.1: go/no-go duro, ou triagem com consequência. São
+// termos genéricos da spec, não vocabulário do curso.
+export const marcoTipoEnum = pgEnum('marco_tipo', ['duro', 'triagem'])
+
+/**
+ * Um dia do curso. `ordem` é 1..N e N é configuração — nunca 15 (Doc 7 §2.4:
+ * "nenhum limiar ou quantidade é constante").
+ */
+export const dias = pgTable(
+  'dias',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cursoId: uuid('curso_id')
+      .notNull()
+      .references(() => cursos.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('dia_ordem_unica_no_curso').on(t.cursoId, t.ordem),
+    check('dia_ordem_positiva', sql`${t.ordem} >= 1`),
+  ],
+)
+
+/**
+ * Bloco de um dia. `tipo` é TEXTO, não enum: o Doc 4 §2 nomeia os blocos com
+ * vocabulário do curso, e enumerá-los aqui violaria a regra de generalização
+ * (Doc 7 §1). A taxonomia é dado que o instrutor cadastra.
+ */
+export const blocos = pgTable(
+  'blocos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    diaId: uuid('dia_id')
+      .notNull()
+      .references(() => dias.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    duracaoMinutos: integer('duracao_minutos').notNull(),
+    tipo: text('tipo').notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('bloco_ordem_unica_no_dia').on(t.diaId, t.ordem),
+    check('bloco_ordem_positiva', sql`${t.ordem} >= 1`),
+    check('bloco_duracao_positiva', sql`${t.duracaoMinutos} >= 1`),
+  ],
+)
+
+/** Marco pendura no DIA (Doc 4 §4), e é opcional: no máximo um por dia. */
+export const marcos = pgTable('marcos', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  diaId: uuid('dia_id')
+    .notNull()
+    .unique()
+    .references(() => dias.id, { onDelete: 'cascade' }),
+  nome: text('nome').notNull(),
+  tipo: marcoTipoEnum('tipo').notNull(),
+  criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const turmas = pgTable('turmas', {
   id: uuid('id').primaryKey().defaultRandom(),
   cursoId: uuid('curso_id')

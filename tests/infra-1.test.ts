@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
-import { alunos, cursos, grupos, repositorios } from '@/db/schema'
+import { duracaoTotalPorDia } from '@/db/calendario'
+import { alunos, cursos, grupos, marcos, repositorios } from '@/db/schema'
 import { EXEMPLO, semeia } from '@/db/seed'
 
 import { criaBancoEfemero } from './suporte/banco-efemero'
@@ -71,6 +72,16 @@ describe('INFRA-1 — scaffold e pipeline', () => {
         .map((g) => daTurma.filter((a) => a.grupoId === g.id).length)
         .sort()
       expect(tamanhos).toEqual([...EXEMPLO.grupos.map((g) => g.length)].sort())
+
+      // Curso completo inclui calendário: dias, blocos e o marco.
+      const somas = await duracaoTotalPorDia(banco.db, cursoId)
+      expect(somas).toHaveLength(EXEMPLO.dias.length)
+      expect(somas.map((s) => s.totalMinutos)).toEqual(
+        EXEMPLO.dias.map((d) => d.blocos.reduce((t, b) => t + b.duracaoMinutos, 0)),
+      )
+
+      const marcosDoCurso = await banco.db.select().from(marcos)
+      expect(marcosDoCurso).toHaveLength(EXEMPLO.dias.filter((d) => d.marco !== null).length)
     } finally {
       await banco.encerra()
     }

@@ -1,6 +1,6 @@
 {
-  "id": "38cfcb66-c4cf-4832-802c-3aa960ce969b",
-  "prevId": "c3ccd945-23a8-4c4f-9aba-093d875b161c",
+  "id": "bc610b50-ea88-43e4-a345-c36a527c4231",
+  "prevId": "219022b4-be5c-442a-9591-89e56980ab15",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -128,6 +128,89 @@
       },
       "isRLSEnabled": false
     },
+    "public.blocos": {
+      "name": "blocos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "dia_id": {
+          "name": "dia_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duracao_minutos": {
+          "name": "duracao_minutos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "blocos_dia_id_dias_id_fk": {
+          "name": "blocos_dia_id_dias_id_fk",
+          "tableFrom": "blocos",
+          "columnsFrom": [
+            "dia_id"
+          ],
+          "tableTo": "dias",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "bloco_ordem_unica_no_dia": {
+          "name": "bloco_ordem_unica_no_dia",
+          "columns": [
+            "dia_id",
+            "ordem"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "bloco_ordem_positiva": {
+          "name": "bloco_ordem_positiva",
+          "value": "\"blocos\".\"ordem\" >= 1"
+        },
+        "bloco_duracao_positiva": {
+          "name": "bloco_duracao_positiva",
+          "value": "\"blocos\".\"duracao_minutos\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.cursos": {
       "name": "cursos",
       "schema": "",
@@ -168,6 +251,73 @@
         "tamanho_maximo_de_grupo_positivo": {
           "name": "tamanho_maximo_de_grupo_positivo",
           "value": "\"cursos\".\"tamanho_maximo_de_grupo\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dias": {
+      "name": "dias",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "curso_id": {
+          "name": "curso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dias_curso_id_cursos_id_fk": {
+          "name": "dias_curso_id_cursos_id_fk",
+          "tableFrom": "dias",
+          "columnsFrom": [
+            "curso_id"
+          ],
+          "tableTo": "cursos",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dia_ordem_unica_no_curso": {
+          "name": "dia_ordem_unica_no_curso",
+          "columns": [
+            "curso_id",
+            "ordem"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "dia_ordem_positiva": {
+          "name": "dia_ordem_positiva",
+          "value": "\"dias\".\"ordem\" >= 1"
         }
       },
       "isRLSEnabled": false
@@ -215,6 +365,74 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.marcos": {
+      "name": "marcos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "dia_id": {
+          "name": "dia_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "marco_tipo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "marcos_dia_id_dias_id_fk": {
+          "name": "marcos_dia_id_dias_id_fk",
+          "tableFrom": "marcos",
+          "columnsFrom": [
+            "dia_id"
+          ],
+          "tableTo": "dias",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "marcos_dia_id_unique": {
+          "name": "marcos_dia_id_unique",
+          "columns": [
+            "dia_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -402,6 +620,14 @@
     }
   },
   "enums": {
+    "public.marco_tipo": {
+      "name": "marco_tipo",
+      "schema": "public",
+      "values": [
+        "duro",
+        "triagem"
+      ]
+    },
     "public.papel": {
       "name": "papel",
       "schema": "public",

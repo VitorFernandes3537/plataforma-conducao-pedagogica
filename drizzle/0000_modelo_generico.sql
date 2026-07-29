@@ -1,3 +1,4 @@
+CREATE TYPE "public"."marco_tipo" AS ENUM('duro', 'triagem');--> statement-breakpoint
 CREATE TYPE "public"."papel" AS ENUM('instrutor', 'aluno');--> statement-breakpoint
 CREATE TABLE "alunos" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -13,6 +14,18 @@ CREATE TABLE "alunos" (
 	CONSTRAINT "posicao_coerente_com_grupo" CHECK (("alunos"."grupo_id" is null) = ("alunos"."posicao_no_grupo" is null))
 );
 --> statement-breakpoint
+CREATE TABLE "blocos" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"dia_id" uuid NOT NULL,
+	"ordem" integer NOT NULL,
+	"duracao_minutos" integer NOT NULL,
+	"tipo" text NOT NULL,
+	"criado_em" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "bloco_ordem_unica_no_dia" UNIQUE("dia_id","ordem"),
+	CONSTRAINT "bloco_ordem_positiva" CHECK ("blocos"."ordem" >= 1),
+	CONSTRAINT "bloco_duracao_positiva" CHECK ("blocos"."duracao_minutos" >= 1)
+);
+--> statement-breakpoint
 CREATE TABLE "cursos" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"nome" text NOT NULL,
@@ -21,10 +34,28 @@ CREATE TABLE "cursos" (
 	CONSTRAINT "tamanho_maximo_de_grupo_positivo" CHECK ("cursos"."tamanho_maximo_de_grupo" >= 1)
 );
 --> statement-breakpoint
+CREATE TABLE "dias" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"curso_id" uuid NOT NULL,
+	"ordem" integer NOT NULL,
+	"criado_em" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "dia_ordem_unica_no_curso" UNIQUE("curso_id","ordem"),
+	CONSTRAINT "dia_ordem_positiva" CHECK ("dias"."ordem" >= 1)
+);
+--> statement-breakpoint
 CREATE TABLE "grupos" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"turma_id" uuid NOT NULL,
 	"criado_em" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "marcos" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"dia_id" uuid NOT NULL,
+	"nome" text NOT NULL,
+	"tipo" "marco_tipo" NOT NULL,
+	"criado_em" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "marcos_dia_id_unique" UNIQUE("dia_id")
 );
 --> statement-breakpoint
 CREATE TABLE "repositorios" (
@@ -56,6 +87,9 @@ CREATE TABLE "usuarios" (
 ALTER TABLE "alunos" ADD CONSTRAINT "alunos_turma_id_turmas_id_fk" FOREIGN KEY ("turma_id") REFERENCES "public"."turmas"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "alunos" ADD CONSTRAINT "alunos_usuario_id_usuarios_id_fk" FOREIGN KEY ("usuario_id") REFERENCES "public"."usuarios"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "alunos" ADD CONSTRAINT "alunos_grupo_id_grupos_id_fk" FOREIGN KEY ("grupo_id") REFERENCES "public"."grupos"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "blocos" ADD CONSTRAINT "blocos_dia_id_dias_id_fk" FOREIGN KEY ("dia_id") REFERENCES "public"."dias"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "dias" ADD CONSTRAINT "dias_curso_id_cursos_id_fk" FOREIGN KEY ("curso_id") REFERENCES "public"."cursos"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "grupos" ADD CONSTRAINT "grupos_turma_id_turmas_id_fk" FOREIGN KEY ("turma_id") REFERENCES "public"."turmas"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "marcos" ADD CONSTRAINT "marcos_dia_id_dias_id_fk" FOREIGN KEY ("dia_id") REFERENCES "public"."dias"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "repositorios" ADD CONSTRAINT "repositorios_aluno_id_alunos_id_fk" FOREIGN KEY ("aluno_id") REFERENCES "public"."alunos"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "turmas" ADD CONSTRAINT "turmas_curso_id_cursos_id_fk" FOREIGN KEY ("curso_id") REFERENCES "public"."cursos"("id") ON DELETE cascade ON UPDATE no action;

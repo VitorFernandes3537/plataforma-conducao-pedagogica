@@ -1,7 +1,7 @@
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import * as schema from './schema'
-import { alunos, cursos, grupos, repositorios, turmas, usuarios } from './schema'
+import { alunos, blocos, cursos, dias, grupos, marcos, repositorios, turmas, usuarios } from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
@@ -19,6 +19,27 @@ export const EXEMPLO = {
   grupos: [
     ['Ana', 'Bruno'],
     ['Carla'],
+  ],
+  // Calendário curto de propósito: o número de dias é configuração, e um
+  // exemplo com a contagem do curso real convidaria a tratá-la como padrão.
+  dias: [
+    { ordem: 1, blocos: [{ tipo: 'abertura', duracaoMinutos: 60 }], marco: null },
+    {
+      ordem: 2,
+      blocos: [
+        { tipo: 'abertura', duracaoMinutos: 20 },
+        { tipo: 'tentativa', duracaoMinutos: 40 },
+        { tipo: 'demonstracao', duracaoMinutos: 30 },
+        { tipo: 'implementacao', duracaoMinutos: 75 },
+        { tipo: 'fechamento', duracaoMinutos: 15 },
+      ],
+      marco: null,
+    },
+    {
+      ordem: 3,
+      blocos: [{ tipo: 'avaliacao', duracaoMinutos: 90 }],
+      marco: { nome: 'Escopo aprovado', tipo: 'duro' as const },
+    },
   ],
 } as const
 
@@ -38,6 +59,27 @@ export async function semeia(db: Db) {
     .values({ ...EXEMPLO.instrutor, papel: 'instrutor' })
     .returning()
   if (!instrutor) throw new Error('seed: instrutor não foi criado')
+
+  for (const definicao of EXEMPLO.dias) {
+    const [dia] = await db
+      .insert(dias)
+      .values({ cursoId: curso.id, ordem: definicao.ordem })
+      .returning()
+    if (!dia) throw new Error('seed: dia não foi criado')
+
+    await db.insert(blocos).values(
+      definicao.blocos.map((b, indice) => ({
+        diaId: dia.id,
+        ordem: indice + 1,
+        tipo: b.tipo,
+        duracaoMinutos: b.duracaoMinutos,
+      })),
+    )
+
+    if (definicao.marco) {
+      await db.insert(marcos).values({ diaId: dia.id, ...definicao.marco })
+    }
+  }
 
   let proximoGithubId = 1
 
