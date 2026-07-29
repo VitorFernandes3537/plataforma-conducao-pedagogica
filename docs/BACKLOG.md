@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Deriva de** | `doc-7-spec-plataforma.md` v1.2 |
-| **Versão deste backlog** | 1.1 |
+| **Versão deste backlog** | 1.2 |
 | **Total** | 25 issues — 19 do Doc 7 §7 · 4 derivadas das features que a errata acrescentou ao §4 · 2 de infraestrutura |
 | **Stack** | Next.js (App Router) + TypeScript + PostgreSQL, hospedado em PaaS gerenciada |
 
@@ -63,6 +63,8 @@ Implementa a matriz de permissões de Doc 7 §3. Os dois papéis são **Instruto
 
 Restrição operacional herdada de `D2-SEM-PREVIO`: parte da turma não tem computador em casa e o primeiro contato é no D1. O cadastro precisa ser feito em minutos, em sala, sem depender de e-mail confirmado.
 
+O mecanismo escolhido é **identidade pelo GitHub** (ADR 0002): a conta já é pré-requisito do curso, porque o Doc 5 §6 exige de cada aluno um repositório público individual com push diário. Não há senha, logo não há e-mail a confirmar nem recuperação. O instrutor pré-cadastra a turma por usuário do GitHub e o primeiro login apenas vincula — quem não foi cadastrado não entra.
+
 ## SSOT
 Doc 7 §3 (papéis) · `D2-SEM-PREVIO` (nenhum artefato pressupõe trabalho prévio).
 
@@ -75,7 +77,9 @@ Doc 7 §3 (papéis) · `D2-SEM-PREVIO` (nenhum artefato pressupõe trabalho pré
 - [ ] Instrutor cria acesso de aluno em lote, sem confirmação por e-mail → teste: `instrutor_cria_alunos_em_lote`
 
 ## Fora de escopo
-- SSO, OAuth de terceiros, recuperação de senha por e-mail
+- SSO corporativo e provedor de identidade além do GitHub
+- Senha própria e recuperação por e-mail — não existe senha
+- Infraestrutura de organização do GitHub: a plataforma não instala GitHub App, não cria repositório e não gerencia membro de org (ADR 0002)
 
 ---
 
@@ -627,5 +631,6 @@ Doc 6 §5.1 (reflexão sobre a tese) · Doc 6 §7 (reflexão da linguagem espelh
 
 | Versão | Mudança |
 |---|---|
+| 1.2 | **Propagação da ADR 0002 para a INFRA-2.** O contexto dizia apenas que "o mecanismo de login é decisão de desenvolvedor"; a decisão foi tomada e é identidade pelo GitHub, sem senha. "OAuth de terceiros" sai de fora de escopo, porque passou a ser o mecanismo. Entra em fora de escopo a infraestrutura de organização do GitHub, avaliada e descartada. Nenhum critério de aceite mudou: os seis nomes de teste seguem idênticos |
 | 1.1 | **Ressincronização de ponteiro, nenhuma issue alterada.** "Deriva de" passa de `doc-7-spec-plataforma.md` v1.1 para v1.2. As cinco correções do Doc 7 v1.2 foram conferidas uma a uma contra o corpo deste backlog e já estavam refletidas: registro diário por aluno (issue 11), `peso` do obstáculo sem flag de "central" e pesos configurados por eixo (issue 18), reflexão da linguagem espelho (issue 23) e `Grupo` de 1 ou 2 alunos (issue 1). Nenhum critério de aceite mudou, nenhuma issue publicada no GitHub ficou dessincronizada |
 | 1.0 | Backlog criado a partir do Doc 7 v1.1 §7. 25 issues — 19 do §7, 4 das features acrescentadas ao §4 pela errata, 2 de infraestrutura |
