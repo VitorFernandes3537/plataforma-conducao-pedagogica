@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Estado** | Fechado |
-| **Versão** | 1.1 |
+| **Versão** | 1.2 |
 | **Natureza** | **Derivado** — não possui fatos próprios |
 | **Depende de** | Docs 1 a 6 |
 | **Processo** | SDD: esta spec gera o backlog de issues. TDD: os critérios de aceite viram nomes de teste |
@@ -75,7 +75,7 @@ Entidades e relações. Sem tipos, sem SQL — isso é decisão do desenvolvedor
 
 ```
 Curso
- ├── Turma ──── Aluno ──── Grupo (2 alunos, 1 Tema)
+ ├── Turma ──── Aluno ──── Grupo (1–2 alunos, 1 Tema)
  ├── Dia (1..N) ──── Bloco (ordem, duração, tipo)
  │                    └── Marco (opcional; tipo: duro | triagem)
  ├── BancoDeTemas ──── Tema (nome, dificuldade, trilha, briefing?)
@@ -213,7 +213,7 @@ Os milestones são **prazos do cronograma do curso**, não áreas de feature. Co
 
 | Funcionalidade | Origem |
 |---|---|
-| Registro diário por grupo | `D6-CAPTURA` |
+| Registro diário por aluno | `D6-CAPTURA` |
 | Avaliação de obstáculo em escala 0–3 | `D6-ESCALA` |
 | Log de obstáculo (texto livre) | Doc 5, §6 |
 | Contrato diário: faremos / não faremos / cumprido | `D5-CONTRATODIARIO` |
@@ -284,11 +284,11 @@ Os milestones são **prazos do cronograma do curso**, não áreas de feature. Co
 
 | Funcionalidade | Origem |
 |---|---|
-| Agregação dos 3 eixos com pesos 50/30/20 | `D6-EIXOS` |
-| Peso dobrado do obstáculo central | `D6-PESOS-PAREDE` |
+| Agregação dos 3 eixos com pesos configuráveis por curso | `D6-EIXOS` · Doc 6, §13 |
+| Peso do obstáculo aplicado ao Eixo 1, via campo `peso` | `D6-PESOS-PAREDE` |
 | Registro da defesa oral, com as perguntas usadas | `D6-DEFESA` |
 | Reflexão sobre a tese na retrospectiva | Doc 6, §5.1 |
-| Reflexão do Python como item do Eixo 3 | Doc 6, §7 |
+| Reflexão da linguagem espelho como item do Eixo 3 | Doc 6, §7 |
 | Banco de perguntas da defesa oral | `D6-DEFESA` |
 | Índice público da turma: temas e repositórios | Doc 5, §6.2 |
 
@@ -298,7 +298,7 @@ Os milestones são **prazos do cronograma do curso**, não áreas de feature. Co
 - `obstáculo com peso 2 contribui em dobro no eixo 1`
 - `aluno com estado copiloto é avaliado no eixo 1 apenas pela defesa oral`
 - `eixo declarado como unidade aluno agrega por aluno; unidade grupo agrega por grupo`
-- `reflexão do Python entra como item do eixo 3`
+- `reflexão da linguagem espelho entra como item do eixo 3`
 - `defesa oral registra quais perguntas foram usadas`
 - `índice público lista tema e repositório de cada grupo`
 - `nota não é visível ao aluno antes da agregação final`
@@ -389,5 +389,6 @@ Toda regra aqui aponta para os Docs 1 a 6. Se algo neste documento contradisser 
 
 | Versão | Mudança |
 |---|---|
+| 1.2 | **Propagação, nenhum fato novo.** §2.1: `Grupo` passa de "2 alunos" para "1–2 alunos" — a decisão já estava em Doc 2 §2.4.1, na ERRATA §3 e §4, e no §2.4 e no changelog v1.1 deste próprio documento; só o diagrama não havia acompanhado. §4 M2: "registro diário por grupo" passa a "por aluno", conforme a unidade declarada em Doc 6 §1.1 e a movimentação registrada na ERRATA §2.2, já refletida no §2.2 daqui. §4 M5: "pesos 50/30/20" passa a "pesos configuráveis por curso", conforme a nota cross-doc de Doc 6 §13 endereçada a este documento; "peso dobrado do obstáculo central" passa a "peso do obstáculo via campo `peso`", conforme ERRATA §2.3 e Doc 6 §3.1, alinhando-se ao §2.4 daqui; "reflexão do Python" passa a "reflexão da linguagem espelho", tradução do termo do curso (Doc 6 §7) para o vocabulário genérico exigido pela §1 |
 | 1.1 | Correções após auditoria cruzada. Dois mecanismos inventados removidos: "obstáculo central" vira campo `peso`, "modo copiloto" vira estado de `Aluno`. `Repositorio`, `RegistroDiario` e `ConfirmacaoDePush` movidos de `Grupo` para `Aluno`, conforme a unidade de avaliação declarada no Doc 6 §1.1. `Grupo` passa a aceitar 1 ou 2 alunos. Constantes "18 temas" e "9 em 11" substituídas por configuração. Entidades adicionadas para defesa oral, material de referência com liberação temporizada, escopos de emergência e atribuição de extensão |
 | 1.0 | Documento criado. Modelo de dados generalizado — nenhuma entidade menciona POO, C# ou paredes. Milestones alinhados aos prazos do cronograma em vez de áreas de feature. Backlog de 19 issues derivado da spec, com critérios de aceite em forma de nome de teste |
