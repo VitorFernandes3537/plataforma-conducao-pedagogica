@@ -5,6 +5,7 @@ import {
   boolean,
   check,
   integer,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -122,6 +123,84 @@ export const marcos = pgTable('marcos', {
   tipo: marcoTipoEnum('tipo').notNull(),
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
 })
+
+/**
+ * Obstáculo do curso (Doc 7 §2.1: `Curso ── Obstaculo (1..N)`).
+ *
+ * `peso` é COLUNA e não flag de "central" — a regra é literal no Doc 7 §2.4,
+ * ancorada em `D6-PESOS-PAREDE`. O obstáculo mais importante de um curso pesa
+ * mais; qual é ele, e quanto mais, é configuração. Uma flag booleana só
+ * conseguiria dizer "é o central" e obrigaria o código a saber quanto isso
+ * vale.
+ *
+ * Sem `default` no peso: um valor padrão aqui decidiria em código o que o curso
+ * tem de declarar. Quem cadastra o obstáculo diz o peso.
+ *
+ * `numeric` em vez de `integer` porque nada nos documentos-dono limita o peso a
+ * múltiplo inteiro, e escolher inteiro proibiria algo que ninguém proibiu.
+ */
+export const obstaculos = pgTable(
+  'obstaculos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cursoId: uuid('curso_id')
+      .notNull()
+      .references(() => cursos.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    /**
+     * O obstáculo É uma pergunta, e é a pergunta que chega à plataforma
+     * (`D3-07`). Um `nome` seria rótulo inventado por cima de uma identidade que
+     * o documento-dono já declarou — e o mural da issue 15 agrupa por pergunta,
+     * não por ordinal.
+     */
+    pergunta: text('pergunta').notNull(),
+    peso: numeric('peso', { precision: 6, scale: 2, mode: 'number' }).notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('obstaculo_ordem_unica_no_curso').on(t.cursoId, t.ordem),
+    check('obstaculo_ordem_positiva', sql`${t.ordem} >= 1`),
+    // Peso zero ou negativo tiraria o obstáculo da conta sem tirá-lo do curso —
+    // o aluno seria avaliado num item que não vale nada, e ninguém veria.
+    check('obstaculo_peso_positivo', sql`${t.peso} > 0`),
+  ],
+)
+
+/**
+ * Os níveis da escala de avaliação, por curso (`D6-ESCALA`).
+ *
+ * O Doc 6 §2 declara quatro níveis e o descritor de cada um, e declara também
+ * que "superado = nível ≥ 1". Nada disso vira literal em código: o Doc 7 §1
+ * fecha a questão — "nenhum limiar ou quantidade é constante, todos
+ * configuráveis por curso". Então a escala é DADO, e a escala deste curso é
+ * quatro linhas de seed com os descritores do Doc 6.
+ *
+ * `contaComoSuperacao` é a coluna que apaga o `>= 1` do código. O painel de
+ * superação e o limiar de adiantamento (Doc 4 §5.2) leem esta coluna em vez de
+ * comparar com um número, o que faz um curso com escala de cinco níveis
+ * funcionar sem tocar em uma linha.
+ *
+ * Os descritores também são dados: são frases do método ("superou com apoio
+ * direto do instrutor"), e escrevê-las em código seria pôr conteúdo de curso
+ * dentro da plataforma.
+ */
+export const niveisDeAvaliacao = pgTable(
+  'niveis_de_avaliacao',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cursoId: uuid('curso_id')
+      .notNull()
+      .references(() => cursos.id, { onDelete: 'cascade' }),
+    /** O número que o instrutor lança. */
+    valor: integer('valor').notNull(),
+    /** O que esse número significa, escrito para o instrutor ler na tela. */
+    descritor: text('descritor').notNull(),
+    /** Este nível conta como obstáculo superado? Substitui o `>= 1` em código. */
+    contaComoSuperacao: boolean('conta_como_superacao').notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('nivel_unico_por_curso').on(t.cursoId, t.valor)],
+)
 
 export const turmas = pgTable('turmas', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -574,6 +653,147 @@ export const respostasDePergunta = pgTable(
   },
   (t) => [unique('resposta_unica_por_pergunta').on(t.respostaDeEscopoId, t.perguntaId)],
 )
+
+/**
+ * Registro diário de um aluno (Doc 7 §2.2: `Aluno ── RegistroDiario (por Dia)`).
+ *
+ * Pendura em `Aluno`, não em `Grupo`, e a razão está escrita: "avaliar o Eixo 1
+ * por grupo faria um aluno ausente herdar a nota do parceiro" (Doc 7 §2.2,
+ * `D6-CAPTURA` · Doc 6 §1.1). É a diferença entre uma nota que descreve alguém
+ * e uma que descreve o vizinho dele.
+ *
+ * É o CONTÊINER do dia: avaliação de obstáculo, log e confirmação de push
+ * penduram aqui, e o contrato diário (issue 12) e a reflexão de fechamento
+ * (issue 23) vão pendurar no mesmo lugar. Sem contêiner, cada instrumento
+ * carregaria `alunoId` e `diaId` por conta própria e a coerência entre eles
+ * viraria convenção.
+ *
+ * Toda evidência é capturada AO VIVO, nos momentos que já existem no cronograma
+ * (Doc 6 §0.3). Nada aqui é preenchido depois, num fim de semana de correção.
+ */
+export const registrosDiarios = pgTable(
+  'registros_diarios',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    alunoId: uuid('aluno_id')
+      .notNull()
+      .references(() => alunos.id, { onDelete: 'cascade' }),
+    diaId: uuid('dia_id')
+      .notNull()
+      .references(() => dias.id, { onDelete: 'cascade' }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  // Um registro por aluno por dia. Dois abririam a porta para duas avaliações
+  // do mesmo obstáculo no mesmo dia, com valores diferentes, e nenhuma tela
+  // saberia qual mostrar.
+  (t) => [unique('registro_unico_por_aluno_e_dia').on(t.alunoId, t.diaId)],
+)
+
+/**
+ * Avaliação de um obstáculo, na escala do curso (Doc 7 §2.4: "`AvaliacaoObstaculo`
+ * só aceita 0–3", `D6-ESCALA`).
+ *
+ * O 0–3 não aparece aqui como CHECK. Ele é a escala DESTE curso, e mora em
+ * `niveisDeAvaliacao`; a chave estrangeira é o que garante que só nível
+ * configurado seja lançado. Escrever `between 0 and 3` cumpriria a linha do
+ * Doc 7 §2.4 e violaria a do §1 na mesma tabela — e é o §1 que a regra 4.3 do
+ * CLAUDE.md repete.
+ *
+ * `lancadoPorId` responde "quem lançou". Numa avaliação que pode divergir entre
+ * integrantes do mesmo grupo, saber quem registrou a divergência é o que torna a
+ * decisão discutível na defesa oral.
+ *
+ * Não existe coluna `divergente`. Divergência é a ausência de igualdade com o
+ * parceiro — dado derivável, e uma flag poderia discordar dos números que ela
+ * descreve.
+ */
+export const avaliacoesDeObstaculo = pgTable(
+  'avaliacoes_de_obstaculo',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    registroDiarioId: uuid('registro_diario_id')
+      .notNull()
+      .references(() => registrosDiarios.id, { onDelete: 'cascade' }),
+    obstaculoId: uuid('obstaculo_id')
+      .notNull()
+      .references(() => obstaculos.id, { onDelete: 'cascade' }),
+    // `restrict`: apagar o instrutor não pode apagar a nota que ele lançou.
+    nivelId: uuid('nivel_id')
+      .notNull()
+      .references(() => niveisDeAvaliacao.id, { onDelete: 'restrict' }),
+    lancadoPorId: uuid('lancado_por_id')
+      .notNull()
+      .references(() => usuarios.id, { onDelete: 'restrict' }),
+    lancadoEm: timestamp('lancado_em', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * A nota de um obstaculo pode ser ajustada depois, para cima ou para baixo,
+     * pelas perguntas da defesa oral (Doc 6 §3.2). Com só `lancadoEm` — que não
+     * se move num UPDATE — o ajuste ficaria indistinguível do lançamento do dia,
+     * e é no fechamento da nota que ele precisa ser auditável.
+     */
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('avaliacao_unica_por_obstaculo_no_dia').on(t.registroDiarioId, t.obstaculoId)],
+)
+
+/**
+ * Log de obstáculo: texto livre do aluno, por obstáculo, dentro do dia.
+ *
+ * Item do Eixo 3 (Doc 6 §5). Quantas linhas se espera é configuração do curso e
+ * assunto do motor de validação, não desta tabela — aqui o texto é livre porque
+ * o que o aluno escreve sobre onde travou não cabe em campo estruturado.
+ *
+ * Pendura no registro diário, e não direto no aluno, porque o log é do dia: é
+ * escrito enquanto a memória do obstáculo é fresca.
+ */
+export const logsDeObstaculo = pgTable(
+  'logs_de_obstaculo',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    registroDiarioId: uuid('registro_diario_id')
+      .notNull()
+      .references(() => registrosDiarios.id, { onDelete: 'cascade' }),
+    obstaculoId: uuid('obstaculo_id')
+      .notNull()
+      .references(() => obstaculos.id, { onDelete: 'cascade' }),
+    texto: text('texto').notNull(),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('log_unico_por_obstaculo_no_dia').on(t.registroDiarioId, t.obstaculoId),
+    // Log em branco não é log: entraria na conta do Eixo 3 sem conteúdo.
+    check('log_nao_vazio', sql`btrim(${t.texto}) <> ''`),
+  ],
+)
+
+/**
+ * Confirmação do push do dia (Doc 7 §2.2 · Doc 5 §6).
+ *
+ * "Mínimo 1 por dia, no fechamento da aula" e "o que se verifica é a existência
+ * do push do dia" (Doc 5 §6 e §6.1). Existência, não granularidade — daí não
+ * haver contagem de commits nem hash: a tabela registra que houve, e mais nada.
+ *
+ * É por ALUNO porque o repositório é individual (Doc 5 §6). Uma confirmação por
+ * grupo daria ao ausente o push do parceiro.
+ *
+ * `confirmadoPorId` guarda quem confirmou em vez de assumir que foi o aluno ou o
+ * instrutor: nenhum documento-dono diz qual dos dois declara, e inventar a
+ * resposta aqui seria fixar em coluna uma decisão que ainda não existe. A matriz
+ * de permissões resolve quem pode.
+ *
+ * A plataforma não lê o GitHub — isso está fora de escopo por decisão da issue.
+ */
+export const confirmacoesDePush = pgTable('confirmacoes_de_push', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  registroDiarioId: uuid('registro_diario_id')
+    .notNull()
+    .unique()
+    .references(() => registrosDiarios.id, { onDelete: 'cascade' }),
+  confirmadoPorId: uuid('confirmado_por_id')
+    .notNull()
+    .references(() => usuarios.id, { onDelete: 'restrict' }),
+  confirmadoEm: timestamp('confirmado_em', { withTimezone: true }).notNull().defaultNow(),
+})
 
 /**
  * Poda de escopo: a única edição admitida depois da aprovação.

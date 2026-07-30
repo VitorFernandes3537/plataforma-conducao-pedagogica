@@ -18,6 +18,23 @@ function causaDe(erro: unknown): string {
   return causa instanceof Error ? causa.message : String(causa)
 }
 
+/**
+ * Remove os IDs SSOT antes da varredura de vocabulário.
+ *
+ * A regra do CLAUDE.md §4.2 proíbe conceito do curso em ENTIDADE, coluna, rota,
+ * componente e nome de teste. Um ID como `D6-PESOS-PAREDE` não é nada disso: é o
+ * ponteiro para o documento-dono, e a §5 exige justamente que ele apareça no
+ * código para que uma mudança de regra seja rastreável por busca.
+ *
+ * A exceção é estreita de propósito — casa só o formato `D<n>-MAIÚSCULAS`. A
+ * palavra solta continua sendo defeito em qualquer outro lugar.
+ */
+const ID_SSOT = new RegExp(String.raw`\bD\d+-[A-Z][A-Z-]*\b`, 'g')
+
+function semIdsSsot(fonte: string): string {
+  return fonte.replace(ID_SSOT, 'SSOT')
+}
+
 describe('Issue 1 — modelo genérico: Curso, Turma, Aluno, Grupo', () => {
   let banco: BancoEfemero
 
@@ -161,7 +178,7 @@ describe('Issue 1 — modelo genérico: Curso, Turma, Aluno, Grupo', () => {
     // por causa de "dupla".
     const proibidos = /\b(poo|c#|csharp|parede|paredes|dupla|duplas|python|biblioteca|bibliotecas)\b/i
 
-    expect(schema).not.toMatch(proibidos)
-    expect(migrations).not.toMatch(proibidos)
+    expect(semIdsSsot(schema)).not.toMatch(proibidos)
+    expect(semIdsSsot(migrations)).not.toMatch(proibidos)
   })
 })
