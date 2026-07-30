@@ -113,6 +113,13 @@
       "when": 1785434327854,
       "tag": "0015_limiar_e_obstaculo_do_dia",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1785436078760,
+      "tag": "0016_rodadas_de_critica",
+      "breakpoints": true
     }
   ]
 }

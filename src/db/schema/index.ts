@@ -1048,6 +1048,130 @@ export const itensDeMural = pgTable(
 )
 
 /**
+ * Rodada de crítica entre pares (Doc 7 §2.3 · `D5-CRITICA`).
+ *
+ * Quantas rodadas existem é configuração: o Doc 5 §4 descreve duas para o curso
+ * da série, e `ordem` é 1..N. O roteiro de cada uma é próprio — a primeira
+ * revisa arquitetura, a segunda revisa como o colega absorveu a mudança —, e
+ * por isso as perguntas moram em tabela e não em código.
+ */
+export const rodadasDeCritica = pgTable(
+  'rodadas_de_critica',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cursoId: uuid('curso_id')
+      .notNull()
+      .references(() => cursos.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    nome: text('nome').notNull(),
+    /** O dia em que acontece. O dono do calendário é o Doc 4. */
+    diaId: uuid('dia_id').references(() => dias.id, { onDelete: 'set null' }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('rodada_ordem_unica_no_curso').on(t.cursoId, t.ordem),
+    check('rodada_ordem_positiva', sql`${t.ordem} >= 1`),
+  ],
+)
+
+/**
+ * Pergunta do roteiro de uma rodada (Doc 5 §4.3 e §4.4).
+ *
+ * São conduzidas em voz alta, não respondidas por escrito — o que se registra
+ * na plataforma é a explicação do tema alheio e o cenário de quebra (§4.2). O
+ * roteiro existe para o revisor iniciante ter por onde começar, e muda entre as
+ * rodadas porque o objeto da revisão muda.
+ */
+export const perguntasDoRoteiro = pgTable(
+  'perguntas_do_roteiro',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    rodadaId: uuid('rodada_id')
+      .notNull()
+      .references(() => rodadasDeCritica.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    enunciado: text('enunciado').notNull(),
+  },
+  (t) => [
+    unique('pergunta_do_roteiro_unica_na_rodada').on(t.rodadaId, t.ordem),
+    check('pergunta_do_roteiro_ordem_positiva', sql`${t.ordem} >= 1`),
+    check('pergunta_do_roteiro_nao_vazia', sql`btrim(${t.enunciado}) <> ''`),
+  ],
+)
+
+/**
+ * Um sentido da crítica: quem revisa e quem é revisado (Doc 7 §2.3).
+ *
+ * O par de grupos trabalha nos DOIS sentidos na mesma sessão — "25 minutos por
+ * direção" (Doc 5 §4.5), que somados à plenária dão os 55 minutos do primeiro
+ * encontro. Por isso um emparelhamento produz duas linhas aqui, e não uma.
+ *
+ * `unique(rodada, revisor)` porque um grupo revisa um só na rodada, e
+ * `unique(rodada, revisado)` porque recebe de um só. Juntas, as duas fazem do
+ * sorteio um emparelhamento de verdade em vez de uma lista de pares soltos.
+ */
+export const paresDeCritica = pgTable(
+  'pares_de_critica',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    rodadaId: uuid('rodada_id')
+      .notNull()
+      .references(() => rodadasDeCritica.id, { onDelete: 'cascade' }),
+    revisorId: uuid('revisor_id')
+      .notNull()
+      .references(() => grupos.id, { onDelete: 'cascade' }),
+    revisadoId: uuid('revisado_id')
+      .notNull()
+      .references(() => grupos.id, { onDelete: 'cascade' }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('revisor_unico_na_rodada').on(t.rodadaId, t.revisorId),
+    unique('revisado_unico_na_rodada').on(t.rodadaId, t.revisadoId),
+    // Grupo não revisa a si mesmo: o ponto da crítica é enxergar tema alheio.
+    check('critica_nao_e_do_proprio_grupo', sql`${t.revisorId} <> ${t.revisadoId}`),
+  ],
+)
+
+/**
+ * O registro escrito de um sentido da crítica (Doc 5 §4.2 e §4.5).
+ *
+ * Os dois campos são obrigatórios e são a regra inteira:
+ *
+ * > Antes de comentar qualquer linha, o revisor precisa explicar o tema do
+ * > colega em uma frase. E precisa entregar pelo menos um cenário concreto que
+ * > quebra — não uma opinião.
+ *
+ * Sem eles a crítica entre iniciantes vira elogio mútuo e o curso perde 115
+ * minutos. Por isso são `notNull` com CHECK de conteúdo: um registro sem os dois
+ * não é registro, e deixá-los opcionais os transformaria nos campos que ninguém
+ * preenche.
+ *
+ * A nota da crítica não existe aqui. Ela entra no eixo de prática pela
+ * EXISTÊNCIA do registro, e pontuar a qualidade da crítica faria o iniciante
+ * escrever para a nota em vez de para o colega.
+ */
+export const registrosDeCritica = pgTable(
+  'registros_de_critica',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    parId: uuid('par_id')
+      .notNull()
+      .unique()
+      .references(() => paresDeCritica.id, { onDelete: 'cascade' }),
+    /** O tema do colega, em uma frase, escrito antes de olhar o código. */
+    explicacaoDoTema: text('explicacao_do_tema').notNull(),
+    /** Um cenário concreto que quebra. "Achei confuso" não é cenário. */
+    cenarioQueQuebra: text('cenario_que_quebra').notNull(),
+    registradoEm: timestamp('registrado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('critica_exige_explicacao', sql`btrim(${t.explicacaoDoTema}) <> ''`),
+    check('critica_exige_cenario', sql`btrim(${t.cenarioQueQuebra}) <> ''`),
+  ],
+)
+
+/**
  * Poda de escopo: a única edição admitida depois da aprovação.
  *
  * O formulário aprovado é imutável, com uma exceção — o instrutor reduz o escopo
