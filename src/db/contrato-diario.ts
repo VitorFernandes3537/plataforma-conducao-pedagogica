@@ -1,10 +1,10 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull, lte } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import { exigeProducaoPropria } from './ator'
 import { garanteRegistroDiario } from './registro-diario'
 import * as schema from './schema'
-import { contratosDiarios, registrosDiarios } from './schema'
+import { contratosDiarios, dias, registrosDiarios } from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
@@ -157,4 +157,58 @@ export async function contratoDoDia(
     .limit(1)
 
   return linha ?? null
+}
+
+export type LinhaDoHistorico = {
+  diaId: string
+  ordem: number
+  contrato: ContratoDoDia | null
+}
+
+/**
+ * O histórico de contratos de um aluno, do primeiro dia até um dia dado.
+ *
+ * Traz **todos** os dias do intervalo, inclusive os sem contrato. O dia em
+ * branco é informação: é o dia em que o aluno não participou do fechamento, e
+ * "participação no fechamento" é o item avaliado do Eixo 3 (Doc 6 §5).
+ * Devolver só os preenchidos faria o esquecimento desaparecer.
+ *
+ * O limite é o dia corrente e não a contagem do curso, porque quantos dias o
+ * curso tem é configuração — e no meio do curso o futuro ainda não é ausência.
+ */
+export async function historicoDeContratos(
+  db: Db,
+  alunoId: string,
+  ateDiaId: string,
+): Promise<LinhaDoHistorico[]> {
+  const [ate] = await db
+    .select({ cursoId: dias.cursoId, ordem: dias.ordem })
+    .from(dias)
+    .where(eq(dias.id, ateDiaId))
+    .limit(1)
+
+  if (!ate) throw new ContratoInvalido('dia não encontrado')
+
+  return db
+    .select({
+      diaId: dias.id,
+      ordem: dias.ordem,
+      contrato: {
+        id: contratosDiarios.id,
+        faremos: contratosDiarios.faremos,
+        naoFaremos: contratosDiarios.naoFaremos,
+        cumprido: contratosDiarios.cumprido,
+        motivoDoFechamento: contratosDiarios.motivoDoFechamento,
+        abertoEm: contratosDiarios.abertoEm,
+        fechadoEm: contratosDiarios.fechadoEm,
+      },
+    })
+    .from(dias)
+    .leftJoin(
+      registrosDiarios,
+      and(eq(registrosDiarios.diaId, dias.id), eq(registrosDiarios.alunoId, alunoId)),
+    )
+    .leftJoin(contratosDiarios, eq(contratosDiarios.registroDiarioId, registrosDiarios.id))
+    .where(and(eq(dias.cursoId, ate.cursoId), lte(dias.ordem, ate.ordem)))
+    .orderBy(asc(dias.ordem))
 }

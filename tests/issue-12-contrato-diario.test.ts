@@ -6,6 +6,7 @@ import {
   contratoDoDia,
   ContratoInvalido,
   fechaContratoDiario,
+  historicoDeContratos,
 } from '@/db/contrato-diario'
 import { garanteRegistroDiario } from '@/db/registro-diario'
 import { alunos, contratosDiarios, dias, grupos, turmas, usuarios } from '@/db/schema'
@@ -236,6 +237,65 @@ describe('Issue 12 — contrato diário', () => {
         motivoDoFechamento: 'sem veredito',
       }),
     ).rejects.toThrow()
+  })
+
+  it('historico_de_contratos_e_consultavel', async () => {
+    const c = await cenario()
+    const [d1, d2, d3] = c.dias
+
+    // Dois dias preenchidos e um deixado em branco de propósito.
+    await abreContratoDiario(
+      banco.db,
+      c.ana.aluno.id,
+      d1!.id,
+      { faremos: 'Estados.', naoFaremos: 'Relatório.' },
+      c.ana.usuario.id,
+    )
+    await fechaContratoDiario(
+      banco.db,
+      c.ana.aluno.id,
+      d1!.id,
+      { cumprido: true, motivo: 'Saiu no tempo.' },
+      c.ana.usuario.id,
+    )
+    await abreContratoDiario(
+      banco.db,
+      c.ana.aluno.id,
+      d3!.id,
+      { faremos: 'Cálculo.', naoFaremos: 'Persistência.' },
+      c.ana.usuario.id,
+    )
+
+    // Do primeiro dia até o dia corrente, em ordem — e o dia em branco APARECE.
+    // "Participação no fechamento" é o item avaliado (Doc 6 §5), e devolver só
+    // os preenchidos faria o esquecimento desaparecer.
+    const historico = await historicoDeContratos(banco.db, c.ana.aluno.id, d3!.id)
+    expect(historico.map((l) => l.ordem)).toEqual([1, 2, 3])
+    expect(historico[0]?.contrato?.cumprido).toBe(true)
+    expect(historico[1]?.contrato).toBeNull()
+    expect(historico[2]?.contrato?.cumprido).toBeNull()
+
+    // O limite é o dia corrente, não a contagem do curso: no meio do curso o
+    // futuro ainda não é ausência.
+    const ateOSegundo = await historicoDeContratos(banco.db, c.ana.aluno.id, d2!.id)
+    expect(ateOSegundo.map((l) => l.ordem)).toEqual([1, 2])
+    expect(ateOSegundo).toHaveLength(2)
+
+    // O histórico é de cada aluno. O de Bruno está vazio mesmo com Ana no mesmo
+    // grupo — é a mesma razão pela qual o registro diário pendura no aluno.
+    const doBruno = await historicoDeContratos(banco.db, c.bruno.aluno.id, d3!.id)
+    expect(doBruno.map((l) => l.ordem)).toEqual([1, 2, 3])
+    expect(doBruno.every((l) => l.contrato === null)).toBe(true)
+
+    // Dia de outro curso não entra no histórico deste aluno.
+    const outroCurso = await criaCurso(banco, { nome: 'Outro curso' })
+    const [diaAlheio] = await banco.db
+      .insert(dias)
+      .values({ cursoId: outroCurso.id, ordem: 1 })
+      .returning()
+    const doOutroCurso = await historicoDeContratos(banco.db, c.ana.aluno.id, diaAlheio!.id)
+    expect(doOutroCurso.map((l) => l.diaId)).toEqual([diaAlheio!.id])
+    expect(doOutroCurso[0]?.contrato).toBeNull()
   })
 
   it('contrato_e_producao_propria_do_aluno', async () => {
