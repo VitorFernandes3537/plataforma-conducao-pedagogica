@@ -1,4 +1,4 @@
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import * as schema from './schema'
@@ -142,4 +142,59 @@ export async function estadoDaTraducao(
   const faltando = obrigatorios.filter((p) => !cobertos.has(p.papelId))
 
   return { faltando, completa: faltando.length === 0 }
+}
+
+/**
+ * Grava a resposta de uma pergunta no rascunho do grupo.
+ *
+ * Só enquanto é rascunho. Depois da submissão a resposta deixa de ser editável
+ * pelo aluno — o Doc 7 §2.4 declara a imutabilidade a partir da aprovação, e
+ * deixar o aluno reescrever depois de entregar tornaria a fila do instrutor um
+ * alvo móvel. A reabertura de um escopo devolvido é da issue 9.
+ *
+ * A verificação é atômica: o `where` inclui `submetidoEm is null`, então duas
+ * abas do mesmo grupo não conseguem gravar depois que uma submeteu.
+ */
+export async function gravaResposta(
+  db: Db,
+  respostaDeEscopoId: string,
+  perguntaId: string,
+  texto: string,
+): Promise<void> {
+  const gravadas = await db
+    .insert(respostasDePergunta)
+    .values({ respostaDeEscopoId, perguntaId, texto })
+    .onConflictDoUpdate({
+      target: [respostasDePergunta.respostaDeEscopoId, respostasDePergunta.perguntaId],
+      set: { texto, atualizadoEm: new Date() },
+      setWhere: sql`exists (
+        select 1 from ${respostasDeEscopo}
+         where ${respostasDeEscopo.id} = ${respostaDeEscopoId}
+           and ${respostasDeEscopo.submetidoEm} is null
+      )`,
+    })
+    .returning({ id: respostasDePergunta.id })
+
+  if (gravadas.length === 0) {
+    throw new EscopoInvalido('escopo já submetido: o aluno não edita depois de entregar')
+  }
+}
+
+/**
+ * Submete o escopo do grupo.
+ *
+ * Marca o instante e fecha a edição. Submeter duas vezes é recusado: o segundo
+ * clique não pode mover a data e reabrir a janela de edição.
+ */
+export async function submete(db: Db, respostaDeEscopoId: string): Promise<{ submetidoEm: Date }> {
+  const [atualizada] = await db
+    .update(respostasDeEscopo)
+    .set({ submetidoEm: new Date() })
+    .where(and(eq(respostasDeEscopo.id, respostaDeEscopoId), isNull(respostasDeEscopo.submetidoEm)))
+    .returning({ submetidoEm: respostasDeEscopo.submetidoEm })
+
+  if (!atualizada?.submetidoEm) {
+    throw new EscopoInvalido('escopo já foi submetido')
+  }
+  return { submetidoEm: atualizada.submetidoEm }
 }

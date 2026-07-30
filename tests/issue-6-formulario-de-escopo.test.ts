@@ -3,7 +3,14 @@ import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { formularioDoCurso, perguntasDoFormularioEmOrdem } from '@/db/formulario'
-import { abreRascunho, estadoDaTraducao, respostaDoGrupo } from '@/db/resposta-de-escopo'
+import {
+  abreRascunho,
+  EscopoInvalido,
+  estadoDaTraducao,
+  gravaResposta,
+  respostaDoGrupo,
+  submete,
+} from '@/db/resposta-de-escopo'
 import {
   alunos,
   estruturas,
@@ -258,5 +265,39 @@ describe('Issue 6 — FormularioDeEscopo configurável', () => {
     // Nenhuma contagem de papéis no código — quatro é a estrutura deste curso.
     const fonte = semComentarios(readFileSync('src/db/resposta-de-escopo.ts', 'utf8'))
     expect(fonte).not.toMatch(/4|quatro/i)
+  })
+  it('aluno_edita_rascunho', async () => {
+    const { formulario, grupo, perguntas } = await cenario()
+    const rascunho = await abreRascunho(banco.db, grupo.id, formulario.id)
+
+    await gravaResposta(banco.db, rascunho.id, perguntas[0]!.id, 'Primeira tentativa')
+    await gravaResposta(banco.db, rascunho.id, perguntas[1]!.id, 'Resposta da segunda')
+
+    // Reescrever a mesma pergunta substitui, não acumula: é rascunho.
+    await gravaResposta(banco.db, rascunho.id, perguntas[0]!.id, 'Versão revisada')
+
+    const emRascunho = await respostaDoGrupo(banco.db, grupo.id)
+    expect(emRascunho?.submetidoEm).toBeNull()
+    expect(emRascunho?.respostas).toHaveLength(2)
+    // Sai na ordem das perguntas, não na de digitação.
+    expect(emRascunho?.respostas.map((r) => r.ordem)).toEqual([1, 2])
+    expect(emRascunho?.respostas[0]?.texto).toBe('Versão revisada')
+
+    // Submetido: a edição fecha para o aluno.
+    const { submetidoEm } = await submete(banco.db, rascunho.id)
+    expect(submetidoEm).toBeInstanceOf(Date)
+
+    await expect(
+      gravaResposta(banco.db, rascunho.id, perguntas[0]!.id, 'Tentando depois de entregar'),
+    ).rejects.toThrow(EscopoInvalido)
+
+    // E o texto anterior continua intacto — a tentativa recusada não gravou.
+    const depois = await respostaDoGrupo(banco.db, grupo.id)
+    expect(depois?.respostas[0]?.texto).toBe('Versão revisada')
+    expect(depois?.submetidoEm).not.toBeNull()
+
+    // Submeter de novo é recusado: o segundo clique não move a data nem
+    // reabre a janela de edição.
+    await expect(submete(banco.db, rascunho.id)).rejects.toThrow(EscopoInvalido)
   })
 })
