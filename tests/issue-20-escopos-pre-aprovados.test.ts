@@ -9,7 +9,19 @@ import {
   escoposDeReserva,
   escoposVisiveis,
 } from '@/db/escopo-pre-aprovado'
-import { bancosDeTemas, escoposPreAprovados, grupos, temas, turmas } from '@/db/schema'
+import { NaoAutorizado } from '@/db/fila-de-aprovacao'
+import { EscopoInvalido, gravaResposta } from '@/db/resposta-de-escopo'
+import {
+  bancosDeTemas,
+  escoposPreAprovados,
+  formularios,
+  grupos,
+  perguntasDoFormulario,
+  respostasDeEscopo,
+  temas,
+  turmas,
+  usuarios,
+} from '@/db/schema'
 import type { Ator } from '@/domain/autorizacao'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
@@ -197,10 +209,90 @@ describe('Issue 20 — escopos pré-aprovados', () => {
     ).rejects.toThrow(AtribuicaoInvalida)
   })
 
-  // Depende de `RespostaDeEscopo` (issue 6) e da máquina de estados do
-  // formulário (issue 9), ambas M1 e ainda não construídas. Marcar o grupo
-  // como aprovado hoje exigiria inventar um segundo estado paralelo ao que a
-  // issue 9 vai criar — dois donos para o mesmo fato, que é o que este
-  // repositório existe para evitar.
-  it.todo('escopo_pre_aprovado_entra_como_aprovado')
+  it('escopo_pre_aprovado_entra_como_aprovado', async () => {
+    const { curso, escopos, temas: temasDoCenario, grupoA, grupoB } = await cenario()
+
+    const [formulario] = await banco.db
+      .insert(formularios)
+      .values({ cursoId: curso.id, nome: 'Formulário' })
+      .returning()
+    const [instrutora] = await banco.db
+      .insert(usuarios)
+      .values({
+        githubUserId: 7001,
+        githubLogin: 'instrutora',
+        nome: 'Instrutora',
+        papel: 'instrutor',
+      })
+      .returning()
+    const entrega = { instrutorId: instrutora!.id, formularioId: formulario!.id }
+
+    await atribuiEscopo(banco.db, escopos[0]!.id, grupoA.id, entrega)
+
+    // O grupo entra APROVADO, sem passar pela fila: o pré-aprovado é a rede do
+    // instrutor num marco em que o grupo não passou (Doc 5 §5.1), e pedir
+    // aprovação do que já vem aprovado seria gastar de novo o tempo que a rede
+    // existe para salvar.
+    const [doGrupoA] = await banco.db
+      .select()
+      .from(respostasDeEscopo)
+      .where(eq(respostasDeEscopo.grupoId, grupoA.id))
+    expect(doGrupoA?.estado).toBe('aprovado')
+    expect(doGrupoA?.decididoPorId).toBe(instrutora!.id)
+    expect(doGrupoA?.submetidoEm).not.toBeNull()
+
+    // E já nasce fechado para o grupo, pelo gatilho da issue 9.
+    const [pergunta] = await banco.db
+      .insert(perguntasDoFormulario)
+      .values({
+        formularioId: formulario!.id,
+        ordem: 1,
+        enunciado: 'Escopo?',
+        criterioDeAceite: 'Verificável.',
+      })
+      .returning()
+    await expect(
+      gravaResposta(banco.db, doGrupoA!.id, pergunta!.id, 'ampliando'),
+    ).rejects.toThrow(EscopoInvalido)
+
+    // Sem `entrega`, só o tema é alocado: é o caminho de quem está reservando
+    // antes do marco, e não há decisão a registrar ainda.
+    await atribuiEscopo(banco.db, escopos[1]!.id, grupoB.id)
+    expect(
+      await banco.db
+        .select()
+        .from(respostasDeEscopo)
+        .where(eq(respostasDeEscopo.grupoId, grupoB.id)),
+    ).toHaveLength(0)
+
+    // Aluno não consegue se dar a própria rede.
+    const [aluno] = await banco.db
+      .insert(usuarios)
+      .values({ githubUserId: 7002, githubLogin: 'aluno', nome: 'Aluno', papel: 'aluno' })
+      .returning()
+    const [terceiroTema] = await banco.db
+      .insert(temas)
+      .values({
+        bancoDeTemasId: temasDoCenario[0]!.bancoDeTemasId,
+        nome: 'Tema C',
+        dificuldade: 'Fácil',
+        trilha: 'padrao',
+      })
+      .returning()
+    const [terceiroEscopo] = await banco.db
+      .insert(escoposPreAprovados)
+      .values({ temaId: terceiroTema!.id, titulo: 'Reserva C', conteudo: 'Pronto.' })
+      .returning()
+    const [grupoC] = await banco.db.insert(grupos).values({ turmaId: grupoA.turmaId }).returning()
+
+    await expect(
+      atribuiEscopo(banco.db, terceiroEscopo!.id, grupoC!.id, {
+        instrutorId: aluno!.id,
+        formularioId: formulario!.id,
+      }),
+    ).rejects.toThrow(NaoAutorizado)
+
+    // E a tentativa recusada não consumiu a reserva: a transação voltou inteira.
+    expect(await escoposDeReserva(banco.db, curso.id)).toHaveLength(1)
+  })
 })

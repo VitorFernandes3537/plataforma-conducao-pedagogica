@@ -42,7 +42,13 @@ export class NaoAutorizado extends Error {
   }
 }
 
-async function exigeInstrutor(db: Db, usuarioId: string): Promise<void> {
+/**
+ * Confere o papel de quem decide.
+ *
+ * Exportada porque a atribuição de escopo pré-aprovado também é decisão de
+ * instrutor, e duas cópias desta checagem divergiriam.
+ */
+export async function exigeInstrutor(db: Db, usuarioId: string): Promise<void> {
   const [quem] = await db
     .select({ papel: usuarios.papel })
     .from(usuarios)
