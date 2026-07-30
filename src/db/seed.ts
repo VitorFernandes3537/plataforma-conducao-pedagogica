@@ -11,6 +11,8 @@ import {
   marcos,
   materiaisDeReferencia,
   materiaisInterativos,
+  niveisDeAvaliacao,
+  obstaculos,
   repositorios,
   temas,
   turmas,
@@ -63,6 +65,29 @@ export const EXEMPLO = {
     { ordemDeLiberacao: 1, titulo: 'Espelho do primeiro dia', url: 'https://github.com/instrutor-exemplo/espelho/tree/d1' },
     { ordemDeLiberacao: 3, titulo: 'Espelho do terceiro dia', url: 'https://github.com/instrutor-exemplo/espelho/tree/d3' },
   ],
+  // A escala de avaliação deste curso de exemplo. São DADO (`D6-ESCALA`): os
+  // quatro níveis e o descritor de cada um vêm do documento-dono, e é por isso
+  // que estão aqui e não em `src/`.
+  //
+  // `contaComoSuperacao` é o que substitui o `>= 1` em código. Um curso que
+  // resolva usar cinco níveis cadastra cinco linhas e marca as suas.
+  niveisDeAvaliacao: [
+    { valor: 0, descritor: 'Não superou o critério do obstáculo', contaComoSuperacao: false },
+    { valor: 1, descritor: 'Superou com apoio direto do instrutor', contaComoSuperacao: true },
+    { valor: 2, descritor: 'Superou de forma autônoma', contaComoSuperacao: true },
+    {
+      valor: 3,
+      descritor: 'Superou e generalizou — pegou a extensão, ou aplicou em outro ponto sem pedido',
+      contaComoSuperacao: true,
+    },
+  ],
+  // O obstáculo É uma pergunta (`D3-07`), e o peso é configuração — um deles
+  // pesa mais de propósito, para desenvolvimento ter os dois casos.
+  obstaculos: [
+    { ordem: 1, pergunta: 'Por que meu programa aceita um estado que não existe?', peso: 1 },
+    { ordem: 2, pergunta: 'Por que consigo encerrar algo que já terminou?', peso: 1 },
+    { ordem: 3, pergunta: 'Por que minha condicional não para de crescer?', peso: 2 },
+  ],
   // Calendário curto de propósito: o número de dias é configuração, e um
   // exemplo com a contagem do curso real convidaria a tratá-la como padrão.
   dias: [
@@ -111,7 +136,20 @@ export const EXEMPLO = {
   ],
 } as const
 
-export async function semeia(db: Db) {
+/**
+ * Semeia o curso de exemplo, tudo ou nada.
+ *
+ * A transação não é zelo: o seed insere em quinze tabelas em sequência, e sem
+ * ela uma falha no meio — um `github_user_id` que já existe, por exemplo —
+ * deixa um curso pela metade no banco de desenvolvimento. Depois disso a
+ * próxima execução falha por outro motivo, e quem está desenvolvendo perde a
+ * tarde procurando o erro errado.
+ */
+export async function semeia(bancoOuTransacao: Db) {
+  return bancoOuTransacao.transaction(async (db) => semeiaEm(db as Db))
+}
+
+async function semeiaEm(db: Db) {
   const [curso] = await db.insert(cursos).values(EXEMPLO.curso).returning()
   if (!curso) throw new Error('seed: curso não foi criado')
 
@@ -120,6 +158,12 @@ export async function semeia(db: Db) {
     .values({ cursoId: curso.id, nome: EXEMPLO.turma.nome })
     .returning()
   if (!turma) throw new Error('seed: turma não foi criada')
+
+  await db
+    .insert(niveisDeAvaliacao)
+    .values(EXEMPLO.niveisDeAvaliacao.map((n) => ({ cursoId: curso.id, ...n })))
+
+  await db.insert(obstaculos).values(EXEMPLO.obstaculos.map((o) => ({ cursoId: curso.id, ...o })))
 
   // Sem instrutor não há como abrir a área de instrutor em desenvolvimento.
   const [instrutor] = await db
