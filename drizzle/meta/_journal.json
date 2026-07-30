@@ -64,6 +64,13 @@
       "when": 1785385002377,
       "tag": "0008_fila_de_aprovacao",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1785385002378,
+      "tag": "0009_escopo_fechado_e_somente_leitura",
+      "breakpoints": true
     }
   ]
 }

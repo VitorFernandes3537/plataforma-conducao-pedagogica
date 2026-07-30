@@ -8,12 +8,13 @@ import {
   NaoAutorizado,
   TransicaoIlegal,
 } from '@/db/fila-de-aprovacao'
-import { abreRascunho, gravaResposta, submete } from '@/db/resposta-de-escopo'
+import { abreRascunho, EscopoInvalido, gravaResposta, submete } from '@/db/resposta-de-escopo'
 import {
   formularios,
   grupos,
   perguntasDoFormulario,
   respostasDeEscopo,
+  respostasDePergunta,
   turmas,
   usuarios,
 } from '@/db/schema'
@@ -151,6 +152,73 @@ describe('Issue 9 — fila de aprovação e máquina de estados', () => {
 
     await aprova(banco.db, escopo.id, instrutora.id)
     expect(await estadoDoEscopo(banco.db, escopo.id)).toBe('aprovado')
+  })
+
+  it('aprovado_e_somente_leitura_para_aluno', async () => {
+    const { formulario, pergunta, instrutora, grupoA } = await cenario()
+    const escopo = await escopoSubmetido(grupoA.id, formulario.id, pergunta.id)
+
+    await aprova(banco.db, escopo.id, instrutora.id)
+
+    // Pelo caminho da aplicação, o grupo recebe uma frase.
+    const recusa = await gravaResposta(banco.db, escopo.id, pergunta.id, 'Escopo ampliado').then(
+      () => null,
+      (e: unknown) => e as Error,
+    )
+    expect(recusa).toBeInstanceOf(EscopoInvalido)
+    expect(recusa?.message).toContain('aprovado')
+
+    // E por qualquer outro caminho, o banco recusa. É o que torna a regra
+    // imburlável: nem UPDATE direto, nem resposta a uma pergunta que ainda não
+    // tinha sido respondida, entra em escopo aprovado.
+    await expect(
+      banco.db
+        .update(respostasDePergunta)
+        .set({ texto: 'por dentro' })
+        .where(eq(respostasDePergunta.respostaDeEscopoId, escopo.id)),
+    ).rejects.toThrow()
+
+    const [outraPergunta] = await banco.db
+      .insert(perguntasDoFormulario)
+      .values({
+        formularioId: formulario.id,
+        ordem: 2,
+        enunciado: 'Outra pergunta.',
+        criterioDeAceite: 'Verificável.',
+      })
+      .returning()
+
+    await expect(
+      banco.db
+        .insert(respostasDePergunta)
+        .values({ respostaDeEscopoId: escopo.id, perguntaId: outraPergunta!.id, texto: 'nova' }),
+    ).rejects.toThrow()
+
+    // O texto entregue continua sendo o que o instrutor aprovou: é o gabarito
+    // de correção a partir daqui (Doc 2 §4.5.1).
+    const [guardada] = await banco.db
+      .select({ texto: respostasDePergunta.texto })
+      .from(respostasDePergunta)
+      .where(eq(respostasDePergunta.respostaDeEscopoId, escopo.id))
+    expect(guardada?.texto).toBe('Escopo do grupo')
+  })
+
+  it('submetido_tambem_e_somente_leitura', async () => {
+    // A imutabilidade não começa na aprovação: entre entregar e ser decidido, o
+    // formulário também está fechado. Sem isso a fila do instrutor seria um
+    // alvo móvel, e ele julgaria um texto que mudou enquanto lia.
+    const { formulario, pergunta, grupoA } = await cenario()
+    const escopo = await escopoSubmetido(grupoA.id, formulario.id, pergunta.id)
+
+    await expect(gravaResposta(banco.db, escopo.id, pergunta.id, 'trocando')).rejects.toThrow(
+      EscopoInvalido,
+    )
+    await expect(
+      banco.db
+        .update(respostasDePergunta)
+        .set({ texto: 'por dentro' })
+        .where(eq(respostasDePergunta.respostaDeEscopoId, escopo.id)),
+    ).rejects.toThrow()
   })
 
   it('somente_instrutor_decide', async () => {
