@@ -447,27 +447,116 @@ export const regrasDeValidacao = pgTable(
 )
 
 /**
+ * Julgamento que só um humano faz, declarado no formulário.
+ *
+ * O Doc 2 §4.6 separa as verificações em duas famílias: as que o motor executa
+ * e as que dependem de leitura humana. As primeiras moram em
+ * `regrasDeValidacao`; estas moram aqui, e é a lista que o instrutor percorre
+ * na fila de aprovação.
+ *
+ * É TABELA, não constante, porque quantos julgamentos existem depende do
+ * formulário do curso — e "quatro" é quantidade com significado pedagógico,
+ * exatamente o que o CLAUDE.md §4.3 proíbe embutir em código.
+ *
+ * `perguntaId` é opcional: um julgamento normalmente aponta para a resposta que
+ * ele avalia, mas pode ser sobre o conjunto.
+ */
+export const julgamentosHumanos = pgTable(
+  'julgamentos_humanos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    formularioId: uuid('formulario_id')
+      .notNull()
+      .references(() => formularios.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    /** O que o instrutor precisa decidir, escrito para ele ler em segundos. */
+    enunciado: text('enunciado').notNull(),
+    perguntaId: uuid('pergunta_id').references(() => perguntasDoFormulario.id, {
+      onDelete: 'cascade',
+    }),
+  },
+  (t) => [
+    unique('julgamento_ordem_unica_no_formulario').on(t.formularioId, t.ordem),
+    check('julgamento_ordem_positiva', sql`${t.ordem} >= 1`),
+  ],
+)
+
+/**
+ * Estados do formulário de escopo (Doc 2 §4.5).
+ *
+ * `rascunho` → `submetido` → `aprovado` | `devolvido`, e `devolvido` volta a
+ * `submetido`. `aprovado` é terminal: a única mudança admitida depois dele é a
+ * poda da issue 10, que não troca de estado.
+ */
+export const estadoDoEscopoEnum = pgEnum('estado_do_escopo', [
+  'rascunho',
+  'submetido',
+  'aprovado',
+  'devolvido',
+])
+
+/**
  * A resposta de escopo (Doc 7 §2.2: `RespostaDeEscopo` pendura em `Grupo`).
  *
  * Pertence ao GRUPO, não ao aluno: o contrato é preenchido e entregue uma vez
  * por grupo (Doc 2 §4.2). É o oposto do repositório, que é individual.
  *
- * `submetidoEm` nulo significa rascunho. É fato, não estado inventado — a
- * máquina de estados completa (aprovado, devolvido) é da issue 9, e vai se
- * apoiar neste mesmo registro em vez de criar um paralelo.
+ * `estado` e `submetidoEm` descrevem o mesmo fato por ângulos diferentes, e os
+ * CHECKs abaixo impedem que discordem. `submetidoEm` continua sendo o instante
+ * da submissão vigente porque é dele que sai a ordem da fila.
+ *
+ * A decisão do instrutor é UMA: aprovar ou devolver. Por isso `decididoEm` e
+ * `decididoPorId` são um par só, e `estado` diz qual foi — em vez de
+ * `aprovadoEm` e `devolvidoEm`, que admitiriam os dois preenchidos ao mesmo
+ * tempo.
  */
-export const respostasDeEscopo = pgTable('respostas_de_escopo', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  grupoId: uuid('grupo_id')
-    .notNull()
-    .unique()
-    .references(() => grupos.id, { onDelete: 'cascade' }),
-  formularioId: uuid('formulario_id')
-    .notNull()
-    .references(() => formularios.id, { onDelete: 'restrict' }),
-  submetidoEm: timestamp('submetido_em', { withTimezone: true }),
-  criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
-})
+export const respostasDeEscopo = pgTable(
+  'respostas_de_escopo',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    grupoId: uuid('grupo_id')
+      .notNull()
+      .unique()
+      .references(() => grupos.id, { onDelete: 'cascade' }),
+    formularioId: uuid('formulario_id')
+      .notNull()
+      .references(() => formularios.id, { onDelete: 'restrict' }),
+    estado: estadoDoEscopoEnum('estado').notNull().default('rascunho'),
+    submetidoEm: timestamp('submetido_em', { withTimezone: true }),
+
+    /** Quando o instrutor decidiu, e quem. Nulo enquanto não houve decisão. */
+    decididoEm: timestamp('decidido_em', { withTimezone: true }),
+    // `restrict`: apagar o instrutor não pode apagar o registro de quem
+    // aprovou — a aprovação é o que autoriza o grupo a construir.
+    decididoPorId: uuid('decidido_por_id').references(() => usuarios.id, { onDelete: 'restrict' }),
+
+    /** O que o grupo precisa corrigir. Só existe enquanto devolvido. */
+    motivoDaDevolucao: text('motivo_da_devolucao'),
+
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Rascunho é exatamente "ainda não submetido". Sem isso, um estado poderia
+    // dizer submetido com data nula e a fila ordenaria por nada.
+    check('estado_coerente_com_submissao', sql`(${t.estado} = 'rascunho') = (${t.submetidoEm} is null)`),
+    // Decisão registrada existe se e somente se houve decisão. Ao reenviar um
+    // devolvido, o par se apaga junto com o motivo.
+    check(
+      'decisao_coerente_com_estado',
+      sql`(${t.estado} in ('aprovado', 'devolvido'))
+          = (${t.decididoEm} is not null and ${t.decididoPorId} is not null)`,
+    ),
+    // "Devolução exige motivo escrito" (Doc 2 §4.5): devolver sem dizer o que
+    // corrigir gastaria de novo os 3 a 4 minutos que a fila tem por grupo.
+    check(
+      'devolucao_exige_motivo',
+      sql`${t.estado} <> 'devolvido' or btrim(coalesce(${t.motivoDaDevolucao}, '')) <> ''`,
+    ),
+    // E o motivo não sobrevive à devolução: motivo pendurado em escopo
+    // aprovado apareceria na tela do grupo como correção pendente.
+    check('motivo_so_enquanto_devolvido', sql`${t.estado} = 'devolvido' or ${t.motivoDaDevolucao} is null`),
+  ],
+)
 
 /** Uma resposta por pergunta, dentro da resposta de escopo do grupo. */
 export const respostasDePergunta = pgTable(

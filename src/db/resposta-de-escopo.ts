@@ -189,7 +189,7 @@ export async function gravaResposta(
 export async function submete(db: Db, respostaDeEscopoId: string): Promise<{ submetidoEm: Date }> {
   const [atualizada] = await db
     .update(respostasDeEscopo)
-    .set({ submetidoEm: new Date() })
+    .set({ estado: 'submetido', submetidoEm: new Date() })
     .where(and(eq(respostasDeEscopo.id, respostaDeEscopoId), isNull(respostasDeEscopo.submetidoEm)))
     .returning({ submetidoEm: respostasDeEscopo.submetidoEm })
 

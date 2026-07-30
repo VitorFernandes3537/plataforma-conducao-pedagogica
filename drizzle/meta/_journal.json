@@ -57,6 +57,13 @@
       "when": 1785382539079,
       "tag": "0007_regras_de_validacao",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785385002377,
+      "tag": "0008_fila_de_aprovacao",
+      "breakpoints": true
     }
   ]
 }

@@ -139,7 +139,7 @@ export async function submeteSePassar(
 
   await db
     .update(respostasDeEscopo)
-    .set({ submetidoEm: new Date() })
+    .set({ estado: 'submetido', submetidoEm: new Date() })
     .where(and(eq(respostasDeEscopo.id, respostaDeEscopoId), isNull(respostasDeEscopo.submetidoEm)))
 
   return resultado
