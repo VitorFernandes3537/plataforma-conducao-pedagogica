@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 
@@ -236,17 +237,34 @@ export const temas = pgTable(
   ],
 )
 
-export const grupos = pgTable('grupos', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  turmaId: uuid('turma_id')
-    .notNull()
-    .references(() => turmas.id, { onDelete: 'cascade' }),
-  // A unicidade "um Tema por Grupo por Turma" (Doc 7 §2.4, `D2-BANCO`) é
-  // critério da issue 8, junto com o teste de alocação concorrente. Aqui
-  // entra só o vínculo, que a listagem de disponibilidade precisa ler.
-  temaId: uuid('tema_id').references(() => temas.id, { onDelete: 'set null' }),
-  criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
-})
+export const grupos = pgTable(
+  'grupos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    turmaId: uuid('turma_id')
+      .notNull()
+      .references(() => turmas.id, { onDelete: 'cascade' }),
+    temaId: uuid('tema_id').references(() => temas.id, { onDelete: 'set null' }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    /**
+     * "Um `Tema` pertence a no máximo um `Grupo` por `Turma`" — Doc 7 §2.4,
+     * `D2-BANCO`.
+     *
+     * Índice único PARCIAL: vários grupos podem estar sem tema, e `NULL` não
+     * colide. É exatamente a capacidade pela qual a ADR 0001 §2 escolheu
+     * Drizzle em vez de Prisma.
+     *
+     * Entra aqui porque a issue 20 cobra `escopo_pre_aprovado_respeita_
+     * unicidade` e a constraint é o que garante isso. A issue 8 continua dona
+     * do comportamento sob CONCORRÊNCIA, que é outro teste.
+     */
+    uniqueIndex('tema_unico_por_turma')
+      .on(t.turmaId, t.temaId)
+      .where(sql`${t.temaId} is not null`),
+  ],
+)
 
 export const alunos = pgTable(
   'alunos',
@@ -279,6 +297,51 @@ export const alunos = pgTable(
     check(
       'posicao_coerente_com_grupo',
       sql`(${t.grupoId} is null) = (${t.posicaoNoGrupo} is null)`,
+    ),
+  ],
+)
+
+/**
+ * Escopo pré-aprovado (Doc 7 §2.3: "EscopoPreAprovado — formulário de
+ * emergência, pronto antes do D1").
+ *
+ * Doc 5 §5.1: o instrutor mantém contratos pré-aprovados de temas fáceis,
+ * escritos antes do primeiro dia. Sem essa rede ele cede e aprova um contrato
+ * ruim — e contrato ruim contamina os doze dias seguintes. É o que permite o
+ * marco ser genuinamente duro sem deixar nenhum grupo encalhado.
+ *
+ * A QUANTIDADE não é constante: o Doc 5 fala de dois neste curso, e aqui é
+ * apenas quantas linhas existirem. Nada no código conta escopos.
+ *
+ * E a plataforma NÃO valida "tema de nível fácil": `dificuldade` é rótulo
+ * livre (issue 3), e checar "Fácil" seria hardcode de conceito do curso. Qual
+ * tema merece um escopo de emergência é julgamento do instrutor.
+ */
+export const escoposPreAprovados = pgTable(
+  'escopos_pre_aprovados',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    // Um escopo pronto por tema: guardar dois para o mesmo tema não faz
+    // sentido, e o tema é o que carrega a unicidade na alocação.
+    temaId: uuid('tema_id')
+      .notNull()
+      .unique()
+      .references(() => temas.id, { onDelete: 'cascade' }),
+    titulo: text('titulo').notNull(),
+    /** O formulário já respondido, pronto para entregar. */
+    conteudo: text('conteudo').notNull(),
+    /** Grupo que recebeu. Nulo enquanto o escopo está de reserva. */
+    grupoId: uuid('grupo_id')
+      .unique()
+      .references(() => grupos.id, { onDelete: 'set null' }),
+    atribuidoEm: timestamp('atribuido_em', { withTimezone: true }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Atribuído e sem data, ou com data e sem grupo, seria estado impossível.
+    check(
+      'atribuicao_coerente',
+      sql`(${t.grupoId} is null) = (${t.atribuidoEm} is null)`,
     ),
   ],
 )
