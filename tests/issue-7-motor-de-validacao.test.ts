@@ -11,6 +11,9 @@ function semComentarios(fonte: string): string {
   return fonte.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
 }
 
+/** Quebra de linha: o motor lê um item por linha (convenção de formato). */
+const NL = String.fromCharCode(10)
+
 /** Regra com os campos nulos preenchidos — o teste só declara o que importa. */
 function regra(parcial: Partial<Regra> & Pick<Regra, 'perguntaId' | 'tipo' | 'mensagem'>): Regra {
   return {
@@ -134,6 +137,68 @@ describe('Issue 7 — motor de validação automática', () => {
     expect(valida(comNItens(EXATO - 1), regras)).toHaveLength(1)
     expect(valida(comNItens(EXATO), regras)).toHaveLength(0)
     expect(valida(comNItens(EXATO + 1), regras)).toHaveLength(1)
+  })
+
+  it('rejeita_transicao_com_estado_nao_declarado', () => {
+    // O vocabulário aceito é o que a OUTRA pergunta declarou. A regra não
+    // conhece "estados": ela compara contra a resposta de referência (Doc 2 §4.6).
+    const regras = [
+      regra({
+        perguntaId: 'transicoes',
+        tipo: 'referencia_declarada',
+        perguntaDeReferenciaId: 'estados',
+        mensagem: 'Toda transição precisa citar estados que você declarou.',
+      }),
+    ]
+
+    const estados = { perguntaId: 'estados', texto: ['Agendado', 'Em atendimento', 'Concluído'].join(NL) }
+
+    // Todos os lados declarados: passa.
+    expect(
+      valida(
+        [
+          estados,
+          {
+            perguntaId: 'transicoes',
+            texto: ['Concluído -> Agendado', 'Em atendimento → Agendado'].join(NL),
+          },
+        ],
+        regras,
+      ),
+    ).toHaveLength(0)
+
+    // "Cancelado" não foi declarado: reprova.
+    expect(
+      valida(
+        [estados, { perguntaId: 'transicoes', texto: 'Cancelado -> Concluído' }],
+        regras,
+      ),
+    ).toHaveLength(1)
+
+    // O lado de destino também é verificado, não só a origem.
+    expect(
+      valida([estados, { perguntaId: 'transicoes', texto: 'Agendado -> Arquivado' }], regras),
+    ).toHaveLength(1)
+
+    // Caixa e acento não reprovam: a plataforma verifica modelagem, não
+    // digitação. Recusar por acento gastaria o tempo que o pré-filtro poupa.
+    expect(
+      valida(
+        [estados, { perguntaId: 'transicoes', texto: 'CONCLUIDO => em Atendimento' }],
+        regras,
+      ),
+    ).toHaveLength(0)
+
+    // Sem estados declarados, qualquer par reprova.
+    expect(
+      valida(
+        [
+          { perguntaId: 'estados', texto: 'x' },
+          { perguntaId: 'transicoes', texto: 'Agendado -> Concluído' },
+        ],
+        regras,
+      ),
+    ).toHaveLength(1)
   })
 
   it('rejeita_fora_de_escopo_insuficiente', () => {

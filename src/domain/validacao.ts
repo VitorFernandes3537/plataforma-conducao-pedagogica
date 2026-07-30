@@ -90,10 +90,64 @@ export function valida(
         tipo: regra.tipo,
         mensagem: regra.mensagem,
       })
+      continue
+    }
+
+    if (regra.tipo === 'referencia_declarada') {
+      const declarados = regra.perguntaDeReferenciaId
+        ? itensDaResposta(porPergunta.get(regra.perguntaDeReferenciaId)?.texto ?? '')
+        : []
+
+      if (citaTermoNaoDeclarado(texto, declarados)) {
+        reprovacoes.push({
+          perguntaId: regra.perguntaId,
+          tipo: regra.tipo,
+          mensagem: regra.mensagem,
+        })
+      }
     }
   }
 
   return reprovacoes
+}
+
+/** Separadores aceitos entre os dois lados de um par. Formato, não regra. */
+const SETAS = /\s*(?:->|-->|→|>|=>)\s*/
+
+/**
+ * Compara ignorando caixa, acento e espaço nas pontas.
+ *
+ * "Em Atendimento" e "em atendimento" são o mesmo estado para quem lê. Recusar
+ * por acento seria a plataforma corrigindo digitação em vez de verificar
+ * modelagem — e no D3 isso gasta o tempo que o pré-filtro existe para poupar.
+ */
+function normaliza(termo: string): string {
+  return termo
+    .trim()
+    .toLocaleLowerCase('pt-BR')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+}
+
+/**
+ * Verifica se algum par cita termo que não foi declarado na outra pergunta.
+ *
+ * Cada item desta resposta é lido como um par ligado por seta — `origem → destino`.
+ * Os dois lados precisam existir entre os itens declarados na pergunta de
+ * referência. É assim que uma transição ilegal citando estado inexistente é
+ * pega automaticamente (Doc 2 §4.6).
+ *
+ * Item sem seta é ignorado por esta regra: quantidade e preenchimento são
+ * trabalho de `contagem_de_itens` e `nao_vazio`, e cada regra faz uma coisa.
+ */
+function citaTermoNaoDeclarado(texto: string, declarados: readonly string[]): boolean {
+  const vocabulario = new Set(declarados.map(normaliza))
+
+  return itensDaResposta(texto).some((item) => {
+    const lados = item.split(SETAS).filter((lado) => lado.trim().length > 0)
+    if (lados.length < 2) return false
+    return lados.some((lado) => !vocabulario.has(normaliza(lado)))
+  })
 }
 
 /**
