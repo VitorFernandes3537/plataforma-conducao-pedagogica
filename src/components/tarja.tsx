@@ -38,8 +38,12 @@ export function TarjaEmAcao({
 }: DadosDaTarja) {
   return (
     <article
-      className="flex flex-col gap-2.5 border border-filete bg-superficie px-4 py-3.5"
-      style={bloqueado ? { borderLeft: '3px solid var(--color-portao)' } : undefined}
+      className="cartao flex flex-col gap-2.5 px-4 py-3.5"
+      style={
+        bloqueado
+          ? { borderLeftWidth: '3px', borderLeftColor: 'var(--color-portao)' }
+          : undefined
+      }
     >
       <header className="flex items-baseline justify-between gap-3">
         <h3 className="truncate text-[0.9375rem] font-semibold leading-tight text-tinta">
@@ -54,14 +58,14 @@ export function TarjaEmAcao({
       <p className="flex items-center gap-2 text-[0.8125rem] leading-tight text-tinta-media">
         {tema ?? <span className="text-tinta-fraca">sem tema alocado</span>}
         {trilha === 'desafio' && (
-          <span className="dado border border-filete-forte px-1 text-[0.5625rem] uppercase tracking-[0.12em]">
+          <span className="dado border border-linha-forte px-1 text-[0.5625rem] uppercase tracking-[0.12em]">
             desafio
           </span>
         )}
       </p>
 
       {sintoma && (
-        <p className="border-t border-filete pt-2.5 text-[0.8125rem] leading-snug text-tinta">
+        <p className="border-t border-linha pt-2.5 text-[0.8125rem] leading-snug text-tinta">
           {sintoma}
         </p>
       )}
@@ -77,7 +81,7 @@ export function TarjaEmAcao({
  */
 export function TarjaResolvida({ integrantes, tema, estado }: DadosDaTarja) {
   return (
-    <article className="flex items-baseline justify-between gap-3 border-b border-filete py-2">
+    <article className="flex items-baseline justify-between gap-3 border-b border-linha py-2">
       <h3 className="truncate text-[0.8125rem] text-tinta-media">
         {integrantes.join(' · ')}
         <span className="ml-2 text-tinta-fraca">{tema}</span>

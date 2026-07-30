@@ -25,7 +25,7 @@ function Marca({ cumprido }: { cumprido: boolean }) {
       aria-hidden="true"
       className="mt-[0.35rem] size-[0.875rem] shrink-0 border"
       style={{
-        borderColor: cumprido ? 'var(--color-escala-3)' : 'var(--color-filete-forte)',
+        borderColor: cumprido ? 'var(--color-escala-3)' : 'var(--color-linha-forte)',
         backgroundColor: cumprido ? 'var(--color-escala-3)' : 'transparent',
       }}
     />
@@ -90,7 +90,7 @@ export function DesafioAtual({ perguntaDoAluno, criterios, escopoFora, ordem }: 
                 key={item}
                 className="flex items-start gap-3 text-[0.9375rem] leading-snug text-tinta-fraca"
               >
-                <span aria-hidden="true" className="mt-[0.7rem] h-px w-3 shrink-0 bg-filete-forte" />
+                <span aria-hidden="true" className="mt-[0.7rem] h-px w-3 shrink-0 bg-linha-forte" />
                 {item}
               </li>
             ))}

@@ -43,7 +43,7 @@ export function LinhaDeVida({ passos }: Props) {
                 className="flex h-8 w-full items-center justify-center"
                 style={
                   futuro
-                    ? { border: '1px dashed var(--color-filete-forte)' }
+                    ? { border: '1px dashed var(--color-linha-forte)' }
                     : { backgroundColor: `var(--color-escala-${passo.nota})` }
                 }
               >

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Archivo, IBM_Plex_Mono, Literata } from 'next/font/google'
+import { Archivo, Caveat, IBM_Plex_Mono, Literata } from 'next/font/google'
 
 import './globals.css'
 
@@ -25,6 +25,14 @@ const literata = Literata({
   display: 'swap',
 })
 
+// Anotação à mão, só na margem. Peso mínimo: um eixo, dois pesos.
+const caveat = Caveat({
+  variable: '--font-caveat',
+  subsets: ['latin', 'latin-ext'],
+  weight: ['400', '600'],
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: 'PCP — Plataforma de Condução Pedagógica',
   description: 'Conduz o ciclo completo de um módulo de ensino baseado em projetos.',
@@ -38,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${archivo.variable} ${dadoMono.variable} ${literata.variable} h-full antialiased`}
+      className={`${archivo.variable} ${dadoMono.variable} ${literata.variable} ${caveat.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">{children}</body>
     </html>

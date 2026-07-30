@@ -1,91 +1,91 @@
 @import "tailwindcss";
 
 /*
-  DESIGN SYSTEM DA PCP
-  Deriva de docs/referencias-de-design/LEIA-PRIMEIRO.md, seção 7.
+  DESIGN SYSTEM DA PCP — v2
 
-  Dez regras, e todas vieram de convergência entre Notion, User Interviews e
-  Tally — não de gosto:
+  Direção: parede de ateliê. Marfim claro, traço de lápis à mão nas margens,
+  serifada com voz, e acento saturado de verdade. Educacional sem ser
+  corporativo, autoral sem ser infantil.
 
-   1. Canvas morno, nunca branco puro, nunca frio
-   2. Cartão branco com filete, raio 10–12px, sem sombra
-   3. UMA cor de ação, e ela é o único preenchimento cromático de botão
-   4. Cor de expressão separada da de ação — nunca se cruzam
-   5. Estado de portão é terceira categoria, e é raro
-   6. Sobrancelha de seção em mono caixa-alta com entreletra
-   7. Serifada só em prosa de aluno, com parcimônia
-   8. Hierarquia de texto por alfa de UMA tinta, não por cinzas novos
-   9. Traço à mão só onde espelha algo físico
-  10. Sem malha, sem grade, sem gradiente
+  O que a v1 errou e esta corrige:
+
+  - Bege lavado como fundo E como preenchimento. Os dois tons eram quase o
+    mesmo, então o decorrido da régua virava mancha suja. Agora o fundo é
+    marfim CLARO e o progresso é fio de tinta, não bloco.
+  - Pastel desbotado no lugar de acento. Agora há saturação: azul de destaque
+    e laranja-tijolo de portão, os dois cheios.
+  - Traço à mão só existia na documentação. Agora existe em SVG, e mora na
+    margem — nunca no meio do conteúdo.
+  - Régua com altura dobrada do necessário. Agora é uma faixa só.
 */
 
 @theme {
   /* ── Superfícies ─────────────────────────────────────────────────────
-     Hierarquia por tom, nunca por sombra. */
-  --color-canvas: #f7f5f1;
+     Marfim claro. A diferença entre papel e cartão é sutil de propósito,
+     mas o cartão tem filete — a separação nunca depende só do tom. */
+  --color-papel: #fcfbf6;
   --color-superficie: #ffffff;
-  --color-superficie-fraca: #f1efe9;
+  --color-recuo: #f4f2ea;
 
   /* ── Tinta ────────────────────────────────────────────────────────────
      Quatro níveis de UMA tinta. Nenhum cinza novo entra no sistema. */
-  --color-tinta: #1a1917;
-  --color-tinta-media: #56534d;
-  --color-tinta-fraca: #86827a;
-  --color-tinta-tenue: #b0aba2;
+  --color-tinta: #17150f;
+  --color-tinta-media: #4a4640;
+  --color-tinta-fraca: #7c776d;
+  --color-tinta-tenue: #ada79a;
 
   /* ── Estrutura ────────────────────────────────────────────────────── */
-  --color-filete: #e6e2d9;
-  --color-filete-forte: #cdc8bc;
+  --color-linha: #e6e2d6;
+  --color-linha-forte: #c9c4b4;
 
   /* ── Ação ─────────────────────────────────────────────────────────────
-     Teal profundo. É o ÚNICO preenchimento cromático de botão no sistema.
-     Um por tela. Não é o azul corporativo de sempre. */
-  --color-acao: #1c5d5f;
-  --color-acao-forte: #154a4c;
-  --color-acao-tenue: #e4efee;
+     Tinta cheia. Botão preto resolve o problema de "uma cor de ação" sem
+     gastar cromia, e deixa o acento livre para ser expressivo. */
+  --color-acao: #17150f;
+  --color-acao-forte: #000000;
 
-  /* ── Expressão ────────────────────────────────────────────────────────
-     Âmbar. Traço à mão, marca decorativa, destaque de conteúdo.
-     NUNCA preenche botão. NUNCA é cor de link. */
-  --color-expressao: #c4831f;
-  --color-expressao-tenue: #f6ecd8;
+  /* ── Destaque ─────────────────────────────────────────────────────────
+     Azul saturado. Pílula atrás de palavra, anel de marca, acento de
+     rascunho, fim da escala. NUNCA preenche botão. */
+  --color-destaque: #2a5fd6;
+  --color-destaque-tenue: #e2eafb;
 
   /* ── Portão ───────────────────────────────────────────────────────────
-     Estado bloqueante. Terceira categoria, e rara.
-     `duro` e `triagem` se distinguem por FORMA — sólido contra tracejado —
-     e não por uma cor nova. */
-  --color-portao: #b3321f;
-  --color-portao-tenue: #f7e6e2;
+     Laranja-tijolo saturado. Estado bloqueante, e é raro. `duro` e
+     `triagem` se separam por FORMA — sólido contra tracejado. */
+  --color-portao: #dc4b1e;
+  --color-portao-tenue: #fdeae2;
 
   /* ── Forma ────────────────────────────────────────────────────────── */
-  --radius-cartao: 10px;
+  --radius-cartao: 12px;
   --radius-controle: 8px;
   --radius-etiqueta: 999px;
 }
 
 @theme inline {
-  /* Corpo de interface: rótulo, título, botão. */
+  /* Corpo de interface: rótulo, botão, tabela. */
   --font-chrome: var(--font-archivo);
-  /* Legenda técnica e todo número. Tabular é requisito, não estilo. */
+  /* Legenda técnica e todo número. Tabular é requisito. */
   --font-dado: var(--font-dado-mono);
-  /* Prosa de aluno: a pergunta, o log, a reflexão, o briefing. */
+  /* Voz: título de tela e prosa de aluno. */
   --font-prosa: var(--font-literata);
+  /* Anotação à mão. SÓ na margem, nunca em interface. */
+  --font-mao: var(--font-caveat);
 }
 
 /*
-  Escala de obstáculo 0–3 (`D6-ESCALA`). Sequencial: enche, não alerta.
-  Superado é >= 1 (Doc 6 §2). Termina na cor de ação, porque o fim da escala
-  é domínio.
+  Escala de obstáculo 0–3 (`D6-ESCALA`). Enche, não alerta. Termina no azul de
+  destaque porque o fim da escala é domínio. Zero não é vermelho: é o estado
+  antes da tentativa (Doc 6 §2).
 
-  Fora do @theme de propósito: o Tailwind v4 só emite variável de tema que
-  encontra escrita no código, e estas são consumidas com nome montado por
-  interpolação, que ele não enxerga.
+  Fora do @theme porque o nome é montado por interpolação e o Tailwind v4 só
+  emite variável que encontra escrita no código.
 */
 :root {
-  --color-escala-0: #e5e2da;
-  --color-escala-1: #a8c4be;
-  --color-escala-2: #5e938e;
-  --color-escala-3: #1c5d5f;
+  --color-escala-0: #eae6da;
+  --color-escala-1: #a9bee8;
+  --color-escala-2: #5c86d8;
+  --color-escala-3: #2a5fd6;
 }
 
 html {
@@ -93,34 +93,51 @@ html {
 }
 
 body {
-  background-color: var(--color-canvas);
+  background-color: var(--color-papel);
   color: var(--color-tinta);
   font-family: var(--font-chrome), system-ui, sans-serif;
 }
 
-/* Sobrancelha de seção. Pequena de propósito: é a pontuação estrutural da
-   interface, não a cena. */
+/* Cartão. Filete e raio, nunca sombra. */
+.cartao {
+  background-color: var(--color-superficie);
+  border: 1px solid var(--color-linha);
+  border-radius: var(--radius-cartao);
+}
+
+/* Sobrancelha de seção. Pontuação estrutural, não a cena. */
 .legenda {
   font-family: var(--font-dado), ui-monospace, monospace;
   font-size: 0.6875rem;
   line-height: 1.2;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-tinta-fraca);
 }
 
-/* Número. Tabular sempre: coluna que dança é ilegível sob pressão. */
 .dado {
   font-family: var(--font-dado), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
 
-/* Cartão. Filete e raio, nunca sombra. */
-.cartao {
-  background-color: var(--color-superficie);
-  border: 1px solid var(--color-filete);
-  border-radius: var(--radius-cartao);
+/* Anotação à mão. Vive na margem, inclinada, e nunca carrega informação
+   que só exista ali — é comentário, não dado. */
+.mao {
+  font-family: var(--font-mao), cursive;
+  font-size: 1.125rem;
+  line-height: 1.1;
+  color: var(--color-tinta-tenue);
+}
+
+/* Pílula atrás de uma palavra. O device tipográfico da casa: envolve UMA
+   palavra do título para dar peso, como marca-texto. */
+.pilula {
+  display: inline-block;
+  border-radius: var(--radius-etiqueta);
+  background-color: var(--color-destaque-tenue);
+  padding: 0 0.5em;
+  color: var(--color-destaque);
 }
 
 /* ── Controles ──────────────────────────────────────────────────────── */
@@ -130,14 +147,13 @@ body {
   align-items: center;
   gap: 0.5rem;
   border-radius: var(--radius-controle);
-  padding: 0.4375rem 0.875rem;
+  padding: 0.4375rem 0.9375rem;
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.2;
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 
-/* O único preenchimento cromático do sistema. Um por tela. */
 .botao-acao {
   background-color: var(--color-acao);
   color: var(--color-superficie);
@@ -146,13 +162,14 @@ body {
   background-color: var(--color-acao-forte);
 }
 
-/* Alternativa de menor compromisso, ao lado da ação. */
 .botao-fantasma {
-  background-color: var(--color-acao-tenue);
-  color: var(--color-acao);
+  border: 1px solid var(--color-linha-forte);
+  color: var(--color-tinta);
+}
+.botao-fantasma:hover {
+  background-color: var(--color-recuo);
 }
 
-/* Terciário: sem preenchimento, sem filete. */
 .botao-texto {
   color: var(--color-tinta-media);
 }
@@ -160,9 +177,7 @@ body {
   color: var(--color-tinta);
 }
 
-/* Ação destrutiva ou bloqueante. Rara. */
 .botao-portao {
-  background-color: transparent;
   border: 1px solid var(--color-portao);
   color: var(--color-portao);
 }
@@ -183,7 +198,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-acao);
+  outline: 2px solid var(--color-destaque);
   outline-offset: 2px;
 }
 

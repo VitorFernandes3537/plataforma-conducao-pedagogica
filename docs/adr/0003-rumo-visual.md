@@ -41,29 +41,40 @@ Derivadas de `docs/referencias-de-design/LEIA-PRIMEIRO.md` §7, onde Notion, Use
 9. Traço à mão só onde espelha algo físico
 10. Sem malha, sem grade, sem gradiente
 
-### 3. Paleta
+### 3. Paleta — v2, depois de duas rejeitadas
 
 | Token | Valor | Função |
 |---|---|---|
-| `canvas` | `#F7F5F1` | fundo morno |
+| `papel` | `#FCFBF6` | marfim **claro**, não bege lavado |
 | `superficie` | `#FFFFFF` | cartão |
-| `superficie-fraca` | `#F1EFE9` | preenchido, decorrido, apoio |
-| `tinta` · `-media` · `-fraca` · `-tenue` | `#1A1917` → `#B0ABA2` | quatro níveis de **uma** tinta |
-| `filete` · `-forte` | `#E6E2D9` · `#CDC8BC` | estrutura |
-| **`acao`** | `#1C5D5F` | teal profundo. **Único** preenchimento cromático de botão, um por tela |
-| **`expressao`** | `#C4831F` | âmbar. Traço à mão e destaque. **Nunca** preenche botão nem colore link |
-| **`portao`** | `#B3321F` | estado bloqueante. `duro` e `triagem` se separam por **forma** — sólido contra tracejado — e não por cor nova |
-| `escala-0` a `-3` | `#E5E2DA` → `#1C5D5F` | `D6-ESCALA`, rampa que enche. Termina na cor de ação porque o fim da escala é domínio |
+| `recuo` | `#F4F2EA` | apoio |
+| `tinta` · `-media` · `-fraca` · `-tenue` | `#17150F` → `#ADA79A` | quatro níveis de **uma** tinta |
+| `linha` · `-forte` | `#E6E2D6` · `#C9C4B4` | filete |
+| **`acao`** | `#17150F` | **tinta cheia**. Botão preto resolve "uma cor de ação" sem gastar cromia, e deixa o acento livre para ser expressivo |
+| **`destaque`** | `#2A5FD6` | azul **saturado**. Pílula atrás de palavra, anel, acento de rascunho, fim da escala. **Nunca** preenche botão |
+| **`portao`** | `#DC4B1E` | laranja-tijolo. Bloqueante e raro. `duro` e `triagem` se separam por **forma** — sólido contra tracejado |
+| `escala-0` a `-3` | `#EAE6DA` → `#2A5FD6` | `D6-ESCALA`. Enche, não alerta. Termina no destaque porque o fim da escala é domínio |
 
-O teal não é o azul corporativo de sempre, e é validado por um produto adjacente a educação (User Interviews). Zero não é vermelho porque zero é o estado antes da tentativa, não reprovação (Doc 6 §2).
+**As duas paletas anteriores foram rejeitadas pelo dono do curso, e o motivo foi o mesmo nas duas:** bege lavado e pastel desbotado, com tons vizinhos fingindo hierarquia. Na v1 o `papel` e o `recuo` eram quase idênticos, então o decorrido da régua virava mancha suja e invisível.
 
 ### 4. Três registros tipográficos
 
 - **Archivo** — corpo de interface: rótulo, título, botão, tabela
 - **IBM Plex Mono** (`.legenda`, `.dado`) — sobrancelha de seção e todo número, com numeral tabular. Requisito, não estilo: coluna que dança é ilegível sob pressão
-- **Literata** — prosa de aluno: a pergunta, o log, a reflexão, o briefing. Nunca rótulo
+- **Literata** — voz: título de tela e prosa de aluno. Nunca rótulo
+- **Caveat** — anotação à mão, **só na margem**. Nunca em interface, e nunca carregando informação que só exista ali
 
 Auto-hospedadas via `next/font/google`. Descartado o `Geist` do scaffold: é a fonte-padrão do ecossistema e não carrega ponto de vista.
+
+### 4.1 Traço à mão, e onde ele mora
+
+Desenhado em SVG (`src/components/marcas.tsx`), não ícone de biblioteca: as curvas têm assimetria proposital, porque traço perfeito lê como ícone e traço torto lê como mão.
+
+Seis marcas: obstáculo (um muro), mural (bilhete pregado), produto (caixa aberta), seta, laço e faísca.
+
+**Regra de uso, e eu já a violei uma vez:** a marca vive na **margem**, fora da coluna de texto. A primeira tentativa jogou o muro e a seta por cima do parágrafo de abertura — exatamente o que a regra proíbe. E só entra onde espelha algo físico: o mural é uma parede de papel na sala (Doc 7 §6), o obstáculo é um muro.
+
+Nunca em superfície de decisão sob pressão, e nunca carregando informação que só exista ali.
 
 ### 5. Design de informação antes de cromagem
 
@@ -88,9 +99,13 @@ Doc 5 §6.2 enquadra o repositório como **produto público** do curso: declarad
 
 ### 7. Signature: a régua do dia
 
-Barra proporcional às durações reais, persistente em toda tela, com o bloco corrente aceso. As larguras **são** as proporções — 75 minutos ocupam cinco vezes o espaço de 15, sem largura mínima e sem arredondamento, porque um bloco curto deve parecer curto.
+Uma faixa só, ~40px. A primeira versão tinha o dobro da altura e ocupava muito mais espaço do que a informação pedia.
 
-Responde a única pergunta que o instrutor faz o tempo todo: *estou no tempo?*
+As larguras **são** as durações — 75 minutos ocupam cinco vezes o espaço de 15, sem largura mínima, porque bloco curto deve parecer curto. `flex-basis: 0` é o que torna isso verdadeiro: com a base vinda do conteúdo, o rótulo empurrava a caixa.
+
+**O decorrido não preenche caixa.** Era bloco bege sobre fundo bege — mancha suja e invisível. Agora é fio de tinta de 2px na base: contraste de verdade em um sexto da altura.
+
+Bloco estreito **perde o rótulo** em vez de exibi-lo cortado. "FECHAME…" não informa nada; a duração fica e o nome segue acessível pelo `title`.
 
 ### 8. Ausência é projetada, não é card vazio
 
