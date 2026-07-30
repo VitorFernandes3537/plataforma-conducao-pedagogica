@@ -9,8 +9,10 @@ type Props = {
   /**
    * O obstáculo enunciado como pergunta do aluno.
    *
-   * Doc 3 §2: "a parede enunciada como problema dele, não como aula numerada.
-   * É o que vai no mural e na plataforma. Separa PBL de currículo."
+   * Doc 3 §2 descreve o campo como o obstáculo enunciado como problema do
+   * aluno, não como aula numerada — é o que vai ao mural e à plataforma, e é o
+   * que separa o método de um currículo. (O termo do curso está traduzido aqui,
+   * pela fronteira do CLAUDE.md §2.3.)
    */
   perguntaDoAluno: string
   /** Doc 3 §2: comportamento verificável e binário. Vira checklist aqui. */

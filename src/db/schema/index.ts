@@ -912,6 +912,69 @@ export const registrosDeRecuperacao = pgTable(
 )
 
 /**
+ * Situação de um item do mural (Doc 7 §2.3: `ItemDeMural (pergunta, autor,
+ * status, Obstaculo)`).
+ *
+ * Dois valores, e não um booleano, porque o Doc 7 declara o campo como `status`
+ * e porque riscar é ato com autor e instante — um booleano não teria onde
+ * pendurá-los.
+ */
+export const statusDoItemDeMuralEnum = pgEnum('status_do_item_de_mural', ['aberto', 'resolvido'])
+
+/**
+ * Item do mural do "precisamos saber" (`D5-MURAL` · Doc 5 §8).
+ *
+ * Artefato canônico do método: torna visível o que os obstáculos produzem de
+ * dúvida, em vez de deixá-la presumida. O mural físico continua existindo — a
+ * plataforma **espelha**, não substitui (Doc 7 §6).
+ *
+ * `obstaculoId` é `notNull` porque a organização é por PERGUNTA de obstáculo,
+ * nunca por número (Doc 5 §8.1, `D3-07`). Um item solto não tem onde aparecer:
+ * é a pergunta que agrupa, e sem vínculo o item some da única tela que existe.
+ *
+ * O autor é o GRUPO, não o aluno. O Doc 5 §8.1 diz que quem escreve é o grupo,
+ * sempre que trava — e quem digitou não é o fato registrado, quem travou é.
+ *
+ * (O documento-dono usa aqui o termo do curso; a tradução para `Grupo` é a
+ * fronteira do CLAUDE.md §2.3 funcionando, não uma paráfrase solta.)
+ *
+ * Não há validação do texto. O Doc 5 §8.3 distingue a dúvida do pedido de
+ * solução com exemplos, e essa é leitura humana; automatizá-la seria a
+ * plataforma corrigindo conteúdo, que o Doc 7 §6 exclui.
+ */
+export const itensDeMural = pgTable(
+  'itens_de_mural',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    grupoId: uuid('grupo_id')
+      .notNull()
+      .references(() => grupos.id, { onDelete: 'cascade' }),
+    obstaculoId: uuid('obstaculo_id')
+      .notNull()
+      .references(() => obstaculos.id, { onDelete: 'cascade' }),
+    texto: text('texto').notNull(),
+    status: statusDoItemDeMuralEnum('status').notNull().default('aberto'),
+    // `restrict`: apagar o instrutor não pode apagar o registro de quem riscou.
+    resolvidoPorId: uuid('resolvido_por_id').references(() => usuarios.id, {
+      onDelete: 'restrict',
+    }),
+    resolvidoEm: timestamp('resolvido_em', { withTimezone: true }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('item_de_mural_nao_vazio', sql`btrim(${t.texto}) <> ''`),
+    // Riscado é exatamente "tem quem riscou e quando". Sem isso existiria item
+    // resolvido sem responsável, e o mural é consultado na abertura de todo dia
+    // justamente para saber o que já foi respondido e por quem.
+    check(
+      'resolucao_coerente_com_status',
+      sql`(${t.status} = 'resolvido')
+          = (${t.resolvidoEm} is not null and ${t.resolvidoPorId} is not null)`,
+    ),
+  ],
+)
+
+/**
  * Poda de escopo: a única edição admitida depois da aprovação.
  *
  * O formulário aprovado é imutável, com uma exceção — o instrutor reduz o escopo
