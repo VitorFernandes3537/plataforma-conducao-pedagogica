@@ -7,9 +7,8 @@ export type DadosDaTarja = {
   trilha?: 'padrao' | 'desafio' | undefined
   estado: EstadoDaTarja
   /**
-   * O que o instrutor precisa ler para decidir. Em dia de parede é o sintoma
-   * observável do obstáculo — Doc 3 §2: "10 duplas, 3h: o diagnóstico precisa
-   * levar 30 segundos".
+   * O que o instrutor precisa ler para decidir. Doc 3 §2: "10 duplas, 3h: o
+   * diagnóstico precisa levar 30 segundos".
    */
   sintoma?: string | undefined
   bloqueado?: boolean | undefined
@@ -23,11 +22,11 @@ const ROTULO: Record<EstadoDaTarja, string> = {
 }
 
 /**
- * Tarja em forma de ação: exige leitura e decisão agora.
+ * Ficha em forma de ação: exige leitura e decisão agora.
  *
- * Cresce e mostra o sintoma. Hierarquia por TAMANHO, não por rótulo — a
- * versão anterior dava peso idêntico a seis fichas e por isso não ajudava a
- * triar nada.
+ * Cresce e mostra o sintoma. Hierarquia por TAMANHO, não por rótulo. Bloqueio
+ * é filete de marcador na borda, não fundo colorido: texto sobre vermelho é
+ * ilegível e grita.
  */
 export function TarjaEmAcao({
   integrantes,
@@ -39,59 +38,51 @@ export function TarjaEmAcao({
 }: DadosDaTarja) {
   return (
     <article
-      className="flex flex-col gap-2 bg-tarja px-4 py-3 text-tinta"
-      style={
-        bloqueado
-          ? { borderLeft: '3px solid var(--color-portao-duro)' }
-          : { borderLeft: '3px solid transparent' }
-      }
+      className="flex flex-col gap-2.5 border border-filete bg-papel-alto px-4 py-3.5"
+      style={bloqueado ? { borderLeft: '3px solid var(--color-portao-duro)' } : undefined}
     >
       <header className="flex items-baseline justify-between gap-3">
-        <h3 className="truncate text-[0.9375rem] font-semibold leading-tight">
+        <h3 className="truncate text-[0.9375rem] font-semibold leading-tight text-tinta">
           {integrantes.join(' · ')}
           {integrantes.length === 1 && (
-            <span className="ml-2 text-[0.625rem] font-normal uppercase tracking-[0.14em] text-tinta-fraca">
-              sozinho
-            </span>
+            <span className="legenda ml-2 font-normal">sozinho</span>
           )}
         </h3>
-        <span className="dado shrink-0 text-[0.625rem] uppercase tracking-[0.1em] text-tinta-fraca">
-          {ROTULO[estado]}
-        </span>
+        <span className="legenda shrink-0">{ROTULO[estado]}</span>
       </header>
 
-      <p className="flex items-center gap-2 text-[0.8125rem] leading-tight">
+      <p className="flex items-center gap-2 text-[0.8125rem] leading-tight text-tinta-media">
         {tema ?? <span className="text-tinta-fraca">sem tema alocado</span>}
         {trilha === 'desafio' && (
-          <span className="border border-tinta-fraca px-1 text-[0.5625rem] uppercase tracking-[0.14em]">
+          <span className="dado border border-filete-forte px-1 text-[0.5625rem] uppercase tracking-[0.12em]">
             desafio
           </span>
         )}
       </p>
 
       {sintoma && (
-        <p className="border-t border-tarja-sombra pt-2 text-[0.8125rem] leading-snug">{sintoma}</p>
+        <p className="border-t border-filete pt-2.5 text-[0.8125rem] leading-snug text-tinta">
+          {sintoma}
+        </p>
       )}
     </article>
   )
 }
 
 /**
- * Tarja resolvida: encolhe para uma linha.
+ * Ficha resolvida: encolhe para uma linha.
  *
- * Quem já está resolvido sai do caminho. Continua visível — o instrutor
- * precisa saber que existe e está fechado — mas não disputa atenção.
+ * Continua visível — o instrutor precisa saber que existe e está fechado — mas
+ * não disputa atenção.
  */
 export function TarjaResolvida({ integrantes, tema, estado }: DadosDaTarja) {
   return (
-    <article className="flex items-baseline justify-between gap-3 border-b border-regua-fraca px-1 py-1.5">
-      <h3 className="truncate text-[0.8125rem] text-clara-fraca">
+    <article className="flex items-baseline justify-between gap-3 border-b border-filete py-2">
+      <h3 className="truncate text-[0.8125rem] text-tinta-media">
         {integrantes.join(' · ')}
-        <span className="ml-2 text-clara-fraca/70">{tema}</span>
+        <span className="ml-2 text-tinta-fraca">{tema}</span>
       </h3>
-      <span className="dado shrink-0 text-[0.625rem] uppercase tracking-[0.1em] text-clara-fraca">
-        {ROTULO[estado]}
-      </span>
+      <span className="legenda shrink-0">{ROTULO[estado]}</span>
     </article>
   )
 }

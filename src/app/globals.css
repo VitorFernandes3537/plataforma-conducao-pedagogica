@@ -1,78 +1,106 @@
 @import "tailwindcss";
 
 /*
-  Rumo visual da PCP.
+  Rumo visual da PCP — direção "papel técnico".
 
-  A plataforma é um instrumento de condução de tempo, não um dashboard.
-  Referência estrutural: quadro de tarjas de despacho, onde cada Grupo é uma
-  ficha que atravessa portões numa régua de tempo.
+  A plataforma conduz. O desenho tem jeito próprio, mas não disputa atenção
+  com o conteúdo: quem tem que ser lido é a pergunta do aluno, não a moldura.
 
-  Regra que governa a paleta: COR SIGNIFICA ESTADO. Nada aqui é decoração.
-  Os dois tons de portão existem porque os documentos distinguem marco `duro`
-  de marco `triagem` (Doc 4 §4) — é semântica, não gosto.
+  A referência é prancha de desenho técnico, não caderno escolar: malha
+  milimetrada com grade fina e forte, filete em vez de sombra, rótulo em
+  monoespaçada como legenda. É o que dá cara de ferramenta sem recorrer a
+  neon, vidro ou gradiente.
 
-  Compromisso deliberado com um único mundo visual: fundo escuro sempre. Não
-  é omissão de tema claro — é a escolha de parecer painel, e não documento.
+  Regra que governa a paleta: COR SIGNIFICA ESTADO. O vermelhão é marcador
+  sobre prancha e só aparece em portão e bloqueio.
 */
 
 @theme {
-  /* Superfícies */
-  --color-quadro: #1f2a2e;
-  --color-quadro-fundo: #161f22;
-  --color-tarja: #e8e4da;
-  --color-tarja-sombra: #d3cec1;
+  /* Papel e superfícies */
+  --color-papel: #f6f4ef;
+  --color-papel-alto: #ffffff;
+  --color-papel-fundo: #eceae3;
+
+  /* Malha: fina a cada 8px, forte a cada 40 */
+  --color-malha-fina: #e6e2d8;
+  --color-malha-forte: #d8d3c6;
 
   /* Tinta */
-  --color-tinta: #16201f;
-  --color-tinta-fraca: #5b625d;
-  --color-clara: #e8ece9;
-  --color-clara-fraca: #97a3a4;
+  --color-tinta: #191814;
+  --color-tinta-media: #4a463d;
+  --color-tinta-fraca: #6b665c;
 
   /* Estrutura */
-  --color-regua: #5c6b6e;
-  --color-regua-fraca: #33454a;
+  --color-filete: #d3cec3;
+  --color-filete-forte: #b8b2a4;
 
-  /* Portões — uso restrito a marco e estado bloqueante */
-  --color-portao-duro: #c2352b;
-  --color-portao-triagem: #c98a1e;
+  /* Portões — marcador sobre prancha. Uso restrito. */
+  --color-portao-duro: #c63f1b;
+  --color-portao-triagem: #b8830f;
 
-  /* Escala de obstáculo 0–3 (`D6-ESCALA`). Sequencial, não semáforo:
-     0 é ausência, 3 é domínio. Superado é >= 1 (Doc 6 §2). */
-  --color-escala-0: #3d4a4d;
-  --color-escala-1: #6b7f6a;
-  --color-escala-2: #8aa473;
-  --color-escala-3: #b6c98a;
+  /* Escala de obstáculo 0–3 (`D6-ESCALA`). Sequencial: enche, não alerta.
+     Superado é >= 1 (Doc 6 §2). */
+  --color-escala-0: #ddd8cc;
+  --color-escala-1: #a9bf9a;
+  --color-escala-2: #6d9a67;
+  --color-escala-3: #2f6b4a;
 }
 
 @theme inline {
-  /* Cromagem do instrumento: rótulo, cabeçalho, tarja. */
+  /* Cromagem: título, prosa curta, corpo de interface. */
   --font-chrome: var(--font-archivo);
-  /* Tempo e número. Tabular é requisito: coluna que dança é ilegível. */
+  /* Legenda técnica e todo número. Tabular é requisito, não estilo. */
   --font-dado: var(--font-dado-mono);
-  /* Prosa de aluno: log, reflexão, briefing, contrato. */
+  /* Prosa de aluno: a pergunta, o log, a reflexão, o briefing. */
   --font-prosa: var(--font-literata);
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  background-color: var(--color-quadro-fundo);
-  color: var(--color-clara);
+  background-color: var(--color-papel-fundo);
+  color: var(--color-tinta);
   font-family: var(--font-chrome), system-ui, sans-serif;
 }
 
-/* Numeral tabular onde há número, sem precisar lembrar de pedir. */
+/* Malha milimetrada. Fina a cada 8px, forte a cada 40 — a grade forte é o
+   que a faz ler como prancha e não como planilha. */
+.malha {
+  background-color: var(--color-papel);
+  background-image:
+    linear-gradient(var(--color-malha-forte) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-malha-forte) 1px, transparent 1px),
+    linear-gradient(var(--color-malha-fina) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-malha-fina) 1px, transparent 1px);
+  background-size:
+    40px 40px,
+    40px 40px,
+    8px 8px,
+    8px 8px;
+}
+
+/* Legenda técnica: monoespaçada, caixa alta, entreletra aberta. É o "jeitinho"
+   da interface, e por ser pequeno não rouba a cena. */
+.legenda {
+  font-family: var(--font-dado), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-tinta-fraca);
+}
+
+/* Número. Tabular sempre: coluna que dança é ilegível sob pressão. */
 .dado {
   font-family: var(--font-dado), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
 
-/* Foco visível é piso de qualidade, não enfeite. */
 :focus-visible {
-  outline: 2px solid var(--color-portao-triagem);
+  outline: 2px solid var(--color-portao-duro);
   outline-offset: 2px;
 }
 
