@@ -221,6 +221,57 @@ describe('Issue 9 — fila de aprovação e máquina de estados', () => {
     ).rejects.toThrow()
   })
 
+  it('devolucao_exige_motivo', async () => {
+    const { formulario, pergunta, instrutora, grupoA } = await cenario()
+    const escopo = await escopoSubmetido(grupoA.id, formulario.id, pergunta.id)
+
+    // Vazio, espaço e quebra de linha são a mesma coisa: nada escrito. Devolver
+    // sem dizer o que corrigir gastaria de novo os 3 a 4 minutos que a fila tem
+    // por grupo, e o grupo voltaria com o mesmo erro.
+    const NADA = ['', '   ', String.fromCharCode(10, 9, 32)]
+    for (const nada of NADA) {
+      await expect(devolve(banco.db, escopo.id, instrutora.id, nada)).rejects.toThrow(
+        TransicaoIlegal,
+      )
+    }
+    expect(await estadoDoEscopo(banco.db, escopo.id)).toBe('submetido')
+
+    // A regra não é só da aplicação: o banco recusa devolvido sem motivo por
+    // CHECK, então nenhum outro caminho de escrita cria esse estado.
+    await expect(
+      banco.db
+        .update(respostasDeEscopo)
+        .set({
+          estado: 'devolvido',
+          decididoEm: new Date(),
+          decididoPorId: instrutora.id,
+          motivoDaDevolucao: '   ',
+        })
+        .where(eq(respostasDeEscopo.id, escopo.id)),
+    ).rejects.toThrow()
+
+    // Com motivo, devolve — e o motivo chega ao grupo já sem sobra de espaço.
+    await devolve(banco.db, escopo.id, instrutora.id, '  Falta o estado final.  ')
+
+    const [devolvido] = await banco.db
+      .select()
+      .from(respostasDeEscopo)
+      .where(eq(respostasDeEscopo.id, escopo.id))
+    expect(devolvido?.estado).toBe('devolvido')
+    expect(devolvido?.motivoDaDevolucao).toBe('Falta o estado final.')
+    expect(devolvido?.decididoPorId).toBe(instrutora.id)
+
+    // Aprovar depois apaga o motivo: motivo pendurado em escopo aprovado
+    // apareceria na tela do grupo como correção pendente.
+    await submete(banco.db, escopo.id)
+    await aprova(banco.db, escopo.id, instrutora.id)
+    const [aprovado] = await banco.db
+      .select()
+      .from(respostasDeEscopo)
+      .where(eq(respostasDeEscopo.id, escopo.id))
+    expect(aprovado?.motivoDaDevolucao).toBeNull()
+  })
+
   it('somente_instrutor_decide', async () => {
     const { formulario, pergunta, aluno, grupoA } = await cenario()
     const escopo = await escopoSubmetido(grupoA.id, formulario.id, pergunta.id)
