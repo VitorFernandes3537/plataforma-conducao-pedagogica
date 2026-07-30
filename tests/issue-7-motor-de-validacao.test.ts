@@ -75,4 +75,89 @@ describe('Issue 7 — motor de validação automática', () => {
     // E nenhum limite numérico embutido: faixa e piso vêm da configuração.
     expect(fonte).not.toMatch(/minimo:\s*\d|maximo:\s*\d/)
   })
+
+  it('rejeita_quantidade_de_estados_fora_da_faixa', () => {
+    // FAIXA: a configuração desta pergunta neste curso é de 3 a 5 (Doc 2 §4.6).
+    // Os números moram no dado, não no motor.
+    const MINIMO = 3
+    const MAXIMO = 5
+    const regras = [
+      regra({
+        perguntaId: 'estados',
+        tipo: 'contagem_de_itens',
+        minimo: MINIMO,
+        maximo: MAXIMO,
+        mensagem: `Declare de ${MINIMO} a ${MAXIMO} estados, um por linha.`,
+      }),
+    ]
+
+    const comNItens = (n: number) => [
+      { perguntaId: 'estados', texto: Array.from({ length: n }, (_, i) => `Estado ${i + 1}`).join('\n') },
+    ]
+
+    // Abaixo do mínimo reprova.
+    expect(valida(comNItens(MINIMO - 1), regras)).toHaveLength(1)
+    // As duas pontas da faixa passam — limite é inclusivo.
+    expect(valida(comNItens(MINIMO), regras)).toHaveLength(0)
+    expect(valida(comNItens(MAXIMO), regras)).toHaveLength(0)
+    // Acima do máximo reprova.
+    expect(valida(comNItens(MAXIMO + 1), regras)).toHaveLength(1)
+
+    // Linha vazia não conta: espaçamento não altera contagem.
+    expect(
+      valida([{ perguntaId: 'estados', texto: 'Um\n\n\nDois\n   \nTrês\n' }], regras),
+    ).toHaveLength(0)
+
+    // A mensagem que o aluno lê é a configurada.
+    expect(valida(comNItens(1), regras)[0]?.mensagem).toContain('um por linha')
+  })
+
+  it('rejeita_quantidade_de_categorias_invalida', () => {
+    // EXATO: mesmo mecanismo, mínimo igual ao máximo. O Doc 2 §4.6 pede
+    // exatamente três nesta pergunta, e isso é configuração — não um segundo
+    // tipo de regra.
+    const EXATO = 3
+    const regras = [
+      regra({
+        perguntaId: 'categorias',
+        tipo: 'contagem_de_itens',
+        minimo: EXATO,
+        maximo: EXATO,
+        mensagem: `Declare exatamente ${EXATO} categorias.`,
+      }),
+    ]
+
+    const comNItens = (n: number) => [
+      { perguntaId: 'categorias', texto: Array.from({ length: n }, (_, i) => `Categoria ${i + 1}`).join('\n') },
+    ]
+
+    expect(valida(comNItens(EXATO - 1), regras)).toHaveLength(1)
+    expect(valida(comNItens(EXATO), regras)).toHaveLength(0)
+    expect(valida(comNItens(EXATO + 1), regras)).toHaveLength(1)
+  })
+
+  it('rejeita_fora_de_escopo_insuficiente', () => {
+    // PISO: mesmo mecanismo, máximo nulo. Listar mais do que fica de fora é
+    // sempre bem-vindo — o campo existe para conter o crescimento da aula
+    // (Doc 3 §2), então não há teto.
+    const PISO = 3
+    const regras = [
+      regra({
+        perguntaId: 'fora-de-escopo',
+        tipo: 'contagem_de_itens',
+        minimo: PISO,
+        maximo: null,
+        mensagem: `Liste ao menos ${PISO} itens fora de escopo.`,
+      }),
+    ]
+
+    const comNItens = (n: number) => [
+      { perguntaId: 'fora-de-escopo', texto: Array.from({ length: n }, (_, i) => `Fora ${i + 1}`).join('\n') },
+    ]
+
+    expect(valida(comNItens(PISO - 1), regras)).toHaveLength(1)
+    expect(valida(comNItens(PISO), regras)).toHaveLength(0)
+    // Sem teto: vinte itens continuam válidos.
+    expect(valida(comNItens(20), regras)).toHaveLength(0)
+  })
 })

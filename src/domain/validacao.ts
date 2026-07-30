@@ -81,9 +81,40 @@ export function valida(
       })
       continue
     }
+
+    const texto = resposta!.texto
+
+    if (regra.tipo === 'contagem_de_itens' && !dentroDaFaixa(texto, regra)) {
+      reprovacoes.push({
+        perguntaId: regra.perguntaId,
+        tipo: regra.tipo,
+        mensagem: regra.mensagem,
+      })
+    }
   }
 
   return reprovacoes
+}
+
+/**
+ * Conta os itens e compara com a faixa declarada na pergunta.
+ *
+ * O mesmo mecanismo cobre três formas, e é isso que torna o motor
+ * configurável em vez de codificado:
+ *
+ * - **faixa**   `minimo` e `maximo` preenchidos
+ * - **exato**   `minimo` igual a `maximo`
+ * - **piso**    só `minimo`, `maximo` nulo
+ *
+ * Nulo em cada ponta significa "sem limite deste lado". Nenhum número aparece
+ * aqui: eles vêm da configuração da pergunta.
+ */
+function dentroDaFaixa(texto: string, regra: Regra): boolean {
+  const quantidade = itensDaResposta(texto).length
+
+  if (regra.minimo !== null && quantidade < regra.minimo) return false
+  if (regra.maximo !== null && quantidade > regra.maximo) return false
+  return true
 }
 
 /** Passou no pré-filtro? É o que decide se o formulário chega ao instrutor. */
