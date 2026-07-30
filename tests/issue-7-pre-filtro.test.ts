@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { filaDoInstrutor, rodaPreFiltro, submeteSePassar, TEMA_JA_ALOCADO } from '@/db/pre-filtro'
+import { filaDoInstrutor } from '@/db/fila-de-aprovacao'
+import { rodaPreFiltro, submeteSePassar, TEMA_JA_ALOCADO } from '@/db/pre-filtro'
 import { abreRascunho, gravaResposta } from '@/db/resposta-de-escopo'
 import {
   bancosDeTemas,

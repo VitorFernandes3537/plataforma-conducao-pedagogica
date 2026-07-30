@@ -5,6 +5,7 @@ import {
   aprova,
   devolve,
   estadoDoEscopo,
+  filaDoInstrutor,
   NaoAutorizado,
   TransicaoIlegal,
 } from '@/db/fila-de-aprovacao'
@@ -12,7 +13,9 @@ import { abreRascunho, EscopoInvalido, gravaResposta, submete } from '@/db/respo
 import {
   formularios,
   grupos,
+  julgamentosHumanos,
   perguntasDoFormulario,
+  regrasDeValidacao,
   respostasDeEscopo,
   respostasDePergunta,
   turmas,
@@ -282,6 +285,133 @@ describe('Issue 9 — fila de aprovação e máquina de estados', () => {
     await expect(aprova(banco.db, escopo.id, aluno.id)).rejects.toThrow(NaoAutorizado)
     await expect(devolve(banco.db, escopo.id, aluno.id, 'motivo')).rejects.toThrow(NaoAutorizado)
     expect(await estadoDoEscopo(banco.db, escopo.id)).toBe('submetido')
+  })
+
+  it('fila_mostra_apenas_julgamentos_humanos', async () => {
+    const { formulario, pergunta, instrutora, turma, grupoA } = await cenario()
+
+    // Julgamentos humanos configurados NO FORMULÁRIO. São três aqui de
+    // propósito: quantos existem é configuração do curso, e um teste que
+    // esperasse quatro estaria fixando quantidade com significado pedagógico.
+    const HUMANOS = [
+      'A resposta descreve um evento, ou um estado disfarçado de evento?',
+      'As fórmulas diferem em estrutura, ou só em constante?',
+      'O recurso declarado é finito de verdade?',
+    ]
+    await banco.db.insert(julgamentosHumanos).values(
+      HUMANOS.map((enunciado, i) => ({
+        formularioId: formulario.id,
+        ordem: i + 1,
+        enunciado,
+        perguntaId: i === 0 ? pergunta.id : null,
+      })),
+    )
+
+    // E uma regra mecânica na mesma pergunta, que o motor da issue 7 já resolveu.
+    await banco.db.insert(regrasDeValidacao).values({
+      perguntaId: pergunta.id,
+      tipo: 'nao_vazio',
+      mensagem: 'Preencha o escopo.',
+    })
+
+    const escopo = await escopoSubmetido(grupoA.id, formulario.id, pergunta.id)
+
+    const fila = await filaDoInstrutor(banco.db, turma.id)
+    expect(fila).toHaveLength(1)
+
+    const item = fila[0]!
+    expect(item.respostaDeEscopoId).toBe(escopo.id)
+    expect(item.julgamentos.map((j) => j.enunciado)).toEqual(HUMANOS)
+    expect(item.julgamentos[0]?.perguntaId).toBe(pergunta.id)
+
+    // A resposta do grupo vem, porque é o que se lê para julgar. A mensagem da
+    // regra mecânica não vem em lugar nenhum: reconferir o que a máquina já
+    // decidiu gastaria os 3 a 4 minutos que o instrutor tem por formulário.
+    expect(item.respostas.map((r) => r.texto)).toEqual(['Escopo do grupo'])
+    expect(JSON.stringify(item)).not.toContain('Preencha o escopo.')
+
+    // Outro formulário com outra quantidade de julgamentos prova que o número é
+    // dado, não código.
+    const [outroFormulario] = await banco.db
+      .insert(formularios)
+      .values({ cursoId: turma.cursoId, nome: 'Formulário enxuto' })
+      .returning()
+    await banco.db
+      .insert(julgamentosHumanos)
+      .values({ formularioId: outroFormulario!.id, ordem: 1, enunciado: 'Único julgamento.' })
+
+    const [grupoC] = await banco.db.insert(grupos).values({ turmaId: turma.id }).returning()
+    const [perguntaDoOutro] = await banco.db
+      .insert(perguntasDoFormulario)
+      .values({
+        formularioId: outroFormulario!.id,
+        ordem: 1,
+        enunciado: 'Escopo?',
+        criterioDeAceite: 'Verificável.',
+      })
+      .returning()
+    await escopoSubmetido(grupoC!.id, outroFormulario!.id, perguntaDoOutro!.id)
+
+    const comDois = await filaDoInstrutor(banco.db, turma.id)
+    const doOutro = comDois.find((i) => i.grupoId === grupoC!.id)
+    expect(doOutro?.julgamentos).toHaveLength(1)
+    expect(comDois.find((i) => i.grupoId === grupoA.id)?.julgamentos).toHaveLength(HUMANOS.length)
+
+    // Decidido sai da fila. A fila lê o estado, não repete a validação.
+    await aprova(banco.db, escopo.id, instrutora.id)
+    const depois = await filaDoInstrutor(banco.db, turma.id)
+    expect(depois.map((i) => i.grupoId)).toEqual([grupoC!.id])
+  })
+
+  it('fila_ordena_por_tempo_de_espera', async () => {
+    const { formulario, pergunta, instrutora, turma, grupoA, grupoB } = await cenario()
+    const [grupoC] = await banco.db.insert(grupos).values({ turmaId: turma.id }).returning()
+
+    const escopoA = await escopoSubmetido(grupoA.id, formulario.id, pergunta.id)
+    const escopoB = await escopoSubmetido(grupoB.id, formulario.id, pergunta.id)
+    const escopoC = await escopoSubmetido(grupoC!.id, formulario.id, pergunta.id)
+
+    // Instantes fixos: o teste precisa provar o ORDER BY, não a resolução do
+    // relógio. O estado continua `submetido`, e o CHECK segue valendo.
+    const base = new Date('2026-03-10T13:00:00.000Z')
+    const minutos = (n: number) => new Date(base.getTime() + n * 60_000)
+    const entregas: [string, Date][] = [
+      [escopoA.id, minutos(20)],
+      [escopoB.id, minutos(5)],
+      [escopoC.id, minutos(12)],
+    ]
+    for (const [id, quando] of entregas) {
+      await banco.db
+        .update(respostasDeEscopo)
+        .set({ submetidoEm: quando })
+        .where(eq(respostasDeEscopo.id, id))
+    }
+
+    // Quem espera mais é atendido primeiro: é o que faz a aprovação rolling
+    // funcionar sem o instrutor ter de lembrar a ordem andando pela sala.
+    const fila = await filaDoInstrutor(banco.db, turma.id)
+    expect(fila.map((i) => i.grupoId)).toEqual([grupoB.id, grupoC!.id, grupoA.id])
+    expect(fila.map((i) => i.submetidoEm.getTime())).toEqual([
+      minutos(5).getTime(),
+      minutos(12).getTime(),
+      minutos(20).getTime(),
+    ])
+
+    // Devolver tira da fila; reenviar recoloca no fim, porque o reenvio é uma
+    // entrega nova e o grupo não herda o lugar que perdeu.
+    await devolve(banco.db, escopoB.id, instrutora.id, 'Refaça as transições.')
+    expect((await filaDoInstrutor(banco.db, turma.id)).map((i) => i.grupoId)).toEqual([
+      grupoC!.id,
+      grupoA.id,
+    ])
+
+    await gravaResposta(banco.db, escopoB.id, pergunta.id, 'Escopo corrigido')
+    await submete(banco.db, escopoB.id)
+    expect((await filaDoInstrutor(banco.db, turma.id)).map((i) => i.grupoId)).toEqual([
+      grupoC!.id,
+      grupoA.id,
+      grupoB.id,
+    ])
   })
 
   it('o_mapa_de_transicoes_nao_tem_estado_sem_saida_de_entrada', () => {

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm'
+import { and, eq, inArray, ne } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import { aprovadoNoPreFiltro, valida, type Regra, type Reprovacao } from '@/domain/validacao'
@@ -151,22 +151,4 @@ export async function submeteSePassar(
     )
 
   return resultado
-}
-
-/**
- * A fila do instrutor: escopos submetidos de uma turma.
- *
- * Reprovado no pré-filtro não aparece aqui, porque nunca recebeu
- * `submetidoEm`. A fila lê o fato, não repete a validação — duas
- * implementações da mesma regra divergiriam.
- */
-export async function filaDoInstrutor(
-  db: Db,
-  turmaId: string,
-): Promise<{ respostaDeEscopoId: string; grupoId: string }[]> {
-  return db
-    .select({ respostaDeEscopoId: respostasDeEscopo.id, grupoId: respostasDeEscopo.grupoId })
-    .from(respostasDeEscopo)
-    .innerJoin(grupos, eq(grupos.id, respostasDeEscopo.grupoId))
-    .where(and(eq(grupos.turmaId, turmaId), isNotNull(respostasDeEscopo.submetidoEm)))
 }
