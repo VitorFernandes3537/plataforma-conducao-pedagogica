@@ -105,10 +105,59 @@ export function valida(
           mensagem: regra.mensagem,
         })
       }
+      continue
+    }
+
+    if (regra.tipo === 'lista_negra' && contemTermoProibido(texto, regra.termos ?? [])) {
+      reprovacoes.push({
+        perguntaId: regra.perguntaId,
+        tipo: regra.tipo,
+        mensagem: regra.mensagem,
+      })
     }
   }
 
   return reprovacoes
+}
+
+/**
+ * Quebra o texto em palavras, separando também CamelCase.
+ *
+ * A tabela de tradução tem uma coluna de nome no código, onde CamelCase é o
+ * normal — e sem separar por maiúscula, `GerenciadorDeCortes` passaria batido
+ * pela lista negra. Seria justamente o nome genérico que a regra existe para
+ * caçar (Doc 2 §4.6).
+ */
+function palavrasDe(texto: string): string[] {
+  return texto
+    .replace(/(\p{Ll})(\p{Lu})/gu, '$1 $2')
+    .split(/[^\p{L}\p{N}]+/u)
+    .map(normaliza)
+    .filter((palavra) => palavra.length > 0)
+}
+
+/**
+ * Procura termo da lista negra na resposta.
+ *
+ * A lista é CONFIGURÁVEL por curso: quais nomes contam como genéricos depende
+ * do domínio, e uma lista em código envelheceria na primeira turma nova
+ * (Doc 2 §4.6).
+ *
+ * A comparação é por palavra inteira, com acento e caixa normalizados. Sem a
+ * fronteira de palavra, "Dados" reprovaria "Dadosaurio" — e pior, um termo
+ * curto como "tipo" reprovaria "protótipo", ensinando o aluno a driblar o
+ * validador em vez de nomear melhor.
+ */
+function contemTermoProibido(texto: string, termos: readonly string[]): boolean {
+  const alvo = normaliza(texto)
+  const palavras = new Set(palavrasDe(texto))
+
+  return termos.some((termo) => {
+    const proibido = normaliza(termo)
+    if (proibido.length === 0) return false
+    // Termo com espaço é expressão: procura como sequência, não como palavra.
+    return proibido.includes(' ') ? alvo.includes(proibido) : palavras.has(proibido)
+  })
 }
 
 /** Separadores aceitos entre os dois lados de um par. Formato, não regra. */

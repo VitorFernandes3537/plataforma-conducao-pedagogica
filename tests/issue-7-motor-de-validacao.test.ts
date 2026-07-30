@@ -68,6 +68,60 @@ describe('Issue 7 — motor de validação automática', () => {
     expect(valida([], regras)).toHaveLength(2)
   })
 
+  it('rejeita_nome_generico_na_traducao', () => {
+    // A lista é CONFIGURÁVEL: quais nomes contam como genéricos depende do
+    // domínio, e uma lista em código envelheceria na primeira turma nova.
+    const regras = [
+      regra({
+        perguntaId: 'traducao',
+        tipo: 'lista_negra',
+        termos: ['dados', 'gerenciador', 'info', 'manager', 'registro geral'],
+        mensagem: 'Use o nome que o negócio usa, não um rótulo genérico.',
+      }),
+    ]
+
+    // Nome do negócio: passa.
+    expect(
+      valida(
+        [{ perguntaId: 'traducao', texto: ['Cliente', 'Atendimento', 'Cadeira'].join(NL) }],
+        regras,
+      ),
+    ).toHaveLength(0)
+
+    // CamelCase é separado: `GerenciadorDeCortes` é pego. A coluna de nome no
+    // código é onde CamelCase é o normal, e sem separar por maiúscula o nome
+    // genérico passaria batido.
+    expect(
+      valida(
+        [{ perguntaId: 'traducao', texto: ['Cliente', 'GerenciadorDeCortes'].join(NL) }],
+        regras,
+      ),
+    ).toHaveLength(1)
+
+    // Palavra isolada reprova, com acento e caixa normalizados.
+    expect(valida([{ perguntaId: 'traducao', texto: 'Dados do cliente' }], regras)).toHaveLength(1)
+    expect(valida([{ perguntaId: 'traducao', texto: 'INFO do corte' }], regras)).toHaveLength(1)
+
+    // PALAVRA INTEIRA: "protótipo" não reprova por conter "tipo", e
+    // "Dadosaurio" não reprova por conter "dados". Sem essa fronteira o aluno
+    // aprende a driblar o validador em vez de nomear melhor.
+    expect(
+      valida([{ perguntaId: 'traducao', texto: 'Protótipo de agenda' }], regras),
+    ).toHaveLength(0)
+    expect(valida([{ perguntaId: 'traducao', texto: 'Dadosauro' }], regras)).toHaveLength(0)
+
+    // Termo com espaço é expressão, e é procurado como sequência.
+    expect(
+      valida([{ perguntaId: 'traducao', texto: 'Registro Geral de cortes' }], regras),
+    ).toHaveLength(1)
+
+    // Lista vazia não reprova nada: curso pode não configurar a regra.
+    const semTermos = [
+      regra({ perguntaId: 'traducao', tipo: 'lista_negra', termos: [], mensagem: 'x' }),
+    ]
+    expect(valida([{ perguntaId: 'traducao', texto: 'Dados' }], semTermos)).toHaveLength(0)
+  })
+
   it('o_motor_nao_tenta_os_julgamentos_humanos', () => {
     // Doc 2 §4.6 declara quatro verificações NÃO automatizáveis. Nenhuma delas
     // pode aparecer como tipo de regra, senão a plataforma passa a opinar sobre
