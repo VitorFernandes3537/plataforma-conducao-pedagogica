@@ -1,8 +1,8 @@
-# ADR 0003 — Rumo visual: instrumento, não painel
+# ADR 0003 — Design system
 
 | | |
 |---|---|
-| **Estado** | Proposta — aguarda aprovação do dono do curso |
+| **Estado** | Aceita |
 | **Data** | 2026-07-29 |
 | **Autoridade** | `docs/doc-7-spec-plataforma.md` §0.2 delega design visual ao desenvolvedor |
 | **Fecha pendência de** | ADR 0001, "Identidade visual, tipografia e paleta — próxima ADR, depois que existir uma tela real" |
@@ -26,35 +26,44 @@ Não é um painel de indicadores. O que a spec descreve é operação ao vivo, s
 
 Referência estrutural adotada: **quadro de tarjas de despacho**. Cada `Grupo` é uma ficha que atravessa portões numa régua de tempo. O mapeamento não é metáfora decorativa — é a mesma operação.
 
-### 2. Cor significa estado
+### 2. Dez regras vindas de convergência, não de gosto
 
-| Token | Valor | Papel |
+Derivadas de `docs/referencias-de-design/LEIA-PRIMEIRO.md` §7, onde Notion, User Interviews e Tally chegam à mesma solução de forma independente.
+
+1. Canvas morno, nunca branco puro, nunca frio
+2. Cartão branco com filete, raio 10–12px, sem sombra
+3. **Uma** cor de ação, e ela é o único preenchimento cromático de botão
+4. Cor de expressão separada da de ação — nunca se cruzam
+5. Estado de portão é terceira categoria, e é raro
+6. Sobrancelha de seção em mono caixa-alta com entreletra
+7. Serifada só em prosa de aluno, com parcimônia
+8. Hierarquia de texto por alfa de **uma** tinta, não por cinzas novos
+9. Traço à mão só onde espelha algo físico
+10. Sem malha, sem grade, sem gradiente
+
+### 3. Paleta
+
+| Token | Valor | Função |
 |---|---|---|
-| `quadro` / `quadro-fundo` | `#1F2A2E` / `#161F22` | o painel |
-| `tarja` / `tarja-sombra` | `#E8E4DA` / `#D3CEC1` | a ficha: superfície de leitura e decisão |
-| `tinta` / `tinta-fraca` | `#16201F` / `#5B625D` | texto sobre tarja |
-| `regua` / `regua-fraca` | `#5C6B6E` / `#33454A` | estrutura e divisórias |
-| `portao-duro` | `#C2352B` | **só** marco duro e estado bloqueante |
-| `portao-triagem` | `#C98A1E` | **só** marco de triagem |
-| `escala-0` a `escala-3` | rampa fria → clara | avaliação de obstáculo (`D6-ESCALA`) |
+| `canvas` | `#F7F5F1` | fundo morno |
+| `superficie` | `#FFFFFF` | cartão |
+| `superficie-fraca` | `#F1EFE9` | preenchido, decorrido, apoio |
+| `tinta` · `-media` · `-fraca` · `-tenue` | `#1A1917` → `#B0ABA2` | quatro níveis de **uma** tinta |
+| `filete` · `-forte` | `#E6E2D9` · `#CDC8BC` | estrutura |
+| **`acao`** | `#1C5D5F` | teal profundo. **Único** preenchimento cromático de botão, um por tela |
+| **`expressao`** | `#C4831F` | âmbar. Traço à mão e destaque. **Nunca** preenche botão nem colore link |
+| **`portao`** | `#B3321F` | estado bloqueante. `duro` e `triagem` se separam por **forma** — sólido contra tracejado — e não por cor nova |
+| `escala-0` a `-3` | `#E5E2DA` → `#1C5D5F` | `D6-ESCALA`, rampa que enche. Termina na cor de ação porque o fim da escala é domínio |
 
-Dois tons de portão porque os documentos distinguem `duro` de `triagem`. É semântica, não paleta.
+O teal não é o azul corporativo de sempre, e é validado por um produto adjacente a educação (User Interviews). Zero não é vermelho porque zero é o estado antes da tentativa, não reprovação (Doc 6 §2).
 
-A escala 0–3 é **sequencial, não semáforo**: 0 é ausência, 3 é domínio. Vermelho ali seria erro de leitura — obstáculo não superado não é falha moral, é o estado normal antes da tentativa.
+### 4. Três registros tipográficos
 
-### 3. Três registros tipográficos, três trabalhos
+- **Archivo** — corpo de interface: rótulo, título, botão, tabela
+- **IBM Plex Mono** (`.legenda`, `.dado`) — sobrancelha de seção e todo número, com numeral tabular. Requisito, não estilo: coluna que dança é ilegível sob pressão
+- **Literata** — prosa de aluno: a pergunta, o log, a reflexão, o briefing. Nunca rótulo
 
-- **Archivo** — cromagem do instrumento: rótulo, cabeçalho, tarja.
-- **IBM Plex Mono** (`.dado`) — tempo e número, com numeral tabular. Não é estética: coluna de números que dança é ilegível sob pressão.
-- **Literata** — prosa de aluno: log de obstáculo, reflexão, briefing, contrato. Texto humano merece leitura, não cromagem.
-
-Auto-hospedadas via `next/font/google`, que baixa no build. Nenhuma requisição a CDN em runtime, nenhum fallback silencioso.
-
-Descartado: `Geist`, que o `create-next-app` instala. É a fonte-padrão do ecossistema e não carrega ponto de vista.
-
-### 4. Compromisso com um único mundo visual
-
-**Fundo escuro sempre.** Não é omissão de tema claro: é a escolha de parecer painel, e não documento. `color-scheme: dark` declarado.
+Auto-hospedadas via `next/font/google`. Descartado o `Geist` do scaffold: é a fonte-padrão do ecossistema e não carrega ponto de vista.
 
 ### 5. Design de informação antes de cromagem
 
@@ -83,13 +92,7 @@ Barra proporcional às durações reais, persistente em toda tela, com o bloco c
 
 Responde a única pergunta que o instrutor faz o tempo todo: *estou no tempo?*
 
-### 8. O risco assumido: estado pedagógico como ambiente
-
-Em dia de marco, o portão tinge a régua e as divisórias da tela inteira. A tela diz "hoje reprova" sem escrever isso em lugar nenhum.
-
-**Limite que impede virar semáforo:** o portão tinge régua e divisória — **nunca a tarja, nunca o texto**. Bloqueio aparece como barra na borda esquerda da ficha, não como fundo colorido. Texto sobre vermelho é ilegível e grita.
-
-### 9. Ausência é projetada, não é card vazio
+### 8. Ausência é projetada, não é card vazio
 
 "Aluno não vê nota antes da agregação" (Doc 7 §3) virou **ausência declarada**: borda tracejada e uma frase dizendo quando aparece e por quê. Card vazio dizendo "sem dados" parece defeito; ausência declarada parece regra.
 
@@ -105,9 +108,18 @@ Em dia de marco, o portão tinge a régua e as divisórias da tela inteira. A te
 
 **Custos aceitos**
 
-- Sem tema claro. Quem imprimir tela vai gastar tinta
-- Três famílias tipográficas custam peso. Mitigado por `subsets` e `display: swap`; o serif só carrega nas telas de prosa
-- A régua ocupa altura fixa no topo de toda tela. É espaço caro, gasto de propósito
+- Sem tema escuro. Foi decisão, não omissão: o sistema é papel, e papel não inverte
+- Três famílias tipográficas custam peso. Mitigado por `subsets` e `display: swap`
+- Uma só cor de ação limita o vocabulário de botão. É o ponto: limite é o que faz a ação ser encontrada
+- A régua ocupa altura fixa no topo de toda tela. Espaço caro, gasto de propósito
+
+**Descartado no caminho, e por que**
+
+- **Malha milimetrada de fundo** — nenhuma das três referências usa grade; elas fazem papel por temperatura de cor. Tentei textura duas vezes e o conteúdo ficou sem contraste
+- **Barra escura slate-900 como cromagem** — nenhuma referência tem faixa escura de moldura; Notion usa escuro como *cartão ilha*
+- **Raio zero** — as três arredondam, e o dono do curso pediu arredondado
+- **Canvas cinza-esverdeado frio** — frio é o oposto de papel
+- **Estado pedagógico tingindo a tela inteira** — virou semáforo. O marco agora se declara por filete no topo do cartão e etiqueta, sólido para duro e tracejado para triagem
 
 ---
 

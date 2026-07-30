@@ -49,7 +49,7 @@ export function LinhaDeVida({ passos }: Props) {
               >
                 <span
                   className={`dado text-[0.6875rem] ${
-                    futuro ? 'text-tinta-fraca' : passo.nota! >= 2 ? 'text-painel' : 'text-tinta'
+                    futuro ? 'text-tinta-fraca' : passo.nota! >= 2 ? 'text-superficie' : 'text-tinta'
                   }`}
                 >
                   {futuro ? '·' : passo.nota}

@@ -1,72 +1,91 @@
 @import "tailwindcss";
 
 /*
-  Rumo visual da PCP.
+  DESIGN SYSTEM DA PCP
+  Deriva de docs/referencias-de-design/LEIA-PRIMEIRO.md, seção 7.
 
-  Três camadas, e a ordem delas é a decisão:
+  Dez regras, e todas vieram de convergência entre Notion, User Interviews e
+  Tally — não de gosto:
 
-  1. MESA — o fundo com malha milimetrada. É ambiente, nunca fundo de texto.
-     Aparece só nas calhas entre painéis, e serve de charme e estrutura.
-  2. PAINEL — superfície sólida onde o conteúdo vive. Todo texto legível fica
-     aqui, com contraste cheio contra a mesa.
-  3. CHROME — a barra de instrumento, escura. É onde mora o tempo, e é a
-     camada que dá cara de ferramenta.
-
-  Cor significa estado. O vermelhão só aparece em portão e bloqueio.
+   1. Canvas morno, nunca branco puro, nunca frio
+   2. Cartão branco com filete, raio 10–12px, sem sombra
+   3. UMA cor de ação, e ela é o único preenchimento cromático de botão
+   4. Cor de expressão separada da de ação — nunca se cruzam
+   5. Estado de portão é terceira categoria, e é raro
+   6. Sobrancelha de seção em mono caixa-alta com entreletra
+   7. Serifada só em prosa de aluno, com parcimônia
+   8. Hierarquia de texto por alfa de UMA tinta, não por cinzas novos
+   9. Traço à mão só onde espelha algo físico
+  10. Sem malha, sem grade, sem gradiente
 */
 
 @theme {
-  /* 1 · Mesa — fundo com malha */
-  --color-mesa: #eeece6;
-  --color-malha-fina: #e4e1d8;
-  --color-malha-forte: #d6d2c6;
+  /* ── Superfícies ─────────────────────────────────────────────────────
+     Hierarquia por tom, nunca por sombra. */
+  --color-canvas: #f7f5f1;
+  --color-superficie: #ffffff;
+  --color-superficie-fraca: #f1efe9;
 
-  /* 2 · Painel — superfície sólida do conteúdo */
-  --color-painel: #ffffff;
-  --color-painel-fundo: #f7f6f2;
-  --color-tinta: #14161c;
-  --color-tinta-media: #454a55;
-  --color-tinta-fraca: #6d7280;
+  /* ── Tinta ────────────────────────────────────────────────────────────
+     Quatro níveis de UMA tinta. Nenhum cinza novo entra no sistema. */
+  --color-tinta: #1a1917;
+  --color-tinta-media: #56534d;
+  --color-tinta-fraca: #86827a;
+  --color-tinta-tenue: #b0aba2;
 
-  /* 3 · Chrome — instrumento escuro */
-  --color-chrome: #0f172a;
-  --color-chrome-alto: #1c2740;
-  --color-chrome-baixo: #0a1020;
-  --color-luz: #eef1f6;
-  --color-luz-fraca: #8b95aa;
+  /* ── Estrutura ────────────────────────────────────────────────────── */
+  --color-filete: #e6e2d9;
+  --color-filete-forte: #cdc8bc;
 
-  /* Estrutura */
-  --color-filete: #e0ddd4;
-  --color-filete-forte: #c4c0b4;
+  /* ── Ação ─────────────────────────────────────────────────────────────
+     Teal profundo. É o ÚNICO preenchimento cromático de botão no sistema.
+     Um por tela. Não é o azul corporativo de sempre. */
+  --color-acao: #1c5d5f;
+  --color-acao-forte: #154a4c;
+  --color-acao-tenue: #e4efee;
 
-  /* Portões. Um par para superfície clara, um par para o chrome escuro. */
-  --color-portao-duro: #c63f1b;
-  --color-portao-triagem: #a8760a;
-  --color-portao-duro-luz: #ff7a52;
-  --color-portao-triagem-luz: #f2b53d;
+  /* ── Expressão ────────────────────────────────────────────────────────
+     Âmbar. Traço à mão, marca decorativa, destaque de conteúdo.
+     NUNCA preenche botão. NUNCA é cor de link. */
+  --color-expressao: #c4831f;
+  --color-expressao-tenue: #f6ecd8;
 
+  /* ── Portão ───────────────────────────────────────────────────────────
+     Estado bloqueante. Terceira categoria, e rara.
+     `duro` e `triagem` se distinguem por FORMA — sólido contra tracejado —
+     e não por uma cor nova. */
+  --color-portao: #b3321f;
+  --color-portao-tenue: #f7e6e2;
+
+  /* ── Forma ────────────────────────────────────────────────────────── */
+  --radius-cartao: 10px;
+  --radius-controle: 8px;
+  --radius-etiqueta: 999px;
+}
+
+@theme inline {
+  /* Corpo de interface: rótulo, título, botão. */
+  --font-chrome: var(--font-archivo);
+  /* Legenda técnica e todo número. Tabular é requisito, não estilo. */
+  --font-dado: var(--font-dado-mono);
+  /* Prosa de aluno: a pergunta, o log, a reflexão, o briefing. */
+  --font-prosa: var(--font-literata);
 }
 
 /*
   Escala de obstáculo 0–3 (`D6-ESCALA`). Sequencial: enche, não alerta.
-  Superado é >= 1 (Doc 6 §2).
+  Superado é >= 1 (Doc 6 §2). Termina na cor de ação, porque o fim da escala
+  é domínio.
 
-  Fica FORA do @theme de propósito. O Tailwind v4 só emite variável de tema que
-  encontra escrita no código-fonte, e estas são consumidas com o nome montado
-  por interpolação — `var(--color-escala-${nota})` —, que ele não enxerga. No
-  @theme, apenas a `escala-3` era emitida e o bloco de nota 2 saía sem cor.
+  Fora do @theme de propósito: o Tailwind v4 só emite variável de tema que
+  encontra escrita no código, e estas são consumidas com nome montado por
+  interpolação, que ele não enxerga.
 */
 :root {
-  --color-escala-0: #ddd8cc;
-  --color-escala-1: #9db8ae;
-  --color-escala-2: #4f8f86;
-  --color-escala-3: #1d5f63;
-}
-
-@theme inline {
-  --font-chrome: var(--font-archivo);
-  --font-dado: var(--font-dado-mono);
-  --font-prosa: var(--font-literata);
+  --color-escala-0: #e5e2da;
+  --color-escala-1: #a8c4be;
+  --color-escala-2: #5e938e;
+  --color-escala-3: #1c5d5f;
 }
 
 html {
@@ -74,39 +93,13 @@ html {
 }
 
 body {
-  background-color: var(--color-mesa);
+  background-color: var(--color-canvas);
   color: var(--color-tinta);
   font-family: var(--font-chrome), system-ui, sans-serif;
 }
 
-/*
-  Malha milimetrada. Fina a cada 8px, forte a cada 40 — a grade forte é o que
-  faz ler como prancha e não como planilha.
-
-  Só em mesa. Nunca atrás de texto: era esse o erro da versão anterior, e o
-  conteúdo ficava sem contraste nenhum contra as linhas.
-*/
-.mesa {
-  background-color: var(--color-mesa);
-  background-image:
-    linear-gradient(var(--color-malha-forte) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-malha-forte) 1px, transparent 1px),
-    linear-gradient(var(--color-malha-fina) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-malha-fina) 1px, transparent 1px);
-  background-size:
-    40px 40px,
-    40px 40px,
-    8px 8px,
-    8px 8px;
-}
-
-/* Painel: superfície sólida sobre a mesa. Filete, sem sombra e sem raio. */
-.painel {
-  background-color: var(--color-painel);
-  border: 1px solid var(--color-filete);
-}
-
-/* Legenda técnica. Pequena de propósito: é o jeito da interface, não a cena. */
+/* Sobrancelha de seção. Pequena de propósito: é a pontuação estrutural da
+   interface, não a cena. */
 .legenda {
   font-family: var(--font-dado), ui-monospace, monospace;
   font-size: 0.6875rem;
@@ -116,10 +109,6 @@ body {
   color: var(--color-tinta-fraca);
 }
 
-.legenda-luz {
-  color: var(--color-luz-fraca);
-}
-
 /* Número. Tabular sempre: coluna que dança é ilegível sob pressão. */
 .dado {
   font-family: var(--font-dado), ui-monospace, monospace;
@@ -127,8 +116,74 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
+/* Cartão. Filete e raio, nunca sombra. */
+.cartao {
+  background-color: var(--color-superficie);
+  border: 1px solid var(--color-filete);
+  border-radius: var(--radius-cartao);
+}
+
+/* ── Controles ──────────────────────────────────────────────────────── */
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-controle);
+  padding: 0.4375rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+/* O único preenchimento cromático do sistema. Um por tela. */
+.botao-acao {
+  background-color: var(--color-acao);
+  color: var(--color-superficie);
+}
+.botao-acao:hover {
+  background-color: var(--color-acao-forte);
+}
+
+/* Alternativa de menor compromisso, ao lado da ação. */
+.botao-fantasma {
+  background-color: var(--color-acao-tenue);
+  color: var(--color-acao);
+}
+
+/* Terciário: sem preenchimento, sem filete. */
+.botao-texto {
+  color: var(--color-tinta-media);
+}
+.botao-texto:hover {
+  color: var(--color-tinta);
+}
+
+/* Ação destrutiva ou bloqueante. Rara. */
+.botao-portao {
+  background-color: transparent;
+  border: 1px solid var(--color-portao);
+  color: var(--color-portao);
+}
+.botao-portao:hover {
+  background-color: var(--color-portao-tenue);
+}
+
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--radius-etiqueta);
+  padding: 0.125rem 0.5rem;
+  font-family: var(--font-dado), ui-monospace, monospace;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 :focus-visible {
-  outline: 2px solid var(--color-portao-duro);
+  outline: 2px solid var(--color-acao);
   outline-offset: 2px;
 }
 

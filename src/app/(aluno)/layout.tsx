@@ -19,7 +19,7 @@ export default async function LayoutDoAluno({ children }: { children: React.Reac
     : null
 
   return (
-    <div className="mesa min-h-dvh">
+    <div className="min-h-dvh">
       {pergunta && <PerguntaCondutora texto={pergunta} />}
       {children}
     </div>

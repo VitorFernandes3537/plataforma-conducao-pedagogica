@@ -38,8 +38,8 @@ export function TarjaEmAcao({
 }: DadosDaTarja) {
   return (
     <article
-      className="flex flex-col gap-2.5 border border-filete bg-painel px-4 py-3.5"
-      style={bloqueado ? { borderLeft: '3px solid var(--color-portao-duro)' } : undefined}
+      className="flex flex-col gap-2.5 border border-filete bg-superficie px-4 py-3.5"
+      style={bloqueado ? { borderLeft: '3px solid var(--color-portao)' } : undefined}
     >
       <header className="flex items-baseline justify-between gap-3">
         <h3 className="truncate text-[0.9375rem] font-semibold leading-tight text-tinta">

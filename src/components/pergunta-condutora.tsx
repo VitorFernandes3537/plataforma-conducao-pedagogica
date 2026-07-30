@@ -16,7 +16,7 @@ export function PerguntaCondutora({ texto }: Props) {
   return (
     <aside
       aria-label="Pergunta condutora do curso"
-      className="border-b border-filete bg-painel px-6 py-3"
+      className="border-b border-filete bg-superficie px-6 py-3"
     >
       <p className="legenda">a pergunta do curso</p>
       <p className="mt-1 max-w-[62ch] font-prosa text-[0.9375rem] leading-snug text-tinta-media">
