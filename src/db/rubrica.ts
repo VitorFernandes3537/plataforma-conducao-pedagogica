@@ -11,6 +11,7 @@ import {
 } from '@/domain/rubrica'
 
 import { exigeInstrutor } from './fila-de-aprovacao'
+import { presencaDoInstrumento } from './reflexao'
 import * as schema from './schema'
 import {
   alunos,
@@ -19,6 +20,7 @@ import {
   avaliacoesDeObstaculo,
   eixos,
   incrementos,
+  instrumentosDoEixo,
   niveisDeAvaliacao,
   obstaculos,
   perguntasDaDefesa,
@@ -156,7 +158,7 @@ export async function notaDoAluno(db: Db, alunoId: string): Promise<NotaAgregada
     const notaDaDefesa = daDefesa.get(eixo.id) ?? null
     const proporcaoDaDefesa = notaDaDefesa === null ? null : notaDaDefesa / teto
 
-    const itens = await itensDoEixo(db, eixo, contexto, alunoId)
+    const { itens, teto: tetoDoEixo } = await itensDoEixo(db, eixo, contexto, alunoId, teto)
 
     // Copiloto: a defesa não ajusta o eixo do modelo, ela É o eixo do modelo.
     const doCopiloto =
@@ -167,7 +169,7 @@ export async function notaDoAluno(db: Db, alunoId: string): Promise<NotaAgregada
       nome: eixo.nome,
       peso: eixo.peso,
       unidade: eixo.unidade,
-      proporcao: doCopiloto ?? proporcaoDoEixo(itens, teto),
+      proporcao: doCopiloto ?? proporcaoDoEixo(itens, tetoDoEixo),
       itens: contexto.copiloto && eixo.fonte === 'avaliacao_de_obstaculo' ? 0 : itens.length,
       proporcaoDaDefesa,
     })
@@ -176,20 +178,90 @@ export async function notaDoAluno(db: Db, alunoId: string): Promise<NotaAgregada
   return agrega(apuracoes)
 }
 
+/**
+ * Os itens de um eixo, e o teto pelo qual eles normalizam.
+ *
+ * Fontes de nota normalizam pelo maior nível da escala. A fonte de PRESENÇA já
+ * chega em proporção — o instrumento foi entregue ou não —, e por isso o teto
+ * dela é um. É o mesmo cálculo com o denominador certo, não um caso especial.
+ */
 async function itensDoEixo(
   db: Db,
   eixo: typeof eixos.$inferSelect,
   contexto: { grupoId: string | null; copiloto: boolean },
   alunoId: string,
-): Promise<ItemPontuado[]> {
+  tetoDaNota: number,
+): Promise<{ itens: ItemPontuado[]; teto: number }> {
   if (eixo.fonte === 'avaliacao_de_obstaculo') {
     // O eixo declara a unidade, mas a fonte já é por aluno: a avaliação de
     // obstáculo pendura no registro diário, que pendura no aluno.
-    return contexto.copiloto ? [] : itensDoModelo(db, alunoId)
+    return { itens: contexto.copiloto ? [] : await itensDoModelo(db, alunoId), teto: tetoDaNota }
   }
 
-  if (!contexto.grupoId) return []
-  return itensDoIncremento(db, contexto.grupoId)
+  if (eixo.fonte === 'avaliacao_de_incremento') {
+    if (!contexto.grupoId) return { itens: [], teto: tetoDaNota }
+    return { itens: await itensDoIncremento(db, contexto.grupoId), teto: tetoDaNota }
+  }
+
+  return { itens: await itensDePresenca(db, eixo.id, alunoId), teto: 1 }
+}
+
+/**
+ * Os instrumentos que o eixo confere, cada um como proporção do esperado.
+ *
+ * Instrumento sem nada esperado fica de fora em vez de contar como zero. Cobrar
+ * crítica de um grupo que não foi sorteado em rodada nenhuma puniria quem
+ * cumpriu tudo o que existia para cumprir.
+ */
+async function itensDePresenca(db: Db, eixoId: string, alunoId: string): Promise<ItemPontuado[]> {
+  const declarados = await db
+    .select({ tipo: instrumentosDoEixo.tipo, peso: instrumentosDoEixo.peso })
+    .from(instrumentosDoEixo)
+    .where(eq(instrumentosDoEixo.eixoId, eixoId))
+
+  const itens: ItemPontuado[] = []
+  for (const instrumento of declarados) {
+    const { entregues, esperados } = await presencaDoInstrumento(db, alunoId, instrumento.tipo)
+    if (esperados === 0) continue
+    itens.push({ valor: entregues / esperados, peso: instrumento.peso })
+  }
+  return itens
+}
+
+export type PendenciaDoEixo = {
+  tipo: string
+  entregues: number
+  esperados: number
+}
+
+/**
+ * O que falta ao aluno nos eixos de presença.
+ *
+ * É o que o instrutor lê na agregação antes de fechar. A reflexão da
+ * retrospectiva é o único instrumento que captura o pensamento (Doc 6 §5.1) — se
+ * a pendência dela não aparecer aqui, a tese central do curso deixa de ser
+ * avaliada e ninguém percebe a tempo.
+ */
+export async function pendenciasDeInstrumentos(
+  db: Db,
+  alunoId: string,
+): Promise<PendenciaDoEixo[]> {
+  const contexto = await contextoDoAluno(db, alunoId)
+
+  const declarados = await db
+    .select({ tipo: instrumentosDoEixo.tipo })
+    .from(instrumentosDoEixo)
+    .innerJoin(eixos, eq(eixos.id, instrumentosDoEixo.eixoId))
+    .where(eq(eixos.cursoId, contexto.cursoId))
+
+  const pendentes: PendenciaDoEixo[] = []
+  for (const instrumento of declarados) {
+    const { entregues, esperados } = await presencaDoInstrumento(db, alunoId, instrumento.tipo)
+    if (esperados > 0 && entregues < esperados) {
+      pendentes.push({ tipo: instrumento.tipo, entregues, esperados })
+    }
+  }
+  return pendentes
 }
 
 /**
