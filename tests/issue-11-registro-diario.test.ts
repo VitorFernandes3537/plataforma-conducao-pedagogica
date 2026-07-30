@@ -3,28 +3,35 @@ import { readFileSync } from 'node:fs'
 import { and, eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { NaoAutorizado } from '@/db/fila-de-aprovacao'
 import {
+  confirmaPush,
   escalaDoCurso,
   garanteRegistroDiario,
   lancaAvaliacaoDoAluno,
   lancaAvaliacaoDoGrupo,
   lancamentoDoDia,
+  registraLogDeObstaculo,
   registroDoDia,
   RegistroInvalido,
   removeAvaliacao,
+  revogaConfirmacaoDePush,
 } from '@/db/registro-diario'
 import {
   alunos,
   avaliacoesDeObstaculo,
+  confirmacoesDePush,
   dias,
   grupos,
+  logsDeObstaculo,
   niveisDeAvaliacao,
   obstaculos,
   registrosDiarios,
   turmas,
   usuarios,
 } from '@/db/schema'
+import { NaoAutorizado } from '@/db/fila-de-aprovacao'
+import { AcessoNegado } from '@/domain/autorizacao'
+
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
 import { criaCurso } from './suporte/cenario'
 
@@ -415,6 +422,137 @@ describe('Issue 11 — RegistroDiario: avaliação, log e push', () => {
     expect(fila.find((l) => l.alunoId === um!.id)?.valor).toBe(2)
     expect(fila.find((l) => l.alunoId === dois!.id)?.valor).toBe(0)
     expect(fila.find((l) => l.alunoId === tres!.id)?.valor).toBeNull()
+  })
+
+  it('log_de_obstaculo_por_aluno_e_dia', async () => {
+    const c = await cenario()
+    const { aluno, usuario } = c.integrantes[0]!
+    const outro = c.integrantes[1]!
+
+    // Texto livre, escrito pelo próprio aluno (Doc 7 §3).
+    await registraLogDeObstaculo(
+      banco.db,
+      aluno.id,
+      c.dia.id,
+      c.primeiro.id,
+      'Travei ao descobrir que o estado inválido já estava salvo.',
+      usuario.id,
+    )
+
+    const registro = await registroDoDia(banco.db, aluno.id, c.dia.id)
+    expect(registro?.logs).toHaveLength(1)
+    expect(registro?.logs[0]?.texto).toContain('estado inválido')
+
+    // Por obstáculo dentro do dia: o log do segundo obstáculo não sobrescreve o
+    // do primeiro.
+    await registraLogDeObstaculo(
+      banco.db,
+      aluno.id,
+      c.dia.id,
+      c.segundo.id,
+      'A condicional cresceu de novo.',
+      usuario.id,
+    )
+    const comDois = await registroDoDia(banco.db, aluno.id, c.dia.id)
+    expect(comDois?.logs).toHaveLength(2)
+
+    // Reescrever o próprio log é o caminho normal, não exceção: o aluno escreve
+    // no fechamento e volta para completar.
+    await registraLogDeObstaculo(
+      banco.db,
+      aluno.id,
+      c.dia.id,
+      c.primeiro.id,
+      'Reescrito com o que aprendi.',
+      usuario.id,
+    )
+    const reescrito = await registroDoDia(banco.db, aluno.id, c.dia.id)
+    expect(reescrito?.logs).toHaveLength(2)
+    expect(reescrito?.logs[0]?.texto).toBe('Reescrito com o que aprendi.')
+
+    // Em branco não é log: entraria na conta do eixo sem conteúdo. Recusado na
+    // aplicação e no banco.
+    await expect(
+      registraLogDeObstaculo(banco.db, aluno.id, c.dia.id, c.primeiro.id, '   ', usuario.id),
+    ).rejects.toThrow(RegistroInvalido)
+
+    const registroCru = await garanteRegistroDiario(banco.db, aluno.id, c.dia.id)
+    await expect(
+      banco.db
+        .update(logsDeObstaculo)
+        .set({ texto: '  ' })
+        .where(eq(logsDeObstaculo.registroDiarioId, registroCru.id)),
+    ).rejects.toThrow()
+
+    // Log é produção própria: um aluno não escreve no log de outro.
+    await expect(
+      registraLogDeObstaculo(
+        banco.db,
+        outro.aluno.id,
+        c.dia.id,
+        c.primeiro.id,
+        'escrevendo pelo colega',
+        usuario.id,
+      ),
+    ).rejects.toThrow(AcessoNegado)
+
+    // O instrutor pode — Doc 7 §3, "Instrutor: tudo".
+    await registraLogDeObstaculo(
+      banco.db,
+      outro.aluno.id,
+      c.dia.id,
+      c.primeiro.id,
+      'Anotado pelo instrutor no fechamento.',
+      c.instrutora.id,
+    )
+    expect((await registroDoDia(banco.db, outro.aluno.id, c.dia.id))?.logs).toHaveLength(1)
+  })
+
+  it('confirmacao_de_push_por_aluno', async () => {
+    const c = await cenario()
+    const { aluno, usuario } = c.integrantes[0]!
+    const parceiro = c.integrantes[1]!
+
+    const { confirmadoEm } = await confirmaPush(banco.db, aluno.id, c.dia.id, usuario.id)
+    expect(confirmadoEm).toBeInstanceOf(Date)
+    expect((await registroDoDia(banco.db, aluno.id, c.dia.id))?.pushConfirmado).toBe(true)
+
+    // É por ALUNO porque o repositório é individual (Doc 5 §6): a confirmação de
+    // um não vale para o parceiro, senão o ausente herdaria o push do outro.
+    const doParceiro = await registroDoDia(banco.db, parceiro.aluno.id, c.dia.id)
+    expect(doParceiro?.pushConfirmado ?? false).toBe(false)
+
+    // Idempotente: o segundo clique não move a data, senão "confirmou no
+    // fechamento" viraria "confirmou quando lembrou".
+    const segunda = await confirmaPush(banco.db, aluno.id, c.dia.id, usuario.id)
+    expect(segunda.confirmadoEm.getTime()).toBe(confirmadoEm.getTime())
+    expect(await banco.db.select().from(confirmacoesDePush)).toHaveLength(1)
+
+    // Uma por dia, no banco — não só na aplicação.
+    const registro = await garanteRegistroDiario(banco.db, aluno.id, c.dia.id)
+    await expect(
+      banco.db
+        .insert(confirmacoesDePush)
+        .values({ registroDiarioId: registro.id, confirmadoPorId: usuario.id }),
+    ).rejects.toThrow()
+
+    // Confirmar por engano tem volta.
+    const { revogadas } = await revogaConfirmacaoDePush(banco.db, aluno.id, c.dia.id, usuario.id)
+    expect(revogadas).toBe(1)
+    expect((await registroDoDia(banco.db, aluno.id, c.dia.id))?.pushConfirmado).toBe(false)
+
+    // E ninguém confirma o push de outro aluno.
+    await expect(
+      confirmaPush(banco.db, parceiro.aluno.id, c.dia.id, usuario.id),
+    ).rejects.toThrow(AcessoNegado)
+
+    // O dia seguinte é outra confirmação: "mínimo 1 por dia" (Doc 5 §6).
+    const [diaSeguinte] = await banco.db
+      .insert(dias)
+      .values({ cursoId: c.curso.id, ordem: 5 })
+      .returning()
+    await confirmaPush(banco.db, aluno.id, diaSeguinte!.id, usuario.id)
+    expect(await banco.db.select().from(confirmacoesDePush)).toHaveLength(1)
   })
 
   it('nenhum_numero_da_escala_mora_no_codigo', async () => {

@@ -1,6 +1,9 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
+import { exigeAcesso } from '@/domain/autorizacao'
+
+import { atorDoUsuario } from './ator'
 import { exigeInstrutor } from './fila-de-aprovacao'
 import * as schema from './schema'
 import {
@@ -283,6 +286,128 @@ export async function removeAvaliacao(
     .returning({ id: avaliacoesDeObstaculo.id })
 
   return { removidas: removidas.length }
+}
+
+/**
+ * Confere que quem escreve é o próprio aluno, ou o instrutor.
+ *
+ * Doc 7 §3 dá ao aluno "registrar log, contrato diário, push". A matriz pura já
+ * sabe disso pelo recurso `producao-propria`; aqui só se descobre de quem é a
+ * produção. O instrutor passa porque a linha do §3 é "Instrutor — tudo".
+ */
+async function exigeProducaoPropria(db: Db, autorId: string, alunoId: string): Promise<void> {
+  const [dono] = await db
+    .select({ usuarioId: alunos.usuarioId, turmaId: alunos.turmaId })
+    .from(alunos)
+    .where(eq(alunos.id, alunoId))
+    .limit(1)
+
+  if (!dono) throw new RegistroInvalido('aluno não encontrado')
+
+  const ator = await atorDoUsuario(db, autorId, dono.turmaId)
+  exigeAcesso(ator, { tipo: 'producao-propria', usuarioId: dono.usuarioId })
+}
+
+/**
+ * Grava o log de um obstáculo, dentro do dia.
+ *
+ * Texto livre: o que o aluno escreve sobre onde travou não cabe em campo
+ * estruturado, e quantas linhas se esperam é configuração do curso — assunto do
+ * motor de validação, não desta função.
+ *
+ * Reescrever o próprio log é o caminho normal, não exceção: o aluno escreve no
+ * fechamento e volta para completar.
+ */
+export async function registraLogDeObstaculo(
+  db: Db,
+  alunoId: string,
+  diaId: string,
+  obstaculoId: string,
+  texto: string,
+  autorId: string,
+): Promise<{ id: string }> {
+  await exigeProducaoPropria(db, autorId, alunoId)
+
+  if (texto.trim().length === 0) {
+    throw new RegistroInvalido('log em branco não é log')
+  }
+
+  const registro = await garanteRegistroDiario(db, alunoId, diaId)
+
+  const [gravado] = await db
+    .insert(logsDeObstaculo)
+    .values({ registroDiarioId: registro.id, obstaculoId, texto: texto.trim() })
+    .onConflictDoUpdate({
+      target: [logsDeObstaculo.registroDiarioId, logsDeObstaculo.obstaculoId],
+      set: { texto: texto.trim(), atualizadoEm: new Date() },
+    })
+    .returning({ id: logsDeObstaculo.id })
+
+  if (!gravado) throw new RegistroInvalido('não foi possível gravar o log')
+  return gravado
+}
+
+/**
+ * Confirma o push do dia de um aluno.
+ *
+ * "O que se verifica é a existência do push do dia" (Doc 5 §6.1) — daí não
+ * haver contagem nem hash. E é por aluno porque o repositório é individual
+ * (Doc 5 §6): uma confirmação por grupo daria ao ausente o push do parceiro.
+ *
+ * Idempotente. O aluno que clica duas vezes não pode mover a data, senão o
+ * "confirmou no fechamento" viraria "confirmou quando lembrou".
+ */
+export async function confirmaPush(
+  db: Db,
+  alunoId: string,
+  diaId: string,
+  autorId: string,
+): Promise<{ confirmadoEm: Date }> {
+  await exigeProducaoPropria(db, autorId, alunoId)
+
+  const registro = await garanteRegistroDiario(db, alunoId, diaId)
+
+  const [confirmado] = await db
+    .insert(confirmacoesDePush)
+    .values({ registroDiarioId: registro.id, confirmadoPorId: autorId })
+    .onConflictDoNothing({ target: confirmacoesDePush.registroDiarioId })
+    .returning({ confirmadoEm: confirmacoesDePush.confirmadoEm })
+
+  if (confirmado) return confirmado
+
+  const [anterior] = await db
+    .select({ confirmadoEm: confirmacoesDePush.confirmadoEm })
+    .from(confirmacoesDePush)
+    .where(eq(confirmacoesDePush.registroDiarioId, registro.id))
+    .limit(1)
+
+  if (!anterior) throw new RegistroInvalido('não foi possível confirmar o push')
+  return anterior
+}
+
+/** Desfaz a confirmação. Confirmar por engano tem de ter volta. */
+export async function revogaConfirmacaoDePush(
+  db: Db,
+  alunoId: string,
+  diaId: string,
+  autorId: string,
+): Promise<{ revogadas: number }> {
+  await exigeProducaoPropria(db, autorId, alunoId)
+
+  const revogadas = await db
+    .delete(confirmacoesDePush)
+    .where(
+      inArray(
+        confirmacoesDePush.registroDiarioId,
+        db
+          .select({ id: registrosDiarios.id })
+          .from(registrosDiarios)
+          .where(and(eq(registrosDiarios.alunoId, alunoId), eq(registrosDiarios.diaId, diaId))),
+      ),
+    )
+    .returning({ id: confirmacoesDePush.id })
+
+  return { revogadas: revogadas.length }
 }
 
 export type RegistroDoDia = {
