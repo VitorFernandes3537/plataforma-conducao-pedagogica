@@ -292,6 +292,14 @@ export const turmas = pgTable('turmas', {
     .notNull()
     .references(() => cursos.id, { onDelete: 'cascade' }),
   nome: text('nome').notNull(),
+  /**
+   * Quando a agregação da turma foi fechada.
+   *
+   * Nulo significa aberta, e é o fato que a matriz de permissões lê: "aluno não
+   * vê nota antes da agregação" (Doc 7 §3). Nota parcial vazando no meio do
+   * curso viraria o aluno estudando para o número em vez de para o obstáculo.
+   */
+  agregacaoFinalizadaEm: timestamp('agregacao_finalizada_em', { withTimezone: true }),
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -1356,6 +1364,199 @@ export const itensImutaveis = pgTable(
     check('item_imutavel_ordem_positiva', sql`${t.ordem} >= 1`),
     check('item_imutavel_nao_vazio', sql`btrim(${t.texto}) <> ''`),
   ],
+)
+
+/** Sobre quem um eixo da rubrica é apurado (Doc 6 §1.1 · Doc 7 §2.3). */
+export const unidadeDoEixoEnum = pgEnum('unidade_do_eixo', ['aluno', 'grupo'])
+
+/**
+ * De onde o eixo tira as notas que agrega.
+ *
+ * É a única lista fechada do agregador, e descreve MECANISMOS, não eixos: qual
+ * curso tem quantos eixos, com que peso e lendo qual fonte, é configuração. Faz
+ * o mesmo papel que `tipoDeRegraEnum` faz no motor de validação.
+ *
+ * Cresce por migration quando uma issue traz uma fonte nova — o eixo de prática
+ * depende de instrumentos que a issue 23 ainda vai fechar.
+ */
+export const fonteDoEixoEnum = pgEnum('fonte_do_eixo', [
+  'avaliacao_de_obstaculo',
+  'avaliacao_de_incremento',
+])
+
+/**
+ * Um eixo da rubrica (Doc 7 §2.3: `Rubrica ── Eixo (peso, unidade)`).
+ *
+ * Quantos eixos, com que peso e sobre quem — tudo configuração. O Doc 6 §13
+ * endereça isso ao Doc 7 com todas as letras: "três agregações distintas, com
+ * **pesos configuráveis**".
+ *
+ * `unidade` é o que o Doc 6 §1.1 declara e o Doc 7 §2.4 repete: um eixo apura
+ * por aluno, outro por grupo. Avaliar tudo por grupo faria um aluno ausente
+ * herdar a nota do parceiro; avaliar tudo por aluno partiria em dois um
+ * instrumento que é entregue em conjunto.
+ *
+ * **Não existe tabela de item de avaliação.** O Doc 7 §2.3 esboça
+ * `Eixo ── ItemDeAvaliacao (escala, peso)`, mas os itens já existem como
+ * entidades: os itens do primeiro eixo são os obstáculos, e o peso deles é
+ * `obstaculos.peso`, que o próprio Doc 7 §2.4 declara. Criar a tabela daria dois
+ * donos ao mesmo peso, e o Doc 7 é derivado — o §2 diz "sem tipos, sem SQL, isso
+ * é decisão do desenvolvedor".
+ */
+export const eixos = pgTable(
+  'eixos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cursoId: uuid('curso_id')
+      .notNull()
+      .references(() => cursos.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    nome: text('nome').notNull(),
+    /** Proporção do total. A soma dos eixos do curso é conferida na leitura. */
+    peso: numeric('peso', { precision: 6, scale: 4, mode: 'number' }).notNull(),
+    unidade: unidadeDoEixoEnum('unidade').notNull(),
+    fonte: fonteDoEixoEnum('fonte').notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('eixo_ordem_unica_no_curso').on(t.cursoId, t.ordem),
+    unique('eixo_fonte_unica_no_curso').on(t.cursoId, t.fonte),
+    check('eixo_ordem_positiva', sql`${t.ordem} >= 1`),
+    // Peso zero tiraria o eixo da nota sem tirá-lo da rubrica: o aluno seria
+    // avaliado num eixo que não vale nada, e ninguém veria.
+    check('eixo_peso_positivo', sql`${t.peso} > 0`),
+    check('eixo_nome_nao_vazio', sql`btrim(${t.nome}) <> ''`),
+  ],
+)
+
+/**
+ * A nota de uma das mudanças do incremento (Doc 6 §4.5).
+ *
+ * "M1 absorvida sem alterar classe existente" e "M2 absorvida com as
+ * invariantes preservadas", cada uma na escala do curso. Pendura no incremento,
+ * que pendura no grupo — é o único eixo cuja unidade é o grupo, porque o
+ * incremento é um por domínio e absorvido em conjunto (Doc 6 §1.1).
+ */
+export const avaliacoesDeMudanca = pgTable(
+  'avaliacoes_de_mudanca',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    incrementoId: uuid('incremento_id')
+      .notNull()
+      .references(() => incrementos.id, { onDelete: 'cascade' }),
+    modeloDeMudancaId: uuid('modelo_de_mudanca_id')
+      .notNull()
+      .references(() => modelosDeMudanca.id, { onDelete: 'cascade' }),
+    nivelId: uuid('nivel_id')
+      .notNull()
+      .references(() => niveisDeAvaliacao.id, { onDelete: 'restrict' }),
+    lancadoPorId: uuid('lancado_por_id')
+      .notNull()
+      .references(() => usuarios.id, { onDelete: 'restrict' }),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('avaliacao_unica_por_mudanca').on(t.incrementoId, t.modeloDeMudancaId)],
+)
+
+/**
+ * O banco de perguntas da defesa oral (`D6-DEFESA`).
+ *
+ * O Doc 6 §6 lista seis para o curso da série, instanciadas na hora sobre o
+ * código de cada grupo. Quantas existem e quais são é configuração — são
+ * conteúdo do curso, e escrevê-las em código seria pôr o roteiro da avaliação
+ * dentro da plataforma.
+ */
+export const perguntasDaDefesa = pgTable(
+  'perguntas_da_defesa',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cursoId: uuid('curso_id')
+      .notNull()
+      .references(() => cursos.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    enunciado: text('enunciado').notNull(),
+  },
+  (t) => [
+    unique('pergunta_da_defesa_ordem_unica').on(t.cursoId, t.ordem),
+    check('pergunta_da_defesa_ordem_positiva', sql`${t.ordem} >= 1`),
+    check('pergunta_da_defesa_nao_vazia', sql`btrim(${t.enunciado}) <> ''`),
+  ],
+)
+
+/**
+ * A defesa oral de um grupo (Doc 7 §2.3 · Doc 6 §6).
+ *
+ * Pendura no grupo porque a apresentação é do grupo — inclusive a do aluno
+ * convertido a copiloto, que apresenta em conjunto (Doc 5 §3.4).
+ */
+export const registrosDeDefesa = pgTable('registros_de_defesa', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  grupoId: uuid('grupo_id')
+    .notNull()
+    .unique()
+    .references(() => grupos.id, { onDelete: 'cascade' }),
+  registradoPorId: uuid('registrado_por_id')
+    .notNull()
+    .references(() => usuarios.id, { onDelete: 'restrict' }),
+  realizadaEm: timestamp('realizada_em', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * Quais perguntas do banco foram usadas nesta defesa.
+ *
+ * Registrar isso é o que torna a defesa auditável: duas perguntas por grupo,
+ * escolhidas na hora, e sem o registro ninguém consegue depois explicar por que
+ * a nota de um grupo subiu e a de outro não.
+ */
+export const perguntasUsadasNaDefesa = pgTable(
+  'perguntas_usadas_na_defesa',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    registroDeDefesaId: uuid('registro_de_defesa_id')
+      .notNull()
+      .references(() => registrosDeDefesa.id, { onDelete: 'cascade' }),
+    perguntaId: uuid('pergunta_id')
+      .notNull()
+      .references(() => perguntasDaDefesa.id, { onDelete: 'restrict' }),
+    ordem: integer('ordem').notNull(),
+  },
+  (t) => [
+    unique('pergunta_usada_unica_na_defesa').on(t.registroDeDefesaId, t.perguntaId),
+    unique('ordem_unica_na_defesa').on(t.registroDeDefesaId, t.ordem),
+    check('pergunta_usada_ordem_positiva', sql`${t.ordem} >= 1`),
+  ],
+)
+
+/**
+ * O que a defesa disse sobre um eixo.
+ *
+ * `alunoId` nulo quando o eixo apura por grupo; preenchido quando apura por
+ * aluno — e um gatilho amarra os dois, porque nota de aluno num eixo de grupo
+ * seria uma nota que a agregação não sabe onde somar.
+ *
+ * Para o aluno em estado de copiloto, esta é a ÚNICA origem do eixo do modelo:
+ * ele é avaliado pela defesa, não pelo repositório (Doc 6 §9.1). Para os
+ * demais, o Doc 6 §6 diz que as respostas "ajustam para cima ou para baixo" sem
+ * dizer quanto — então o valor fica registrado e a agregação o entrega ao lado
+ * da nota apurada, sem aplicá-lo. Inventar o tamanho do ajuste seria inventar
+ * fato.
+ */
+export const avaliacoesDaDefesa = pgTable(
+  'avaliacoes_da_defesa',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    registroDeDefesaId: uuid('registro_de_defesa_id')
+      .notNull()
+      .references(() => registrosDeDefesa.id, { onDelete: 'cascade' }),
+    eixoId: uuid('eixo_id')
+      .notNull()
+      .references(() => eixos.id, { onDelete: 'cascade' }),
+    alunoId: uuid('aluno_id').references(() => alunos.id, { onDelete: 'cascade' }),
+    nivelId: uuid('nivel_id')
+      .notNull()
+      .references(() => niveisDeAvaliacao.id, { onDelete: 'restrict' }),
+  },
+  (t) => [unique('avaliacao_da_defesa_unica').on(t.registroDeDefesaId, t.eixoId, t.alunoId)],
 )
 
 /**

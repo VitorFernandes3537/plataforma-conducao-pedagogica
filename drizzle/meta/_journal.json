@@ -127,6 +127,13 @@
       "when": 1785437831556,
       "tag": "0017_gerador_de_incremento",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785439039081,
+      "tag": "0018_rubrica_e_defesa",
+      "breakpoints": true
     }
   ]
 }
