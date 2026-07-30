@@ -1,8 +1,15 @@
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import * as schema from './schema'
-import { perguntasDoFormulario, respostasDeEscopo, respostasDePergunta } from './schema'
+import {
+  estruturas,
+  linhasDeTraducao,
+  papeisDaEstrutura,
+  perguntasDoFormulario,
+  respostasDeEscopo,
+  respostasDePergunta,
+} from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
@@ -96,4 +103,43 @@ export async function respostaDoGrupo(db: Db, grupoId: string): Promise<Resposta
     submetidoEm: escopo.submetidoEm,
     respostas,
   }
+}
+
+export type EstadoDaTraducao = {
+  /** Papéis obrigatórios da estrutura que ainda não têm linha. */
+  faltando: readonly { papelId: string; nome: string }[]
+  completa: boolean
+}
+
+/**
+ * Verifica se a tabela de tradução cobre todos os papéis obrigatórios.
+ *
+ * O critério é "uma linha por papel **obrigatório** da `Estrutura`". Papel
+ * opcional pode ficar de fora sem invalidar o escopo — e é por isso que
+ * `obrigatorio` é coluna e não convenção.
+ *
+ * A comparação é feita contra a estrutura do curso a que o grupo pertence, não
+ * contra uma lista fixa: quantos papéis existem é configuração.
+ */
+export async function estadoDaTraducao(
+  db: Db,
+  respostaDeEscopoId: string,
+  cursoId: string,
+): Promise<EstadoDaTraducao> {
+  const obrigatorios = await db
+    .select({ papelId: papeisDaEstrutura.id, nome: papeisDaEstrutura.nome })
+    .from(papeisDaEstrutura)
+    .innerJoin(estruturas, eq(estruturas.id, papeisDaEstrutura.estruturaId))
+    .where(and(eq(estruturas.cursoId, cursoId), eq(papeisDaEstrutura.obrigatorio, true)))
+    .orderBy(asc(papeisDaEstrutura.ordem))
+
+  const preenchidos = await db
+    .select({ papelId: linhasDeTraducao.papelId })
+    .from(linhasDeTraducao)
+    .where(eq(linhasDeTraducao.respostaDeEscopoId, respostaDeEscopoId))
+
+  const cobertos = new Set(preenchidos.map((l) => l.papelId))
+  const faltando = obrigatorios.filter((p) => !cobertos.has(p.papelId))
+
+  return { faltando, completa: faltando.length === 0 }
 }

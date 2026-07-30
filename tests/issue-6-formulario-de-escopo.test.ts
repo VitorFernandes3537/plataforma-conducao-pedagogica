@@ -3,11 +3,14 @@ import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { formularioDoCurso, perguntasDoFormularioEmOrdem } from '@/db/formulario'
-import { abreRascunho, respostaDoGrupo } from '@/db/resposta-de-escopo'
+import { abreRascunho, estadoDaTraducao, respostaDoGrupo } from '@/db/resposta-de-escopo'
 import {
   alunos,
+  estruturas,
   formularios,
   grupos,
+  linhasDeTraducao,
+  papeisDaEstrutura,
   perguntasDoFormulario,
   respostasDeEscopo,
   turmas,
@@ -179,5 +182,81 @@ describe('Issue 6 — FormularioDeEscopo configurável', () => {
     // Grupo sem rascunho devolve null, não erro.
     const [outroGrupo] = await banco.db.insert(grupos).values({ turmaId: turma.id }).returning()
     expect(await respostaDoGrupo(banco.db, outroGrupo!.id)).toBeNull()
+  })
+  it('tabela_de_traducao_cobre_todos_os_papeis', async () => {
+    const { curso, formulario, grupo } = await cenario()
+    const rascunho = await abreRascunho(banco.db, grupo.id, formulario.id)
+
+    // Quantos papéis a estrutura tem é CONFIGURAÇÃO. Três obrigatórios e um
+    // opcional, e nenhum desses números aparece no código.
+    const [estrutura] = await banco.db
+      .insert(estruturas)
+      .values({ cursoId: curso.id, nome: 'Estrutura do curso' })
+      .returning()
+    const papeis = await banco.db
+      .insert(papeisDaEstrutura)
+      .values([
+        { estruturaId: estrutura!.id, ordem: 1, nome: 'Solicitante', obrigatorio: true },
+        { estruturaId: estrutura!.id, ordem: 2, nome: 'Atendimento', obrigatorio: true },
+        { estruturaId: estrutura!.id, ordem: 3, nome: 'Recurso escasso', obrigatorio: true },
+        { estruturaId: estrutura!.id, ordem: 4, nome: 'Observação', obrigatorio: false },
+      ])
+      .returning()
+
+    // Nada preenchido: os três obrigatórios faltam, e a ordem da estrutura é
+    // respeitada para o aluno saber por onde começar.
+    const vazia = await estadoDaTraducao(banco.db, rascunho.id, curso.id)
+    expect(vazia.completa).toBe(false)
+    expect(vazia.faltando.map((p) => p.nome)).toEqual([
+      'Solicitante',
+      'Atendimento',
+      'Recurso escasso',
+    ])
+
+    // Preenche dois dos três: continua incompleta, e diz qual falta.
+    await banco.db.insert(linhasDeTraducao).values([
+      {
+        respostaDeEscopoId: rascunho.id,
+        papelId: papeis[0]!.id,
+        nomeNoNegocio: 'Cliente',
+        nomeNoCodigo: 'Cliente',
+      },
+      {
+        respostaDeEscopoId: rascunho.id,
+        papelId: papeis[1]!.id,
+        nomeNoNegocio: 'Corte',
+        nomeNoCodigo: 'Atendimento',
+      },
+    ])
+
+    const parcial = await estadoDaTraducao(banco.db, rascunho.id, curso.id)
+    expect(parcial.completa).toBe(false)
+    expect(parcial.faltando.map((p) => p.nome)).toEqual(['Recurso escasso'])
+
+    // Preenche o terceiro obrigatório: completa, SEM o opcional.
+    await banco.db.insert(linhasDeTraducao).values({
+      respostaDeEscopoId: rascunho.id,
+      papelId: papeis[2]!.id,
+      nomeNoNegocio: 'Cadeira',
+      nomeNoCodigo: 'Recurso',
+    })
+
+    const completa = await estadoDaTraducao(banco.db, rascunho.id, curso.id)
+    expect(completa.completa).toBe(true)
+    expect(completa.faltando).toHaveLength(0)
+
+    // Duas linhas para o mesmo papel não existem.
+    await expect(
+      banco.db.insert(linhasDeTraducao).values({
+        respostaDeEscopoId: rascunho.id,
+        papelId: papeis[0]!.id,
+        nomeNoNegocio: 'Outro',
+        nomeNoCodigo: 'Outro',
+      }),
+    ).rejects.toThrow()
+
+    // Nenhuma contagem de papéis no código — quatro é a estrutura deste curso.
+    const fonte = semComentarios(readFileSync('src/db/resposta-de-escopo.ts', 'utf8'))
+    expect(fonte).not.toMatch(/4|quatro/i)
   })
 })
