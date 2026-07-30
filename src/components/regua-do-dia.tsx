@@ -82,7 +82,10 @@ export function ReguaDoDia({
             return (
               <div
                 key={`${bloco.tipo}-${indice}`}
-                style={{ flexGrow: bloco.duracaoMinutos, borderColor: corDoPortao }}
+                // `flex-basis: 0` é o que torna a proporção verdadeira. Com a
+                // base vinda do conteúdo, o rótulo "demonstração" empurrava a
+                // caixa e um bloco de 15 min ficava do tamanho de um de 40.
+                style={{ flex: `${bloco.duracaoMinutos} 1 0%`, borderColor: corDoPortao }}
                 className={[
                   'relative flex min-w-0 flex-col justify-end border-l first:border-l-0',
                   ehCorrente ? 'pb-2 pt-2' : 'pb-2 pt-4',

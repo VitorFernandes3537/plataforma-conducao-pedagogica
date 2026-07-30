@@ -13,3 +13,6 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Capturas de tela para inspecao visual
+capturas/
