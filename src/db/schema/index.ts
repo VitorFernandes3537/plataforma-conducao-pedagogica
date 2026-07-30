@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import {
   bigint,
   boolean,
@@ -377,6 +378,71 @@ export const perguntasDoFormulario = pgTable(
   (t) => [
     unique('pergunta_ordem_unica_no_formulario').on(t.formularioId, t.ordem),
     check('pergunta_ordem_positiva', sql`${t.ordem} >= 1`),
+  ],
+)
+
+/**
+ * Tipos de regra que o motor de validação sabe executar.
+ *
+ * É a única lista fechada do motor, e ela descreve MECANISMOS, não perguntas.
+ * Nenhum tipo aqui menciona "estados", "categorias" ou "C5": qual pergunta usa
+ * qual mecanismo, com quais limites, é configuração (`Doc 2 §4.6`).
+ */
+export const tipoDeRegraEnum = pgEnum('tipo_de_regra', [
+  /** A resposta não pode estar em branco. */
+  'nao_vazio',
+  /** A quantidade de itens da resposta fica numa faixa. */
+  'contagem_de_itens',
+  /** Todo item citado precisa existir na resposta de outra pergunta. */
+  'referencia_declarada',
+  /** Nenhum termo de uma lista negra pode aparecer. */
+  'lista_negra',
+])
+
+/**
+ * Regra de validação declarada NA PERGUNTA.
+ *
+ * A ADR 0001 §5 é explícita: o motor não é um schema Zod. As validações são
+ * declaradas na pergunta e o motor interpreta — escrever `min(3).max(5)` em
+ * código seria exatamente o literal com significado pedagógico que a regra 4.3
+ * do CLAUDE.md proíbe.
+ *
+ * Por isso os limites moram em colunas, e a mensagem também: quem configura a
+ * pergunta escreve o que o aluno vai ler quando errar.
+ */
+export const regrasDeValidacao = pgTable(
+  'regras_de_validacao',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    perguntaId: uuid('pergunta_id')
+      .notNull()
+      .references(() => perguntasDoFormulario.id, { onDelete: 'cascade' }),
+    tipo: tipoDeRegraEnum('tipo').notNull(),
+
+    /** Faixa de `contagem_de_itens`. Nulo em cada ponta significa sem limite. */
+    minimo: integer('minimo'),
+    maximo: integer('maximo'),
+
+    /** Pergunta que declara o vocabulário aceito, para `referencia_declarada`. */
+    perguntaDeReferenciaId: uuid('pergunta_de_referencia_id').references(
+      (): AnyPgColumn => perguntasDoFormulario.id,
+      { onDelete: 'cascade' },
+    ),
+
+    /** Termos recusados por `lista_negra`. Configurável por curso. */
+    termos: text('termos').array(),
+
+    /** O que o aluno lê quando a regra reprova. Escrito por quem configurou. */
+    mensagem: text('mensagem').notNull(),
+  },
+  (t) => [
+    unique('regra_unica_por_pergunta_e_tipo').on(t.perguntaId, t.tipo),
+    // Faixa invertida seria regra que nunca passa, e o erro apareceria como
+    // "formulário sempre reprovado" no D3 — longe da causa.
+    check(
+      'faixa_coerente',
+      sql`${t.minimo} is null or ${t.maximo} is null or ${t.minimo} <= ${t.maximo}`,
+    ),
   ],
 )
 
