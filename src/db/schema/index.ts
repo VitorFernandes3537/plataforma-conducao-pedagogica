@@ -854,6 +854,64 @@ export const contratosDiarios = pgTable(
 )
 
 /**
+ * Registro de recuperação (Doc 7 §2.3 · `D5-RECUPERACAO`).
+ *
+ * Cinco campos obrigatórios: aluno, dia, o que perdeu, o que repôs e por quem
+ * (Doc 5 §3.3). Aluno e dia vêm do registro diário; os outros três moram aqui.
+ *
+ * É a única visibilidade do instrutor sobre quem está de fato acompanhando, e
+ * alimenta a triagem dos marcos. Custa 30 segundos ao aluno — daí os campos
+ * serem três, e nenhum deles opcional: um registro com metade preenchida não
+ * responde a pergunta que o instrutor faz.
+ *
+ * **Sem unicidade por dia.** Quem perdeu duas coisas e repôs de formas
+ * diferentes escreve duas linhas. O documento diz "por aluno e por dia", que é
+ * onde o registro pendura, não quantos cabem.
+ *
+ * O "por quem" tem duas formas porque o Doc 5 §3.2 lista quatro fontes, e só
+ * duas são pessoas: `repostoPorAlunoId` quando foi um colega, `fonteDeReposicao`
+ * quando foi o material. Exatamente uma das duas — "por quem" tem uma resposta.
+ *
+ * Nada aqui dispara conversão a copiloto. "Não existe número de faltas que o
+ * dispare" (Doc 5 §3.4): um limiar numérico transformaria exceção humana em
+ * regra burocrática, e é justamente o tipo de constante que o CLAUDE.md §4.3
+ * proíbe.
+ */
+export const registrosDeRecuperacao = pgTable(
+  'registros_de_recuperacao',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    registroDiarioId: uuid('registro_diario_id')
+      .notNull()
+      .references(() => registrosDiarios.id, { onDelete: 'cascade' }),
+    oQuePerdeu: text('o_que_perdeu').notNull(),
+    oQueRepos: text('o_que_repos').notNull(),
+    /**
+     * Colega que repôs. **Qualquer colega da turma**, sem designação prévia
+     * (Doc 5 §3.2) — e por isso não há vínculo com grupo aqui. O aluno solo não
+     * tem parceiro de grupo, e restringir ao grupo o deixaria sem fonte humana.
+     */
+    repostoPorAlunoId: uuid('reposto_por_aluno_id').references(() => alunos.id, {
+      onDelete: 'restrict',
+    }),
+    /** A fonte, quando não foi pessoa: material do dia, repositório-espelho. */
+    fonteDeReposicao: text('fonte_de_reposicao'),
+    registradoEm: timestamp('registrado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('recuperacao_exige_o_que_perdeu', sql`btrim(${t.oQuePerdeu}) <> ''`),
+    check('recuperacao_exige_o_que_repos', sql`btrim(${t.oQueRepos}) <> ''`),
+    // "Por quem" tem uma resposta: um colega OU uma fonte, nunca as duas nem
+    // nenhuma. Sem isso o instrutor leria "repôs" sem saber com o quê.
+    check(
+      'recuperacao_exige_por_quem',
+      sql`(${t.repostoPorAlunoId} is not null)
+          <> (btrim(coalesce(${t.fonteDeReposicao}, '')) <> '')`,
+    ),
+  ],
+)
+
+/**
  * Poda de escopo: a única edição admitida depois da aprovação.
  *
  * O formulário aprovado é imutável, com uma exceção — o instrutor reduz o escopo

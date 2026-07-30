@@ -92,6 +92,13 @@
       "when": 1785390966689,
       "tag": "0012_contrato_diario",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1785391896791,
+      "tag": "0013_registro_de_recuperacao",
+      "breakpoints": true
     }
   ]
 }
