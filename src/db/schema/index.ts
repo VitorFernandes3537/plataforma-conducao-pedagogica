@@ -796,6 +796,64 @@ export const confirmacoesDePush = pgTable('confirmacoes_de_push', {
 })
 
 /**
+ * Contrato diário (Doc 7 §2.2 · `D5-CONTRATODIARIO`).
+ *
+ * Duas linhas na abertura, uma no fechamento:
+ *
+ * > Hoje faremos: ___
+ * > Hoje NÃO faremos: ___
+ *
+ * A segunda linha é a que importa. É a vacina contra o crescimento de escopo
+ * dentro do dia, e cumpre no dia a mesma função que o "fora de escopo" cumpre
+ * no projeto inteiro (Doc 5 §7.1). Por isso as duas são `notNull` com CHECK de
+ * conteúdo: um contrato com metade das linhas não é contrato, e deixar a segunda
+ * opcional a transformaria justamente no campo que ninguém preenche.
+ *
+ * Pendura no registro diário, que pendura em `Aluno`: o item de avaliação é
+ * "participação no fechamento" (Doc 6 §5), e o Eixo 3 tem unidade de aluno
+ * (Doc 6 §1.1).
+ *
+ * `cumprido` nulo significa dia ainda aberto. É fato, não estado inventado — a
+ * abertura e o fechamento acontecem em momentos diferentes do dia, com 2 e 1
+ * minuto de orçamento.
+ */
+export const contratosDiarios = pgTable(
+  'contratos_diarios',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    registroDiarioId: uuid('registro_diario_id')
+      .notNull()
+      .unique()
+      .references(() => registrosDiarios.id, { onDelete: 'cascade' }),
+    faremos: text('faremos').notNull(),
+    naoFaremos: text('nao_faremos').notNull(),
+    /** Nulo enquanto o dia não foi fechado. */
+    cumprido: boolean('cumprido'),
+    /** "Cumpriu ou não, **e por quê**" (Doc 5 §7). O porquê não é opcional. */
+    motivoDoFechamento: text('motivo_do_fechamento'),
+    abertoEm: timestamp('aberto_em', { withTimezone: true }).notNull().defaultNow(),
+    fechadoEm: timestamp('fechado_em', { withTimezone: true }),
+  },
+  (t) => [
+    check('contrato_exige_o_que_faremos', sql`btrim(${t.faremos}) <> ''`),
+    check('contrato_exige_o_que_nao_faremos', sql`btrim(${t.naoFaremos}) <> ''`),
+    // Fechado é exatamente "tem veredito". Sem isso existiria contrato com data
+    // de fechamento e sem resposta, que nenhuma tela sabe desenhar.
+    check('fechamento_coerente', sql`(${t.cumprido} is null) = (${t.fechadoEm} is null)`),
+    // O porquê acompanha o veredito. Fechar sem dizer por que perderia o insumo
+    // da retrospectiva, que é o único retorno do custo diário (Doc 5 §7.2).
+    check(
+      'fechamento_exige_motivo',
+      sql`${t.cumprido} is null or btrim(coalesce(${t.motivoDoFechamento}, '')) <> ''`,
+    ),
+    check(
+      'motivo_so_no_fechamento',
+      sql`${t.cumprido} is not null or ${t.motivoDoFechamento} is null`,
+    ),
+  ],
+)
+
+/**
  * Poda de escopo: a única edição admitida depois da aprovação.
  *
  * O formulário aprovado é imutável, com uma exceção — o instrutor reduz o escopo
