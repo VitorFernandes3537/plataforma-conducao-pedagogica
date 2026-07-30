@@ -71,6 +71,13 @@
       "when": 1785385002378,
       "tag": "0009_escopo_fechado_e_somente_leitura",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785386342365,
+      "tag": "0010_poda_pos_aprovacao",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,2011 @@
+{
+  "id": "b22df080-6bbb-4625-a86a-53120859297f",
+  "prevId": "0009-gatilho-escopo-fechado",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.alunos": {
+      "name": "alunos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "turma_id": {
+          "name": "turma_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usuario_id": {
+          "name": "usuario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "copiloto": {
+          "name": "copiloto",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "grupo_id": {
+          "name": "grupo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "posicao_no_grupo": {
+          "name": "posicao_no_grupo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "alunos_turma_id_turmas_id_fk": {
+          "name": "alunos_turma_id_turmas_id_fk",
+          "tableFrom": "alunos",
+          "tableTo": "turmas",
+          "columnsFrom": [
+            "turma_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "alunos_usuario_id_usuarios_id_fk": {
+          "name": "alunos_usuario_id_usuarios_id_fk",
+          "tableFrom": "alunos",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "usuario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "alunos_grupo_id_grupos_id_fk": {
+          "name": "alunos_grupo_id_grupos_id_fk",
+          "tableFrom": "alunos",
+          "tableTo": "grupos",
+          "columnsFrom": [
+            "grupo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "aluno_unico_por_turma": {
+          "name": "aluno_unico_por_turma",
+          "nullsNotDistinct": false,
+          "columns": [
+            "usuario_id",
+            "turma_id"
+          ]
+        },
+        "aluno_posicao_unica_no_grupo": {
+          "name": "aluno_posicao_unica_no_grupo",
+          "nullsNotDistinct": false,
+          "columns": [
+            "grupo_id",
+            "posicao_no_grupo"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "posicao_no_grupo_positiva": {
+          "name": "posicao_no_grupo_positiva",
+          "value": "\"alunos\".\"posicao_no_grupo\" is null or \"alunos\".\"posicao_no_grupo\" >= 1"
+        },
+        "posicao_coerente_com_grupo": {
+          "name": "posicao_coerente_com_grupo",
+          "value": "(\"alunos\".\"grupo_id\" is null) = (\"alunos\".\"posicao_no_grupo\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.bancos_de_temas": {
+      "name": "bancos_de_temas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "curso_id": {
+          "name": "curso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "bancos_de_temas_curso_id_cursos_id_fk": {
+          "name": "bancos_de_temas_curso_id_cursos_id_fk",
+          "tableFrom": "bancos_de_temas",
+          "tableTo": "cursos",
+          "columnsFrom": [
+            "curso_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.blocos": {
+      "name": "blocos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "dia_id": {
+          "name": "dia_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duracao_minutos": {
+          "name": "duracao_minutos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "blocos_dia_id_dias_id_fk": {
+          "name": "blocos_dia_id_dias_id_fk",
+          "tableFrom": "blocos",
+          "tableTo": "dias",
+          "columnsFrom": [
+            "dia_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "bloco_ordem_unica_no_dia": {
+          "name": "bloco_ordem_unica_no_dia",
+          "nullsNotDistinct": false,
+          "columns": [
+            "dia_id",
+            "ordem"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "bloco_ordem_positiva": {
+          "name": "bloco_ordem_positiva",
+          "value": "\"blocos\".\"ordem\" >= 1"
+        },
+        "bloco_duracao_positiva": {
+          "name": "bloco_duracao_positiva",
+          "value": "\"blocos\".\"duracao_minutos\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.cursos": {
+      "name": "cursos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tamanho_maximo_de_grupo": {
+          "name": "tamanho_maximo_de_grupo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pergunta_condutora": {
+          "name": "pergunta_condutora",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "tamanho_maximo_de_grupo_positivo": {
+          "name": "tamanho_maximo_de_grupo_positivo",
+          "value": "\"cursos\".\"tamanho_maximo_de_grupo\" >= 1"
+        },
+        "pergunta_condutora_nao_vazia": {
+          "name": "pergunta_condutora_nao_vazia",
+          "value": "length(btrim(\"cursos\".\"pergunta_condutora\")) > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.dias": {
+      "name": "dias",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "curso_id": {
+          "name": "curso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "dias_curso_id_cursos_id_fk": {
+          "name": "dias_curso_id_cursos_id_fk",
+          "tableFrom": "dias",
+          "tableTo": "cursos",
+          "columnsFrom": [
+            "curso_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dia_ordem_unica_no_curso": {
+          "name": "dia_ordem_unica_no_curso",
+          "nullsNotDistinct": false,
+          "columns": [
+            "curso_id",
+            "ordem"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "dia_ordem_positiva": {
+          "name": "dia_ordem_positiva",
+          "value": "\"dias\".\"ordem\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.escopos_pre_aprovados": {
+      "name": "escopos_pre_aprovados",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tema_id": {
+          "name": "tema_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titulo": {
+          "name": "titulo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conteudo": {
+          "name": "conteudo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grupo_id": {
+          "name": "grupo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "atribuido_em": {
+          "name": "atribuido_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "escopos_pre_aprovados_tema_id_temas_id_fk": {
+          "name": "escopos_pre_aprovados_tema_id_temas_id_fk",
+          "tableFrom": "escopos_pre_aprovados",
+          "tableTo": "temas",
+          "columnsFrom": [
+            "tema_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "escopos_pre_aprovados_grupo_id_grupos_id_fk": {
+          "name": "escopos_pre_aprovados_grupo_id_grupos_id_fk",
+          "tableFrom": "escopos_pre_aprovados",
+          "tableTo": "grupos",
+          "columnsFrom": [
+            "grupo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "escopos_pre_aprovados_tema_id_unique": {
+          "name": "escopos_pre_aprovados_tema_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tema_id"
+          ]
+        },
+        "escopos_pre_aprovados_grupo_id_unique": {
+          "name": "escopos_pre_aprovados_grupo_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "grupo_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "atribuicao_coerente": {
+          "name": "atribuicao_coerente",
+          "value": "(\"escopos_pre_aprovados\".\"grupo_id\" is null) = (\"escopos_pre_aprovados\".\"atribuido_em\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.estruturas": {
+      "name": "estruturas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "curso_id": {
+          "name": "curso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "estruturas_curso_id_cursos_id_fk": {
+          "name": "estruturas_curso_id_cursos_id_fk",
+          "tableFrom": "estruturas",
+          "tableTo": "cursos",
+          "columnsFrom": [
+            "curso_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "estruturas_curso_id_unique": {
+          "name": "estruturas_curso_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "curso_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.formularios": {
+      "name": "formularios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "curso_id": {
+          "name": "curso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "formularios_curso_id_cursos_id_fk": {
+          "name": "formularios_curso_id_cursos_id_fk",
+          "tableFrom": "formularios",
+          "tableTo": "cursos",
+          "columnsFrom": [
+            "curso_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.grupos": {
+      "name": "grupos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "turma_id": {
+          "name": "turma_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tema_id": {
+          "name": "tema_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tema_unico_por_turma": {
+          "name": "tema_unico_por_turma",
+          "columns": [
+            {
+              "expression": "turma_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tema_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"grupos\".\"tema_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "grupos_turma_id_turmas_id_fk": {
+          "name": "grupos_turma_id_turmas_id_fk",
+          "tableFrom": "grupos",
+          "tableTo": "turmas",
+          "columnsFrom": [
+            "turma_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "grupos_tema_id_temas_id_fk": {
+          "name": "grupos_tema_id_temas_id_fk",
+          "tableFrom": "grupos",
+          "tableTo": "temas",
+          "columnsFrom": [
+            "tema_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.julgamentos_humanos": {
+      "name": "julgamentos_humanos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "formulario_id": {
+          "name": "formulario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enunciado": {
+          "name": "enunciado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pergunta_id": {
+          "name": "pergunta_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "julgamentos_humanos_formulario_id_formularios_id_fk": {
+          "name": "julgamentos_humanos_formulario_id_formularios_id_fk",
+          "tableFrom": "julgamentos_humanos",
+          "tableTo": "formularios",
+          "columnsFrom": [
+            "formulario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "julgamentos_humanos_pergunta_id_perguntas_do_formulario_id_fk": {
+          "name": "julgamentos_humanos_pergunta_id_perguntas_do_formulario_id_fk",
+          "tableFrom": "julgamentos_humanos",
+          "tableTo": "perguntas_do_formulario",
+          "columnsFrom": [
+            "pergunta_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "julgamento_ordem_unica_no_formulario": {
+          "name": "julgamento_ordem_unica_no_formulario",
+          "nullsNotDistinct": false,
+          "columns": [
+            "formulario_id",
+            "ordem"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "julgamento_ordem_positiva": {
+          "name": "julgamento_ordem_positiva",
+          "value": "\"julgamentos_humanos\".\"ordem\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.linhas_de_traducao": {
+      "name": "linhas_de_traducao",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "resposta_de_escopo_id": {
+          "name": "resposta_de_escopo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "papel_id": {
+          "name": "papel_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome_no_negocio": {
+          "name": "nome_no_negocio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome_no_codigo": {
+          "name": "nome_no_codigo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "linhas_de_traducao_resposta_de_escopo_id_respostas_de_escopo_id_fk": {
+          "name": "linhas_de_traducao_resposta_de_escopo_id_respostas_de_escopo_id_fk",
+          "tableFrom": "linhas_de_traducao",
+          "tableTo": "respostas_de_escopo",
+          "columnsFrom": [
+            "resposta_de_escopo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "linhas_de_traducao_papel_id_papeis_da_estrutura_id_fk": {
+          "name": "linhas_de_traducao_papel_id_papeis_da_estrutura_id_fk",
+          "tableFrom": "linhas_de_traducao",
+          "tableTo": "papeis_da_estrutura",
+          "columnsFrom": [
+            "papel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "traducao_unica_por_papel": {
+          "name": "traducao_unica_por_papel",
+          "nullsNotDistinct": false,
+          "columns": [
+            "resposta_de_escopo_id",
+            "papel_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.marcos": {
+      "name": "marcos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "dia_id": {
+          "name": "dia_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "marco_tipo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "marcos_dia_id_dias_id_fk": {
+          "name": "marcos_dia_id_dias_id_fk",
+          "tableFrom": "marcos",
+          "tableTo": "dias",
+          "columnsFrom": [
+            "dia_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "marcos_dia_id_unique": {
+          "name": "marcos_dia_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "dia_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.materiais_de_referencia": {
+      "name": "materiais_de_referencia",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "dia_de_liberacao_id": {
+          "name": "dia_de_liberacao_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titulo": {
+          "name": "titulo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "materiais_de_referencia_dia_de_liberacao_id_dias_id_fk": {
+          "name": "materiais_de_referencia_dia_de_liberacao_id_dias_id_fk",
+          "tableFrom": "materiais_de_referencia",
+          "tableTo": "dias",
+          "columnsFrom": [
+            "dia_de_liberacao_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "material_de_referencia_e_url": {
+          "name": "material_de_referencia_e_url",
+          "value": "\"materiais_de_referencia\".\"url\" ~ '^https?://'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.materiais_interativos": {
+      "name": "materiais_interativos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "dia_id": {
+          "name": "dia_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titulo": {
+          "name": "titulo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conteudo": {
+          "name": "conteudo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "materiais_interativos_dia_id_dias_id_fk": {
+          "name": "materiais_interativos_dia_id_dias_id_fk",
+          "tableFrom": "materiais_interativos",
+          "tableTo": "dias",
+          "columnsFrom": [
+            "dia_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "lamina_ordem_unica_no_dia": {
+          "name": "lamina_ordem_unica_no_dia",
+          "nullsNotDistinct": false,
+          "columns": [
+            "dia_id",
+            "ordem"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "lamina_ordem_positiva": {
+          "name": "lamina_ordem_positiva",
+          "value": "\"materiais_interativos\".\"ordem\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.papeis_da_estrutura": {
+      "name": "papeis_da_estrutura",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "estrutura_id": {
+          "name": "estrutura_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "obrigatorio": {
+          "name": "obrigatorio",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "papeis_da_estrutura_estrutura_id_estruturas_id_fk": {
+          "name": "papeis_da_estrutura_estrutura_id_estruturas_id_fk",
+          "tableFrom": "papeis_da_estrutura",
+          "tableTo": "estruturas",
+          "columnsFrom": [
+            "estrutura_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "papel_ordem_unica_na_estrutura": {
+          "name": "papel_ordem_unica_na_estrutura",
+          "nullsNotDistinct": false,
+          "columns": [
+            "estrutura_id",
+            "ordem"
+          ]
+        },
+        "papel_nome_unico_na_estrutura": {
+          "name": "papel_nome_unico_na_estrutura",
+          "nullsNotDistinct": false,
+          "columns": [
+            "estrutura_id",
+            "nome"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "papel_ordem_positiva": {
+          "name": "papel_ordem_positiva",
+          "value": "\"papeis_da_estrutura\".\"ordem\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.perguntas_do_formulario": {
+      "name": "perguntas_do_formulario",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "formulario_id": {
+          "name": "formulario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordem": {
+          "name": "ordem",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enunciado": {
+          "name": "enunciado",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criterio_de_aceite": {
+          "name": "criterio_de_aceite",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "perguntas_do_formulario_formulario_id_formularios_id_fk": {
+          "name": "perguntas_do_formulario_formulario_id_formularios_id_fk",
+          "tableFrom": "perguntas_do_formulario",
+          "tableTo": "formularios",
+          "columnsFrom": [
+            "formulario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "pergunta_ordem_unica_no_formulario": {
+          "name": "pergunta_ordem_unica_no_formulario",
+          "nullsNotDistinct": false,
+          "columns": [
+            "formulario_id",
+            "ordem"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "pergunta_ordem_positiva": {
+          "name": "pergunta_ordem_positiva",
+          "value": "\"perguntas_do_formulario\".\"ordem\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.podas": {
+      "name": "podas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "resposta_de_escopo_id": {
+          "name": "resposta_de_escopo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "podado_por_id": {
+          "name": "podado_por_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "motivo": {
+          "name": "motivo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "podado_em": {
+          "name": "podado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "podas_resposta_de_escopo_id_respostas_de_escopo_id_fk": {
+          "name": "podas_resposta_de_escopo_id_respostas_de_escopo_id_fk",
+          "tableFrom": "podas",
+          "tableTo": "respostas_de_escopo",
+          "columnsFrom": [
+            "resposta_de_escopo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "podas_podado_por_id_usuarios_id_fk": {
+          "name": "podas_podado_por_id_usuarios_id_fk",
+          "tableFrom": "podas",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "podado_por_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "poda_exige_motivo": {
+          "name": "poda_exige_motivo",
+          "value": "btrim(\"podas\".\"motivo\") <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.regras_de_validacao": {
+      "name": "regras_de_validacao",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "pergunta_id": {
+          "name": "pergunta_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "tipo_de_regra",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "minimo": {
+          "name": "minimo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "maximo": {
+          "name": "maximo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pergunta_de_referencia_id": {
+          "name": "pergunta_de_referencia_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "termos": {
+          "name": "termos",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mensagem": {
+          "name": "mensagem",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "regras_de_validacao_pergunta_id_perguntas_do_formulario_id_fk": {
+          "name": "regras_de_validacao_pergunta_id_perguntas_do_formulario_id_fk",
+          "tableFrom": "regras_de_validacao",
+          "tableTo": "perguntas_do_formulario",
+          "columnsFrom": [
+            "pergunta_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "regras_de_validacao_pergunta_de_referencia_id_perguntas_do_formulario_id_fk": {
+          "name": "regras_de_validacao_pergunta_de_referencia_id_perguntas_do_formulario_id_fk",
+          "tableFrom": "regras_de_validacao",
+          "tableTo": "perguntas_do_formulario",
+          "columnsFrom": [
+            "pergunta_de_referencia_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "regra_unica_por_pergunta_e_tipo": {
+          "name": "regra_unica_por_pergunta_e_tipo",
+          "nullsNotDistinct": false,
+          "columns": [
+            "pergunta_id",
+            "tipo"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "faixa_coerente": {
+          "name": "faixa_coerente",
+          "value": "\"regras_de_validacao\".\"minimo\" is null or \"regras_de_validacao\".\"maximo\" is null or \"regras_de_validacao\".\"minimo\" <= \"regras_de_validacao\".\"maximo\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.repositorios": {
+      "name": "repositorios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "aluno_id": {
+          "name": "aluno_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "publico": {
+          "name": "publico",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "repositorios_aluno_id_alunos_id_fk": {
+          "name": "repositorios_aluno_id_alunos_id_fk",
+          "tableFrom": "repositorios",
+          "tableTo": "alunos",
+          "columnsFrom": [
+            "aluno_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "repositorios_aluno_id_unique": {
+          "name": "repositorios_aluno_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "aluno_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.respostas_anteriores": {
+      "name": "respostas_anteriores",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "poda_id": {
+          "name": "poda_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pergunta_id": {
+          "name": "pergunta_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "texto": {
+          "name": "texto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "respostas_anteriores_poda_id_podas_id_fk": {
+          "name": "respostas_anteriores_poda_id_podas_id_fk",
+          "tableFrom": "respostas_anteriores",
+          "tableTo": "podas",
+          "columnsFrom": [
+            "poda_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "respostas_anteriores_pergunta_id_perguntas_do_formulario_id_fk": {
+          "name": "respostas_anteriores_pergunta_id_perguntas_do_formulario_id_fk",
+          "tableFrom": "respostas_anteriores",
+          "tableTo": "perguntas_do_formulario",
+          "columnsFrom": [
+            "pergunta_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "versao_anterior_unica_por_pergunta": {
+          "name": "versao_anterior_unica_por_pergunta",
+          "nullsNotDistinct": false,
+          "columns": [
+            "poda_id",
+            "pergunta_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.respostas_de_escopo": {
+      "name": "respostas_de_escopo",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "grupo_id": {
+          "name": "grupo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "formulario_id": {
+          "name": "formulario_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "estado": {
+          "name": "estado",
+          "type": "estado_do_escopo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'rascunho'"
+        },
+        "submetido_em": {
+          "name": "submetido_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decidido_em": {
+          "name": "decidido_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decidido_por_id": {
+          "name": "decidido_por_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "motivo_da_devolucao": {
+          "name": "motivo_da_devolucao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "respostas_de_escopo_grupo_id_grupos_id_fk": {
+          "name": "respostas_de_escopo_grupo_id_grupos_id_fk",
+          "tableFrom": "respostas_de_escopo",
+          "tableTo": "grupos",
+          "columnsFrom": [
+            "grupo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "respostas_de_escopo_formulario_id_formularios_id_fk": {
+          "name": "respostas_de_escopo_formulario_id_formularios_id_fk",
+          "tableFrom": "respostas_de_escopo",
+          "tableTo": "formularios",
+          "columnsFrom": [
+            "formulario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "respostas_de_escopo_decidido_por_id_usuarios_id_fk": {
+          "name": "respostas_de_escopo_decidido_por_id_usuarios_id_fk",
+          "tableFrom": "respostas_de_escopo",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "decidido_por_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "respostas_de_escopo_grupo_id_unique": {
+          "name": "respostas_de_escopo_grupo_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "grupo_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "estado_coerente_com_submissao": {
+          "name": "estado_coerente_com_submissao",
+          "value": "(\"respostas_de_escopo\".\"estado\" = 'rascunho') = (\"respostas_de_escopo\".\"submetido_em\" is null)"
+        },
+        "decisao_coerente_com_estado": {
+          "name": "decisao_coerente_com_estado",
+          "value": "(\"respostas_de_escopo\".\"estado\" in ('aprovado', 'devolvido'))\n          = (\"respostas_de_escopo\".\"decidido_em\" is not null and \"respostas_de_escopo\".\"decidido_por_id\" is not null)"
+        },
+        "devolucao_exige_motivo": {
+          "name": "devolucao_exige_motivo",
+          "value": "\"respostas_de_escopo\".\"estado\" <> 'devolvido' or btrim(coalesce(\"respostas_de_escopo\".\"motivo_da_devolucao\", '')) <> ''"
+        },
+        "motivo_so_enquanto_devolvido": {
+          "name": "motivo_so_enquanto_devolvido",
+          "value": "\"respostas_de_escopo\".\"estado\" = 'devolvido' or \"respostas_de_escopo\".\"motivo_da_devolucao\" is null"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.respostas_de_pergunta": {
+      "name": "respostas_de_pergunta",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "resposta_de_escopo_id": {
+          "name": "resposta_de_escopo_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pergunta_id": {
+          "name": "pergunta_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "texto": {
+          "name": "texto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "respostas_de_pergunta_resposta_de_escopo_id_respostas_de_escopo_id_fk": {
+          "name": "respostas_de_pergunta_resposta_de_escopo_id_respostas_de_escopo_id_fk",
+          "tableFrom": "respostas_de_pergunta",
+          "tableTo": "respostas_de_escopo",
+          "columnsFrom": [
+            "resposta_de_escopo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "respostas_de_pergunta_pergunta_id_perguntas_do_formulario_id_fk": {
+          "name": "respostas_de_pergunta_pergunta_id_perguntas_do_formulario_id_fk",
+          "tableFrom": "respostas_de_pergunta",
+          "tableTo": "perguntas_do_formulario",
+          "columnsFrom": [
+            "pergunta_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "resposta_unica_por_pergunta": {
+          "name": "resposta_unica_por_pergunta",
+          "nullsNotDistinct": false,
+          "columns": [
+            "resposta_de_escopo_id",
+            "pergunta_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.temas": {
+      "name": "temas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "banco_de_temas_id": {
+          "name": "banco_de_temas_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dificuldade": {
+          "name": "dificuldade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trilha": {
+          "name": "trilha",
+          "type": "trilha",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "briefing": {
+          "name": "briefing",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "temas_banco_de_temas_id_bancos_de_temas_id_fk": {
+          "name": "temas_banco_de_temas_id_bancos_de_temas_id_fk",
+          "tableFrom": "temas",
+          "tableTo": "bancos_de_temas",
+          "columnsFrom": [
+            "banco_de_temas_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "desafio_exige_briefing": {
+          "name": "desafio_exige_briefing",
+          "value": "\"temas\".\"trilha\" <> 'desafio' or \"temas\".\"briefing\" is not null"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.turmas": {
+      "name": "turmas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "curso_id": {
+          "name": "curso_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "turmas_curso_id_cursos_id_fk": {
+          "name": "turmas_curso_id_cursos_id_fk",
+          "tableFrom": "turmas",
+          "tableTo": "cursos",
+          "columnsFrom": [
+            "curso_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.usuarios": {
+      "name": "usuarios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "github_user_id": {
+          "name": "github_user_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "github_login": {
+          "name": "github_login",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "papel": {
+          "name": "papel",
+          "type": "papel",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "usuarios_github_user_id_unique": {
+          "name": "usuarios_github_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "github_user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.estado_do_escopo": {
+      "name": "estado_do_escopo",
+      "schema": "public",
+      "values": [
+        "rascunho",
+        "submetido",
+        "aprovado",
+        "devolvido"
+      ]
+    },
+    "public.marco_tipo": {
+      "name": "marco_tipo",
+      "schema": "public",
+      "values": [
+        "duro",
+        "triagem"
+      ]
+    },
+    "public.papel": {
+      "name": "papel",
+      "schema": "public",
+      "values": [
+        "instrutor",
+        "aluno"
+      ]
+    },
+    "public.tipo_de_regra": {
+      "name": "tipo_de_regra",
+      "schema": "public",
+      "values": [
+        "nao_vazio",
+        "contagem_de_itens",
+        "referencia_declarada",
+        "lista_negra"
+      ]
+    },
+    "public.trilha": {
+      "name": "trilha",
+      "schema": "public",
+      "values": [
+        "padrao",
+        "desafio"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

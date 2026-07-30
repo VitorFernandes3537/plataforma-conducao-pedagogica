@@ -576,6 +576,67 @@ export const respostasDePergunta = pgTable(
 )
 
 /**
+ * Poda de escopo: a única edição admitida depois da aprovação.
+ *
+ * O formulário aprovado é imutável, com uma exceção — o instrutor reduz o escopo
+ * declarado mantendo o mesmo tema (Doc 2 §4.5.1), porque rebaixamento de trilha
+ * é poda, não troca de tema (Doc 5 §5.3).
+ *
+ * A tabela é o registro obrigatório dessa exceção, não um log opcional: o
+ * gatilho só libera a escrita em escopo aprovado para quem apresenta o `id` de
+ * uma poda desta mesma resposta. Sem linha aqui, não há edição — e é isso que
+ * garante que nenhuma poda aconteça sem deixar rastro.
+ *
+ * Não existe `tipo`: o nome da tabela é o motivo admitido. Abrir outra razão
+ * para editar depois da aprovação exigiria migration e decisão de documento-dono,
+ * que é exatamente a fricção desejada.
+ */
+export const podas = pgTable(
+  'podas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    respostaDeEscopoId: uuid('resposta_de_escopo_id')
+      .notNull()
+      .references(() => respostasDeEscopo.id, { onDelete: 'cascade' }),
+    // `restrict`: apagar o instrutor não pode apagar o registro de quem podou o
+    // escopo que passou a valer como gabarito de correção.
+    podadoPorId: uuid('podado_por_id')
+      .notNull()
+      .references(() => usuarios.id, { onDelete: 'restrict' }),
+    /** O que foi reduzido e por quê, escrito pelo instrutor. */
+    motivo: text('motivo').notNull(),
+    podadoEm: timestamp('podado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check('poda_exige_motivo', sql`btrim(${t.motivo}) <> ''`)],
+)
+
+/**
+ * A resposta como estava antes da poda.
+ *
+ * "Histórico guarda a versão anterior à poda" (Doc 2 §4.5.1). Guardar só a
+ * versão nova perderia a informação de que houve redução — e a comparação entre
+ * as duas é o que mostra o que o grupo deixou de entregar.
+ *
+ * É cópia congelada de propósito. `perguntaId` referencia a pergunta para a tela
+ * conseguir rotular, mas o texto não acompanha edição posterior: o histórico
+ * registra o que estava escrito naquele instante.
+ */
+export const respostasAnteriores = pgTable(
+  'respostas_anteriores',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    podaId: uuid('poda_id')
+      .notNull()
+      .references(() => podas.id, { onDelete: 'cascade' }),
+    perguntaId: uuid('pergunta_id')
+      .notNull()
+      .references(() => perguntasDoFormulario.id, { onDelete: 'cascade' }),
+    texto: text('texto').notNull(),
+  },
+  (t) => [unique('versao_anterior_unica_por_pergunta').on(t.podaId, t.perguntaId)],
+)
+
+/**
  * Tabela de tradução: papel da estrutura → nome no negócio → nome no código.
  *
  * "Nome de classe" no Doc 2 é vocabulário do curso; aqui é `nomeNoCodigo`,
