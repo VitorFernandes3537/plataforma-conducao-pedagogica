@@ -1,8 +1,8 @@
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, sql } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import * as schema from './schema'
-import { grupos } from './schema'
+import { grupos, temas } from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
@@ -66,6 +66,48 @@ export async function alocaTema(db: Db, grupoId: string, temaId: string): Promis
     }
     throw erro
   }
+}
+
+/**
+ * Realoca um tema, liberando o grupo anterior.
+ *
+ * Só o instrutor faz isso (Doc 7 §3: "Instrutor — Tudo"), e é o que resolve a
+ * negociação que travou em sala. As duas escritas acontecem na MESMA transação:
+ * liberar o anterior sem alocar o novo deixaria dois grupos sem tema, e a
+ * turma inteira esperando.
+ */
+export async function realocaTema(
+  db: Db,
+  temaId: string,
+  paraGrupoId: string,
+): Promise<{ liberado: string | null }> {
+  return db.transaction(async (tx) => {
+    const [destino] = await tx
+      .select({ id: grupos.id, turmaId: grupos.turmaId })
+      .from(grupos)
+      .where(eq(grupos.id, paraGrupoId))
+      .limit(1)
+
+    if (!destino) throw new AlocacaoInvalida('grupo de destino não existe')
+
+    const [tema] = await tx.select({ id: temas.id }).from(temas).where(eq(temas.id, temaId)).limit(1)
+    if (!tema) throw new AlocacaoInvalida('tema não existe')
+
+    // Trava a turma pela ordem do id, para duas realocações simultâneas na
+    // mesma turma serializarem em vez de se cruzarem.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${destino.turmaId}))`)
+
+    const anteriores = await tx
+      .update(grupos)
+      .set({ temaId: null })
+      .where(and(eq(grupos.turmaId, destino.turmaId), eq(grupos.temaId, temaId)))
+      .returning({ id: grupos.id })
+
+    await tx.update(grupos).set({ temaId }).where(eq(grupos.id, paraGrupoId))
+
+    const liberado = anteriores.find((g) => g.id !== paraGrupoId)?.id ?? null
+    return { liberado }
+  })
 }
 
 /** O tema de um grupo, ou nulo. Usado para conferir o resultado da alocação. */

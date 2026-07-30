@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { alocaTema, AlocacaoInvalida, temaDoGrupo } from '@/db/alocacao'
+import { alocaTema, AlocacaoInvalida, realocaTema, temaDoGrupo } from '@/db/alocacao'
 import { bancosDeTemas, grupos, temas, turmas } from '@/db/schema'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
@@ -144,5 +144,48 @@ describe('Issue 8 — alocação de tema com unicidade', () => {
     // E o estado final tem um único grupo com o tema.
     const comTema = await banco.db.select().from(grupos).where(eq(grupos.temaId, temaA.id))
     expect(comTema).toHaveLength(1)
+  })
+
+  it('instrutor_realoca_tema', async () => {
+    const { temaA, grupoA, grupoB } = await cenario()
+
+    await alocaTema(banco.db, grupoA.id, temaA.id)
+
+    // Realocar move o tema e LIBERA o grupo anterior, na mesma transação.
+    const { liberado } = await realocaTema(banco.db, temaA.id, grupoB.id)
+
+    expect(liberado).toBe(grupoA.id)
+    expect(await temaDoGrupo(banco.db, grupoB.id)).toBe(temaA.id)
+    expect(await temaDoGrupo(banco.db, grupoA.id)).toBeNull()
+
+    // O grupo liberado pode receber outro tema em seguida — realocar não o
+    // deixa preso.
+    const { temaB } = await cenario()
+    await alocaTema(banco.db, grupoA.id, temaB.id)
+    expect(await temaDoGrupo(banco.db, grupoA.id)).toBe(temaB.id)
+
+    // Realocar tema que ninguém tinha simplesmente aloca.
+    const { temaA: temaNovo, grupoC } = await cenario()
+    const semAnterior = await realocaTema(banco.db, temaNovo.id, grupoC.id)
+    expect(semAnterior.liberado).toBeNull()
+    expect(await temaDoGrupo(banco.db, grupoC.id)).toBe(temaNovo.id)
+
+    // Grupo inexistente falha como regra, não como erro de banco.
+    await expect(realocaTema(banco.db, temaA.id, grupoA.id.replace(/.$/, '0'))).rejects.toThrow(
+      AlocacaoInvalida,
+    )
+  })
+
+  it('realocar_para_o_mesmo_grupo_nao_libera_ninguem', async () => {
+    // Caso de borda que quebraria a tela: se realocar para quem já tem o tema
+    // liberasse "o anterior", o próprio grupo apareceria como liberado e a
+    // interface mostraria um grupo sem tema que na verdade tem.
+    const { temaA, grupoA } = await cenario()
+
+    await alocaTema(banco.db, grupoA.id, temaA.id)
+    const { liberado } = await realocaTema(banco.db, temaA.id, grupoA.id)
+
+    expect(liberado).toBeNull()
+    expect(await temaDoGrupo(banco.db, grupoA.id)).toBe(temaA.id)
   })
 })
