@@ -13,7 +13,11 @@ Instruções permanentes para o Claude Code neste repositório.
 | `docs/doc-1` a `doc-6`, `docs/INDICE.md`, `docs/ERRATA.md` | **Documentos-dono.** Possuem fatos | Ler. **Nunca editar** |
 | `docs/doc-7-spec-plataforma.md`, `docs/BACKLOG.md` | **Derivados.** Não possuem fato próprio | Ler e **corrigir propagação** — regras em §2 |
 | `docs/artefatos/` | Conteúdo do curso | Ler |
+| `docs/adr/` | Decisões de desenvolvedor, autorizadas por Doc 7 §0.2 | **Escrever.** Uma ADR por decisão, versionada |
+| `docs/referencias-de-design/` | Curadoria visual. Não decide nada | Ler antes de desenhar tela. Acrescentar referência nova |
 | todo o resto | Implementação | Escrever à vontade |
+
+`docs/` mora tudo que é documentação, inclusive a minha. O que separa as camadas não é a pasta — é **quem possui o fato**.
 
 O Doc 7 declara na própria §9: *"Nenhum SSOT. Este documento é derivado e não possui fatos próprios. Se algo neste documento contradisser os Docs 1 a 6, o erro está aqui."* Um trecho do Doc 7 que contradiz um documento-dono é **defeito**, não decisão pendente — e consertar defeito não exige autorização de ninguém.
 

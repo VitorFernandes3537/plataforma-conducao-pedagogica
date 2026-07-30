@@ -29,7 +29,8 @@ Next.js (App Router) · TypeScript · PostgreSQL · deploy em PaaS gerenciada.
 | `docs/INDICE.md` | Documento-dono. Mapa SSOT: onde cada fato mora |
 | `docs/doc-7-spec-plataforma.md` | Derivado. Modelo de dados, milestones, critérios de aceite |
 | `docs/BACKLOG.md` | Derivado. As 25 issues |
-| `adr/` | Decisões de desenvolvedor, autorizadas por Doc 7 §0.2 |
+| `docs/adr/` | Decisões de desenvolvedor, autorizadas por Doc 7 §0.2 |
+| `docs/referencias-de-design/` | Curadoria visual. Ler antes de desenhar tela |
 | o resto | Implementação |
 
 ## Como começar
