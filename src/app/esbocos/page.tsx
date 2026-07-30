@@ -94,7 +94,49 @@ const DIRECOES: readonly Direcao[] = [
       '--color-escala-3': '#e0700f',
     },
   },
+  {
+    chave: 'mista',
+    nome: 'D · Lousa com superfície de leitura clara',
+    tese:
+      'A recomendação: o verde saturado da B como moldura, cromagem e régua, e cama clara onde vive a prosa longa. Vida na estrutura, calma na leitura, instrumento onde ele se justifica.',
+    vars: {
+      '--color-quadro': '#123a30',
+      '--color-quadro-fundo': '#0c2a23',
+      '--color-tarja': '#f4efe2',
+      '--color-tarja-sombra': '#ddd6c4',
+      '--color-tinta': '#12211c',
+      '--color-tinta-fraca': '#5d6b62',
+      '--color-clara': '#eef5ef',
+      '--color-clara-fraca': '#8fb6a5',
+      '--color-regua': '#3f7a66',
+      '--color-regua-fraca': '#1c5244',
+      '--color-portao-duro': '#ef6a5a',
+      '--color-portao-triagem': '#f0b84a',
+      '--color-escala-0': '#1c5244',
+      '--color-escala-1': '#6fa98c',
+      '--color-escala-2': '#a8d3a0',
+      '--color-escala-3': '#e2f0a8',
+    },
+  },
 ]
+
+/**
+ * Direção D: a lousa da B como moldura, com a superfície de leitura clara.
+ *
+ * O verde saturado fica na cromagem — cabeçalho, régua, divisórias, lateral —
+ * e o painel onde vive a pergunta e o checklist recebe cama clara, porque é
+ * prosa longa e prosa longa quer calma.
+ */
+const LEITURA_CLARA: Record<string, string> = {
+  '--color-quadro': '#f7f4ec',
+  '--color-clara': '#12211c',
+  '--color-clara-fraca': '#5d6b62',
+  '--color-regua': '#c3c9bd',
+  '--color-regua-fraca': '#dfe2d6',
+  '--color-escala-1': '#8fbb95',
+  '--color-escala-2': '#5d9e6d',
+  '--color-escala-3': '#2f7d4f',
+}
 
 /** Console escuro para a direção C: o instrumento tem ambiente próprio. */
 const CONSOLE_ESCURO: Record<string, string> = {
@@ -108,6 +150,7 @@ const CONSOLE_ESCURO: Record<string, string> = {
 
 function Amostra({ direcao }: { direcao: Direcao }) {
   const ehOficina = direcao.chave === 'oficina'
+  const ehMista = direcao.chave === 'mista'
 
   return (
     <section>
@@ -153,7 +196,12 @@ function Amostra({ direcao }: { direcao: Direcao }) {
             <ReguaDoDia blocos={RITMO} blocoCorrente={3} decorridosNoBloco={41} />
           </div>
 
-          <div className="grid gap-px bg-regua-fraca lg:grid-cols-[minmax(0,1fr)_15rem]">
+          <div
+            className="grid gap-px bg-regua-fraca lg:grid-cols-[minmax(0,1fr)_15rem]"
+            // Na direção D só a área de leitura e a lateral clareiam. A moldura
+            // e a régua continuam na lousa saturada.
+            style={ehMista ? (LEITURA_CLARA as React.CSSProperties) : undefined}
+          >
             <div className="bg-quadro px-4 py-4">
               <span className="text-[0.625rem] uppercase tracking-[0.18em] text-clara-fraca">
                 o que vencer agora
