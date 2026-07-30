@@ -1,3 +1,5 @@
+import { Etiqueta, EtiquetaCheia } from '@/components/ui'
+
 export type EstadoDaTarja = 'rascunho' | 'submetido' | 'aprovado' | 'devolvido'
 
 export type DadosDaTarja = {
@@ -57,11 +59,7 @@ export function TarjaEmAcao({
 
       <p className="flex items-center gap-2 text-[0.8125rem] leading-tight text-tinta-media">
         {tema ?? <span className="text-tinta-fraca">sem tema alocado</span>}
-        {trilha === 'desafio' && (
-          <span className="dado border border-linha-forte px-1 text-[0.5625rem] uppercase tracking-[0.12em]">
-            desafio
-          </span>
-        )}
+        {trilha === 'desafio' && <EtiquetaCheia>desafio</EtiquetaCheia>}
       </p>
 
       {sintoma && (
@@ -81,12 +79,12 @@ export function TarjaEmAcao({
  */
 export function TarjaResolvida({ integrantes, tema, estado }: DadosDaTarja) {
   return (
-    <article className="flex items-baseline justify-between gap-3 border-b border-linha py-2">
+    <article className="flex items-baseline justify-between gap-3 border-b border-linha py-2 last:border-b-0">
       <h3 className="truncate text-[0.8125rem] text-tinta-media">
         {integrantes.join(' · ')}
         <span className="ml-2 text-tinta-fraca">{tema}</span>
       </h3>
-      <span className="legenda shrink-0">{ROTULO[estado]}</span>
+      <Etiqueta>{ROTULO[estado]}</Etiqueta>
     </article>
   )
 }

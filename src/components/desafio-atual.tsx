@@ -1,3 +1,5 @@
+import { ListaForaDeEscopo, MarcaBinaria } from '@/components/ui'
+
 export type CriterioDeSuperacao = {
   texto: string
   cumprido: boolean
@@ -18,20 +20,6 @@ type Props = {
   ordem: number
 }
 
-/** Marca binária, porque o critério é binário. Sem porcentagem, sem meio-termo. */
-function Marca({ cumprido }: { cumprido: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="mt-[0.35rem] size-[0.875rem] shrink-0 border"
-      style={{
-        borderColor: cumprido ? 'var(--color-escala-3)' : 'var(--color-linha-forte)',
-        backgroundColor: cumprido ? 'var(--color-escala-3)' : 'transparent',
-      }}
-    />
-  )
-}
-
 /**
  * O que o aluno tem que vencer agora.
  *
@@ -43,15 +31,15 @@ export function DesafioAtual({ perguntaDoAluno, criterios, escopoFora, ordem }: 
   const cumpridos = criterios.filter((c) => c.cumprido).length
 
   return (
-    <section aria-label="Desafio atual" className="px-8 py-7">
+    <section aria-label="Desafio atual" className="px-6 py-6">
       <div className="flex items-baseline gap-4">
         <span className="legenda text-tinta">o que vencer agora</span>
         <span className="dado text-[0.6875rem] text-tinta-fraca">obstáculo {ordem}</span>
       </div>
 
-      {/* A pergunta é prosa e é tese: serifada, grande, medida curta. Filete
-          à esquerda em vez de caixa — margem de prancha, não card. */}
-      <h2 className="mt-3 max-w-[34ch] border-l-2 border-tinta pl-5 font-prosa text-[1.75rem] leading-[1.3] text-tinta">
+      {/* A pergunta é prosa e é tese. Filete à esquerda em vez de caixa —
+          margem de papel, não cartão dentro de cartão. */}
+      <h2 className="mt-3 max-w-[34ch] border-l-2 border-tinta pl-5 font-prosa text-[1.625rem] leading-[1.3] text-tinta">
         {perguntaDoAluno}
       </h2>
 
@@ -66,9 +54,11 @@ export function DesafioAtual({ perguntaDoAluno, criterios, escopoFora, ordem }: 
           <ul className="mt-2.5 flex flex-col gap-2.5">
             {criterios.map((criterio) => (
               <li key={criterio.texto} className="flex items-start gap-3">
-                <Marca cumprido={criterio.cumprido} />
-                {/* Sem risco no cumprido. Risco significa "desconsidere", e é
-                    o oposto de vencido — o risco fica só no fora de escopo. */}
+                <span className="mt-[0.3rem]">
+                  <MarcaBinaria cumprido={criterio.cumprido} />
+                </span>
+                {/* Sem risco no cumprido: risco significa "desconsidere", e é o
+                    oposto de vencido. O risco fica só no fora de escopo. */}
                 <span
                   className={`text-[0.9375rem] leading-snug ${
                     criterio.cumprido ? 'text-tinta-media' : 'text-tinta'
@@ -81,20 +71,9 @@ export function DesafioAtual({ perguntaDoAluno, criterios, escopoFora, ordem }: 
           </ul>
         </div>
 
-        {/* Dizer o que NÃO fazer é raro em produto e aqui é carga pedagógica. */}
         <div>
           <h3 className="legenda">fora de escopo hoje</h3>
-          <ul className="mt-2.5 flex flex-col gap-2">
-            {escopoFora.map((item) => (
-              <li
-                key={item}
-                className="flex items-start gap-3 text-[0.9375rem] leading-snug text-tinta-fraca"
-              >
-                <span aria-hidden="true" className="mt-[0.7rem] h-px w-3 shrink-0 bg-linha-forte" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <ListaForaDeEscopo itens={escopoFora} className="mt-2.5" />
         </div>
       </div>
     </section>
