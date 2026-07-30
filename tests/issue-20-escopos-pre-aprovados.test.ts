@@ -25,6 +25,7 @@ import {
 import type { Ator } from '@/domain/autorizacao'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
+import { ID_INEXISTENTE } from './suporte/identificadores'
 import { criaCurso } from './suporte/cenario'
 
 // Nomes vindos literalmente dos critérios de aceite da issue 20 em
@@ -205,7 +206,7 @@ describe('Issue 20 — escopos pré-aprovados', () => {
 
     // Escopo inexistente falha como regra, não como erro de banco.
     await expect(
-      atribuiEscopo(banco.db, escopos[0]!.id.replace(/.$/, '0'), grupoB.id),
+      atribuiEscopo(banco.db, ID_INEXISTENTE, grupoB.id),
     ).rejects.toThrow(AtribuicaoInvalida)
   })
 

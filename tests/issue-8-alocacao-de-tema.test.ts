@@ -5,6 +5,7 @@ import { alocaTema, AlocacaoInvalida, realocaTema, temaDoGrupo } from '@/db/aloc
 import { bancosDeTemas, grupos, temas, turmas } from '@/db/schema'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
+import { ID_INEXISTENTE } from './suporte/identificadores'
 import { criaCurso } from './suporte/cenario'
 
 // Nomes vindos literalmente dos critérios de aceite da issue 8 em
@@ -171,7 +172,7 @@ describe('Issue 8 — alocação de tema com unicidade', () => {
     expect(await temaDoGrupo(banco.db, grupoC.id)).toBe(temaNovo.id)
 
     // Grupo inexistente falha como regra, não como erro de banco.
-    await expect(realocaTema(banco.db, temaA.id, grupoA.id.replace(/.$/, '0'))).rejects.toThrow(
+    await expect(realocaTema(banco.db, temaA.id, ID_INEXISTENTE)).rejects.toThrow(
       AlocacaoInvalida,
     )
   })

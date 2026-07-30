@@ -7,6 +7,7 @@ import { laminasDoDia, laminasDoDiaCorrente, navega } from '@/db/material'
 import { dias, materiaisInterativos } from '@/db/schema'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
+import { ID_INEXISTENTE } from './suporte/identificadores'
 import { criaCurso } from './suporte/cenario'
 
 // Nomes vindos literalmente dos critérios de aceite da issue 4 em
@@ -53,7 +54,7 @@ describe('Issue 4 — slides interativos de abertura', () => {
     expect(await laminasDoDia(banco.db, segundoDia.id)).toHaveLength(1)
 
     // Dia inexistente não é erro: é conjunto vazio.
-    expect(await laminasDoDia(banco.db, primeiroDia.id.replace(/.$/, '0'))).toHaveLength(0)
+    expect(await laminasDoDia(banco.db, ID_INEXISTENTE)).toHaveLength(0)
 
     // Apagar o dia leva as lâminas com ele — material órfão não existe.
     await banco.db.delete(dias).where(eq(dias.id, primeiroDia.id))
