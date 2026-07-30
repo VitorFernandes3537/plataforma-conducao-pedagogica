@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
 import { eq } from 'drizzle-orm'
@@ -18,14 +17,31 @@ import { criaBancoEfemero } from './suporte/banco-efemero'
 
 describe('INFRA-1 — scaffold e pipeline', () => {
   it('build_passa_em_modo_estrito', () => {
-    // `next build` compila e checa tipos, mas demora. O que este critério
-    // protege é a checagem estrita, então roda só ela.
-    expect(() =>
-      execFileSync('npx', ['tsc', '--noEmit'], {
-        stdio: 'pipe',
-        shell: process.platform === 'win32',
-      }),
-    ).not.toThrow()
+    // Este teste NÃO roda mais o compilador.
+    //
+    // A primeira versão chamava `npx tsc --noEmit` daqui, e ficou INSTÁVEL: com
+    // dez arquivos de teste subindo Postgres em processo, o compilador disputa
+    // CPU e às vezes estoura o tempo. Teste que falha por carga é pior que
+    // teste vermelho, porque ensina a equipe a rodar de novo até passar.
+    //
+    // A checagem de verdade acontece em `npm run typecheck`, no CI e no
+    // terminal. O que se prende aqui é o INVARIANTE que o critério protege: o
+    // modo estrito está ligado, e o pipeline o executa. Se alguém afrouxar o
+    // tsconfig ou tirar o passo do CI, isto cai.
+    const tsconfig = JSON.parse(readFileSync('tsconfig.json', 'utf8')) as {
+      compilerOptions: Record<string, unknown>
+    }
+
+    expect(tsconfig.compilerOptions.strict).toBe(true)
+    // Estrito sozinho é fraco para um schema que carrega nota de aluno.
+    expect(tsconfig.compilerOptions.noUncheckedIndexedAccess).toBe(true)
+    expect(tsconfig.compilerOptions.exactOptionalPropertyTypes).toBe(true)
+    expect(tsconfig.compilerOptions.noImplicitOverride).toBe(true)
+    expect(tsconfig.compilerOptions.noFallthroughCasesInSwitch).toBe(true)
+
+    const workflow = readFileSync('.github/workflows/ci.yml', 'utf8')
+    expect(workflow).toContain('npm run typecheck')
+    expect(workflow).toContain('npm run build')
   })
 
   it('migrations_aplicam_em_banco_vazio', async () => {
