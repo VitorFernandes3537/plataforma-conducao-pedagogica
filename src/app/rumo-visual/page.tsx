@@ -51,57 +51,6 @@ const RESOLVIDOS: readonly DadosDaTarja[] = [
   { integrantes: ['Joana', 'Kleber'], tema: 'Estúdio fotográfico', estado: 'aprovado' },
 ]
 
-/** Barra de identidade. Fina de propósito: não é o assunto da tela. */
-function Barra({ contexto }: { contexto: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-6 border-b border-filete bg-papel-alto px-8 py-2.5">
-      <span className="dado text-[0.8125rem] font-medium tracking-[0.16em] text-tinta">PCP</span>
-      <span className="legenda">{contexto}</span>
-    </div>
-  )
-}
-
-function CabecalhoDoDia({
-  dia,
-  titulo,
-  marco,
-  direita,
-}: {
-  dia: number
-  titulo: string
-  marco?: { nome: string; tipo: 'duro' | 'triagem' }
-  direita: string
-}) {
-  return (
-    <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 px-8 py-4">
-      <div className="flex items-baseline gap-4">
-        <span className="dado text-2xl font-medium leading-none tracking-tight text-tinta">
-          D{dia}
-        </span>
-        <span className="legenda">{titulo}</span>
-        {marco && (
-          <span
-            className="dado border px-2 py-0.5 text-[0.625rem] uppercase tracking-[0.12em]"
-            style={{
-              borderColor:
-                marco.tipo === 'duro'
-                  ? 'var(--color-portao-duro)'
-                  : 'var(--color-portao-triagem)',
-              color:
-                marco.tipo === 'duro'
-                  ? 'var(--color-portao-duro)'
-                  : 'var(--color-portao-triagem)',
-            }}
-          >
-            {marco.nome} · {marco.tipo === 'duro' ? 'go/no-go' : 'triagem'}
-          </span>
-        )}
-      </div>
-      <span className="legenda">{direita}</span>
-    </header>
-  )
-}
-
 function Rotulo({ children, contagem }: { children: React.ReactNode; contagem?: number }) {
   return (
     <h3 className="legenda flex items-baseline gap-2">
@@ -113,17 +62,33 @@ function Rotulo({ children, contagem }: { children: React.ReactNode; contagem?: 
   )
 }
 
+/** Painel: superfície sólida sobre a mesa. Todo texto legível vive aqui. */
+function Painel({
+  children,
+  className = '',
+}: {
+  children: React.ReactNode
+  className?: string
+}) {
+  return <section className={`painel ${className}`}>{children}</section>
+}
+
 export default function RumoVisual() {
   return (
-    <div className="malha min-h-dvh">
+    <div className="mesa min-h-dvh">
       {/* ── Tela do aluno ─────────────────────────────────────────────── */}
-      <section className="border-b-2 border-filete-forte">
-        <Barra contexto="turma 2026-1 · ana e bruno" />
-        <CabecalhoDoDia dia={7} titulo="ritmo de obstáculo" direita="barbearia" />
-        <ReguaDoDia blocos={RITMO_DE_OBSTACULO} blocoCorrente={3} decorridosNoBloco={41} />
+      <ReguaDoDia
+        dia={7}
+        rotuloDoDia="ritmo de obstáculo"
+        contexto="turma 2026-1 · ana e bruno · barbearia"
+        blocos={RITMO_DE_OBSTACULO}
+        blocoCorrente={3}
+        decorridosNoBloco={41}
+      />
 
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div>
+      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
+        <div className="flex flex-col gap-4">
+          <Painel>
             <DesafioAtual
               ordem={4}
               perguntaDoAluno="E se o cliente cancelar depois de o atendimento já ter começado?"
@@ -133,7 +98,10 @@ export default function RumoVisual() {
                   texto: 'Cada estado do atendimento recusa as transições impossíveis',
                   cumprido: false,
                 },
-                { texto: 'Nenhum `if` decide o comportamento pelo tipo do serviço', cumprido: false },
+                {
+                  texto: 'Nenhum `if` decide o comportamento pelo tipo do serviço',
+                  cumprido: false,
+                },
               ]}
               escopoFora={[
                 'Reembolso e cálculo de multa',
@@ -141,67 +109,69 @@ export default function RumoVisual() {
                 'Histórico auditável',
               ]}
             />
+          </Painel>
 
-            <div className="border-t border-filete px-8 py-6">
-              <Rotulo>antes do fechamento</Rotulo>
-              <ul className="mt-2.5 max-w-2xl">
-                {[
-                  ['Contrato do dia', 'faremos e não faremos', true],
-                  ['Log do obstáculo', 'cinco linhas', false],
-                  ['Push no repositório', 'no fechamento', false],
-                ].map(([titulo, detalhe, feito]) => (
-                  <li
-                    key={titulo as string}
-                    className="flex items-center justify-between gap-4 border-b border-filete py-2.5 last:border-b-0"
-                  >
-                    <span className="flex items-center gap-3">
-                      <span
-                        aria-hidden="true"
-                        className="size-[0.875rem] shrink-0 border"
-                        style={{
-                          borderColor: feito
-                            ? 'var(--color-escala-3)'
-                            : 'var(--color-filete-forte)',
-                          backgroundColor: feito ? 'var(--color-escala-3)' : 'transparent',
-                        }}
-                      />
-                      <span
-                        className={`text-[0.9375rem] ${feito ? 'text-tinta-media' : 'text-tinta'}`}
-                      >
-                        {titulo}
-                      </span>
-                    </span>
-                    <span className="dado text-[0.6875rem] text-tinta-fraca">{detalhe}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <aside className="flex flex-col gap-7 border-l border-filete bg-papel-alto px-6 py-6">
-            <div>
-              <Rotulo>material do dia</Rotulo>
-              <ul className="mt-2.5 flex flex-col">
-                {[
-                  ['Slides do obstáculo 4', 'aberto'],
-                  ['Demonstração gravada', 'aberto'],
-                  ['Gabarito', 'libera no fechamento'],
-                ].map(([nome, estado]) => (
-                  <li
-                    key={nome}
-                    className="flex items-baseline justify-between gap-3 border-b border-filete py-2 last:border-b-0"
-                  >
+          <Painel className="px-7 py-6">
+            <Rotulo>antes do fechamento</Rotulo>
+            <ul className="mt-3">
+              {[
+                ['Contrato do dia', 'faremos e não faremos', true],
+                ['Log do obstáculo', 'cinco linhas', false],
+                ['Push no repositório', 'no fechamento', false],
+              ].map(([titulo, detalhe, feito]) => (
+                <li
+                  key={titulo as string}
+                  className="flex items-center justify-between gap-4 border-b border-filete py-2.5 last:border-b-0"
+                >
+                  <span className="flex items-center gap-3">
                     <span
-                      className={`text-[0.875rem] ${estado === 'aberto' ? 'text-tinta' : 'text-tinta-fraca'}`}
+                      aria-hidden="true"
+                      className="size-[0.875rem] shrink-0 border"
+                      style={{
+                        borderColor: feito ? 'var(--color-escala-3)' : 'var(--color-filete-forte)',
+                        backgroundColor: feito ? 'var(--color-escala-3)' : 'transparent',
+                      }}
+                    />
+                    <span
+                      className={`text-[0.9375rem] ${feito ? 'text-tinta-media' : 'text-tinta'}`}
                     >
-                      {nome}
+                      {titulo}
                     </span>
-                    <span className="dado shrink-0 text-[0.625rem] text-tinta-fraca">{estado}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                  </span>
+                  <span className="dado text-[0.6875rem] text-tinta-fraca">{detalhe}</span>
+                </li>
+              ))}
+            </ul>
+          </Painel>
+        </div>
 
+        <div className="flex flex-col gap-4">
+          <Painel className="px-5 py-5">
+            <Rotulo>material do dia</Rotulo>
+            <ul className="mt-3">
+              {[
+                ['Slides do obstáculo 4', 'aberto'],
+                ['Demonstração gravada', 'aberto'],
+                ['Gabarito', 'libera no fechamento'],
+              ].map(([nome, estado]) => (
+                <li
+                  key={nome}
+                  className="flex items-baseline justify-between gap-3 border-b border-filete py-2 last:border-b-0"
+                >
+                  <span
+                    className={`text-[0.875rem] ${
+                      estado === 'aberto' ? 'text-tinta' : 'text-tinta-fraca'
+                    }`}
+                  >
+                    {nome}
+                  </span>
+                  <span className="dado shrink-0 text-[0.625rem] text-tinta-fraca">{estado}</span>
+                </li>
+              ))}
+            </ul>
+          </Painel>
+
+          <Painel className="px-5 py-5">
             <LinhaDeVida
               passos={[
                 { ordem: 1, nota: 3 },
@@ -211,66 +181,65 @@ export default function RumoVisual() {
                 { ordem: 5, nota: null },
               ]}
             />
+          </Painel>
 
-            <div>
-              <Rotulo>seu produto público</Rotulo>
-              <a
-                href="#"
-                className="dado mt-1.5 block truncate text-[0.875rem] text-tinta underline decoration-filete-forte underline-offset-4 hover:decoration-tinta"
-              >
-                github.com/ana/barbearia
-              </a>
-              <p className="mt-1.5 text-[0.8125rem] leading-snug text-tinta-fraca">
-                Fica no ar depois do curso. Último push há 19 h.
-              </p>
-            </div>
+          <Painel className="px-5 py-5">
+            <Rotulo>seu produto público</Rotulo>
+            <a
+              href="#"
+              className="dado mt-2 block truncate text-[0.875rem] text-tinta underline decoration-filete-forte underline-offset-4 hover:decoration-tinta"
+            >
+              github.com/ana/barbearia
+            </a>
+            <p className="mt-2 text-[0.8125rem] leading-snug text-tinta-fraca">
+              Fica no ar depois do curso. Último push há 19 h.
+            </p>
+          </Painel>
 
-            {/* Ausência declarada, não card vazio. */}
-            <div className="border border-dashed border-filete-forte px-3.5 py-3">
-              <Rotulo>nota</Rotulo>
-              <p className="mt-1.5 font-prosa text-[0.8125rem] leading-snug text-tinta-fraca">
-                Aparece no D15, depois da agregação. Até lá não existe — nem para você, nem para o
-                instrutor.
-              </p>
-            </div>
-          </aside>
+          {/* Ausência declarada. Sem painel sólido de propósito: ela é a única
+              coisa da tela que ainda não existe, e a mesa aparece através. */}
+          <section className="border border-dashed border-filete-forte px-5 py-4">
+            <Rotulo>nota</Rotulo>
+            <p className="mt-2 font-prosa text-[0.8125rem] leading-snug text-tinta-fraca">
+              Aparece no D15, depois da agregação. Até lá não existe — nem para você, nem para o
+              instrutor.
+            </p>
+          </section>
         </div>
-      </section>
+      </div>
 
       {/* ── Tela do instrutor ─────────────────────────────────────────── */}
-      <section>
-        <Barra contexto="turma 2026-1 · instrutor" />
-        <CabecalhoDoDia
-          dia={3}
-          titulo="escopo"
-          marco={{ nome: 'Marco 1', tipo: 'duro' }}
-          direita="6 grupos"
-        />
+      <div className="mt-8">
         <ReguaDoDia
+          dia={3}
+          rotuloDoDia="escopo"
+          contexto="turma 2026-1 · instrutor · 6 grupos"
           blocos={RITMO_DE_MARCO}
           blocoCorrente={2}
           decorridosNoBloco={38}
           marco={{ nome: 'Marco 1', tipo: 'duro' }}
         />
 
-        <div className="px-8 py-6">
-          <Rotulo contagem={FILA.length}>exigem decisão</Rotulo>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {FILA.map((tarja) => (
-              <TarjaEmAcao key={tarja.integrantes.join()} {...tarja} />
-            ))}
-          </div>
+        <div className="flex flex-col gap-4 p-4">
+          <Painel className="px-7 py-6">
+            <Rotulo contagem={FILA.length}>exigem decisão</Rotulo>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {FILA.map((tarja) => (
+                <TarjaEmAcao key={tarja.integrantes.join()} {...tarja} />
+              ))}
+            </div>
+          </Painel>
 
-          <div className="mt-8 max-w-3xl">
+          <Painel className="max-w-3xl px-7 py-6">
             <Rotulo contagem={RESOLVIDOS.length}>fechados</Rotulo>
-            <div className="mt-1.5">
+            <div className="mt-2">
               {RESOLVIDOS.map((tarja) => (
                 <TarjaResolvida key={tarja.integrantes.join()} {...tarja} />
               ))}
             </div>
-          </div>
+          </Painel>
         </div>
-      </section>
+      </div>
     </div>
   )
 }
