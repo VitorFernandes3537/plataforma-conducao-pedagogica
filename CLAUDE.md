@@ -116,6 +116,22 @@ Isso vale mesmo quando a instrução padrão do agente disser o contrário: aqui
 
 O que o commit **deve** ter continua valendo: mensagem no imperativo, o `docs(spec): propaga <o quê> de <fonte>` da §2.1.4 quando for propagação, e corpo explicando *por que*, não *o quê* — o diff já diz o quê.
 
+### 5.2 Commits atômicos
+
+**Uma issue não é um commit.** O histórico precisa contar como o código se construiu, e não só o que a issue entregou.
+
+A unidade é o **critério de aceite**. Cada commit fecha um critério, e cada commit é verde — typecheck, lint e suíte passam nele. Assim o CI nunca fica vermelho no meio de uma issue, e `git log` de um arquivo mostra a ordem em que as decisões entraram.
+
+Ordem típica de uma issue:
+
+1. `feat(issue-N): <entidade> no schema` — schema e migration, sem consulta e sem tela
+2. `feat(issue-N): <primeiro critério>` — a consulta ou regra, com o teste do nome exato do BACKLOG
+3. `feat(issue-N): <segundo critério>` — idem, um por commit
+4. `chore(seed): <o que passou a existir>` — só se o seed mudou
+5. `docs(spec): propaga …` — separado, sem código, quando houver propagação
+
+Não junte critérios num commit só porque ficaram prontos juntos. E não separe o que não compila sozinho: commit que não passa no CI não é atômico, é quebrado.
+
 ---
 
 ## 6. Stack
