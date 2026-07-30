@@ -43,6 +43,36 @@ export const usuarios = pgTable('usuarios', {
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
 })
 
+// Doc 4 §4 e Doc 7 §2.1: go/no-go duro, ou triagem com consequência. São
+// termos genéricos da spec, não vocabulário do curso.
+export const marcoTipoEnum = pgEnum('marco_tipo', ['duro', 'triagem'])
+
+/**
+ * Sobre o que a superação é aferida (ADR 0005).
+ *
+ * NÃO é um fato do método: é escolha pedagógica do instrutor. Aluno falta, um
+ * integrante se compromete menos que o outro, um par produz junto e outro
+ * divide pela metade — qual desses conta como "superou" depende do objetivo do
+ * módulo, não da plataforma.
+ */
+export const unidadeDeSuperacaoEnum = pgEnum('unidade_de_superacao', ['aluno', 'grupo'])
+
+/**
+ * Como o veredito de um grupo sai dos vereditos dos integrantes.
+ *
+ * Só faz sentido quando a unidade é `grupo`. As duas opções são defensáveis e
+ * opostas: `todos_os_integrantes` protege quem ficaria para trás, ao custo de
+ * travar a turma por um aluno; `qualquer_integrante` deixa a turma andar, ao
+ * custo de carregar quem não acompanhou.
+ *
+ * Proporção de integrantes não entra: com grupo de 1 ou 2 pessoas ela colapsa
+ * numa das duas, e seria um botão que não gira.
+ */
+export const criterioDeSuperacaoDoGrupoEnum = pgEnum('criterio_de_superacao_do_grupo', [
+  'todos_os_integrantes',
+  'qualquer_integrante',
+])
+
 export const cursos = pgTable(
   'cursos',
   {
@@ -54,19 +84,48 @@ export const cursos = pgTable(
     // `D1-PERGUNTA`. Fica afixada na sala do primeiro ao último dia, e na
     // plataforma com a mesma permanência. Texto do curso, nunca literal.
     perguntaCondutora: text('pergunta_condutora').notNull(),
+
+    /**
+     * Proporção de unidades que precisam ter superado para a turma adiantar.
+     *
+     * **Proporção, nunca número absoluto** (Doc 4 §5.2): o curso pode rodar com
+     * oito grupos ou com quatorze, e um limiar absoluto significaria coisas
+     * diferentes em cada turma.
+     */
+    limiarDeAdiantamento: numeric('limiar_de_adiantamento', {
+      precision: 5,
+      scale: 4,
+      mode: 'number',
+    }).notNull(),
+
+    /** Sobre o que o limiar conta. Escolha do instrutor, não da plataforma. */
+    unidadeDeSuperacao: unidadeDeSuperacaoEnum('unidade_de_superacao').notNull(),
+
+    /** Como o grupo herda o veredito dos integrantes. Só quando a unidade é grupo. */
+    criterioDeSuperacaoDoGrupo: criterioDeSuperacaoDoGrupoEnum('criterio_de_superacao_do_grupo'),
+
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     check('tamanho_maximo_de_grupo_positivo', sql`${t.tamanhoMaximoDeGrupo} >= 1`),
+    // Proporção é fração de 1. Zero deixaria a turma adiantar sempre, e acima de
+    // 1 nunca — os dois desligam o limiar sem dizer que o desligaram.
+    check(
+      'limiar_e_proporcao',
+      sql`${t.limiarDeAdiantamento} > 0 and ${t.limiarDeAdiantamento} <= 1`,
+    ),
+    // O critério de grupo existe se e somente se a unidade é grupo. Sem isso
+    // haveria curso com política de grupo e aferição por aluno, que nenhuma tela
+    // sabe desenhar.
+    check(
+      'criterio_de_grupo_coerente_com_unidade',
+      sql`(${t.unidadeDeSuperacao} = 'grupo') = (${t.criterioDeSuperacaoDoGrupo} is not null)`,
+    ),
     // Curso sem pergunta condutora não é curso por projetos. Vazio ou só
     // espaço é rejeitado pelo banco, não pela aplicação.
     check('pergunta_condutora_nao_vazia', sql`length(btrim(${t.perguntaCondutora})) > 0`),
   ],
 )
-
-// Doc 4 §4 e Doc 7 §2.1: go/no-go duro, ou triagem com consequência. São
-// termos genéricos da spec, não vocabulário do curso.
-export const marcoTipoEnum = pgEnum('marco_tipo', ['duro', 'triagem'])
 
 /**
  * Um dia do curso. `ordem` é 1..N e N é configuração — nunca 15 (Doc 7 §2.4:
@@ -80,6 +139,20 @@ export const dias = pgTable(
       .notNull()
       .references(() => cursos.id, { onDelete: 'cascade' }),
     ordem: integer('ordem').notNull(),
+    /**
+     * O obstáculo trabalhado neste dia, quando há um.
+     *
+     * Nulo é o normal em boa parte do calendário: os dias de abertura, de marco
+     * e de fechamento não têm obstáculo. Um obstáculo, por outro lado, ocupa
+     * mais de um dia — o Doc 4 dá o mesmo obstáculo a dois dias seguidos —, e é
+     * por isso que a referência mora aqui e não do outro lado.
+     *
+     * O dono do calendário é o Doc 4 (Doc 3 §2 chama o "dia previsto" de apenas
+     * referência), e é o Doc 4 que atribui cada obstáculo aos seus dias.
+     */
+    obstaculoId: uuid('obstaculo_id').references((): AnyPgColumn => obstaculos.id, {
+      onDelete: 'set null',
+    }),
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

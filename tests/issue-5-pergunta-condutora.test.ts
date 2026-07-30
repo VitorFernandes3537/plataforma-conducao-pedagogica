@@ -4,9 +4,10 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { perguntaCondutoraDaTurma, perguntaCondutoraDoUsuario } from '@/db/curso'
-import { alunos, cursos, turmas, usuarios } from '@/db/schema'
+import { alunos, turmas, usuarios } from '@/db/schema'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
+import { criaCurso } from './suporte/cenario'
 
 // Nomes vindos literalmente dos critérios de aceite da issue 5 em
 // docs/BACKLOG.md. SSOT: `D1-PERGUNTA`.
@@ -60,14 +61,10 @@ describe('Issue 5 — pergunta condutora persistente', () => {
     }
 
     // O dado chega de verdade pela matrícula do usuário.
-    const [curso] = await banco.db
-      .insert(cursos)
-      .values({
-        nome: 'Curso',
-        tamanhoMaximoDeGrupo: 2,
-        perguntaCondutora: 'Como um sistema representa um negócio que muda de regra?',
-      })
-      .returning()
+    const curso = await criaCurso(banco, {
+      nome: 'Curso',
+      perguntaCondutora: 'Como um sistema representa um negócio que muda de regra?',
+    })
     const [turma] = await banco.db
       .insert(turmas)
       .values({ cursoId: curso!.id, nome: 'Turma' })
@@ -95,13 +92,10 @@ describe('Issue 5 — pergunta condutora persistente', () => {
     const primeira = 'Como um sistema representa um negócio que muda de regra?'
     const segunda = 'Por que duas telas parecidas não deveriam ser dois códigos?'
 
-    const criados = await banco.db
-      .insert(cursos)
-      .values([
-        { nome: 'Curso A', tamanhoMaximoDeGrupo: 2, perguntaCondutora: primeira },
-        { nome: 'Curso B', tamanhoMaximoDeGrupo: 3, perguntaCondutora: segunda },
-      ])
-      .returning()
+    const criados = [
+      await criaCurso(banco, { nome: 'Curso A', perguntaCondutora: primeira }),
+      await criaCurso(banco, { nome: 'Curso B', tamanhoMaximoDeGrupo: 3, perguntaCondutora: segunda }),
+    ]
 
     const turmasCriadas = await banco.db
       .insert(turmas)
@@ -116,9 +110,7 @@ describe('Issue 5 — pergunta condutora persistente', () => {
 
     // Curso sem pergunta não é curso por projetos: o banco rejeita vazio e
     // rejeita só espaço em branco.
-    const erro = await banco.db
-      .insert(cursos)
-      .values({ nome: 'Curso vazio', tamanhoMaximoDeGrupo: 2, perguntaCondutora: '   ' })
+    const erro = await criaCurso(banco, { nome: 'Curso vazio', perguntaCondutora: '   ' })
       .then(
         () => null,
         (e: unknown) => e,

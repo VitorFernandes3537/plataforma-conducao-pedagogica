@@ -33,6 +33,12 @@ export const EXEMPLO = {
     // `D1-PERGUNTA`. Texto de exemplo: a pergunta real é de cada curso.
     perguntaCondutora:
       'Como um sistema representa um negócio que muda de regra sem reescrever tudo?',
+    // ADR 0005: a unidade da superação é escolha pedagógica, não fato da
+    // plataforma. Este curso avalia por aluno — mesmo com os alunos em grupo, o
+    // que se afere é o repositório de cada um. Com unidade `aluno` não existe
+    // regra de agregação, e por isso o critério de grupo fica nulo.
+    limiarDeAdiantamento: 0.8,
+    unidadeDeSuperacao: 'aluno' as const,
   },
   turma: { nome: 'Turma de exemplo' },
   instrutor: { githubUserId: 1000, githubLogin: 'instrutor-exemplo', nome: 'Instrutor' },

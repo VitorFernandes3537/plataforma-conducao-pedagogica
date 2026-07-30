@@ -20,6 +20,10 @@ export async function criaCurso(banco: BancoEfemero, valores: ValoresDeCurso = {
       nome: 'Curso de teste',
       tamanhoMaximoDeGrupo: 2,
       perguntaCondutora: 'Pergunta condutora de teste?',
+      // Proporção e unidade são escolha do instrutor (ADR 0005). Estes são os
+      // valores de um curso fictício — quem testa a configurabilidade os troca.
+      limiarDeAdiantamento: 0.8,
+      unidadeDeSuperacao: 'aluno' as const,
       ...valores,
     })
     .returning()
