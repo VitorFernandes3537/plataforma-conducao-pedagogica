@@ -1,8 +1,9 @@
-import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import { aprovadoNoPreFiltro, valida, type Regra, type Reprovacao } from '@/domain/validacao'
 
+import { camposDaSubmissao, origensDaSubmissao } from './resposta-de-escopo'
 import * as schema from './schema'
 import {
   grupos,
@@ -137,10 +138,17 @@ export async function submeteSePassar(
   const resultado = await rodaPreFiltro(db, respostaDeEscopoId)
   if (!resultado.aprovado) return resultado
 
+  // Mesmo portão de `submete`: as origens legais e os campos gravados vêm de um
+  // lugar só, para o reenvio de um devolvido passar pelo pré-filtro de novo.
   await db
     .update(respostasDeEscopo)
-    .set({ estado: 'submetido', submetidoEm: new Date() })
-    .where(and(eq(respostasDeEscopo.id, respostaDeEscopoId), isNull(respostasDeEscopo.submetidoEm)))
+    .set(camposDaSubmissao())
+    .where(
+      and(
+        eq(respostasDeEscopo.id, respostaDeEscopoId),
+        inArray(respostasDeEscopo.estado, origensDaSubmissao()),
+      ),
+    )
 
   return resultado
 }

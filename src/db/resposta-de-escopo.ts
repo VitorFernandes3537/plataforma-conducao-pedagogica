@@ -1,5 +1,7 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
+
+import { estadosEditaveisPeloGrupo, estadosQueLevamA } from '@/domain/escopo'
 
 import * as schema from './schema'
 import {
@@ -145,15 +147,18 @@ export async function estadoDaTraducao(
 }
 
 /**
- * Grava a resposta de uma pergunta no rascunho do grupo.
+ * Grava a resposta de uma pergunta no escopo do grupo.
  *
- * Só enquanto é rascunho. Depois da submissão a resposta deixa de ser editável
- * pelo aluno — o Doc 7 §2.4 declara a imutabilidade a partir da aprovação, e
- * deixar o aluno reescrever depois de entregar tornaria a fila do instrutor um
- * alvo móvel. A reabertura de um escopo devolvido é da issue 9.
+ * O grupo edita enquanto o escopo é `rascunho` ou `devolvido` — a lista sai do
+ * mapa de transições, não de uma segunda cópia. Entregue, deixa de ser
+ * editável: reescrever depois de entregar tornaria a fila do instrutor um alvo
+ * móvel, e a imutabilidade a partir da aprovação é do Doc 7 §2.4.
  *
- * A verificação é atômica: o `where` inclui `submetidoEm is null`, então duas
- * abas do mesmo grupo não conseguem gravar depois que uma submeteu.
+ * O `SELECT ... FOR UPDATE` no escopo é o que serializa. Sem ele a primeira
+ * gravação de uma pergunta escaparia — o filtro do `on conflict` só vale para o
+ * caminho de UPDATE, e resposta nova entra pelo INSERT. Com a linha travada, a
+ * aprovação do instrutor espera a gravação terminar em vez de acontecer no meio
+ * dela.
  */
 export async function gravaResposta(
   db: Db,
@@ -161,36 +166,77 @@ export async function gravaResposta(
   perguntaId: string,
   texto: string,
 ): Promise<void> {
-  const gravadas = await db
-    .insert(respostasDePergunta)
-    .values({ respostaDeEscopoId, perguntaId, texto })
-    .onConflictDoUpdate({
-      target: [respostasDePergunta.respostaDeEscopoId, respostasDePergunta.perguntaId],
-      set: { texto, atualizadoEm: new Date() },
-      setWhere: sql`exists (
-        select 1 from ${respostasDeEscopo}
-         where ${respostasDeEscopo.id} = ${respostaDeEscopoId}
-           and ${respostasDeEscopo.submetidoEm} is null
-      )`,
-    })
-    .returning({ id: respostasDePergunta.id })
+  await db.transaction(async (tx) => {
+    const [escopo] = await tx
+      .select({ estado: respostasDeEscopo.estado })
+      .from(respostasDeEscopo)
+      .where(eq(respostasDeEscopo.id, respostaDeEscopoId))
+      .limit(1)
+      .for('update')
 
-  if (gravadas.length === 0) {
-    throw new EscopoInvalido('escopo já submetido: o aluno não edita depois de entregar')
+    if (!escopo) throw new EscopoInvalido('escopo não encontrado')
+
+    if (!estadosEditaveisPeloGrupo().includes(escopo.estado)) {
+      throw new EscopoInvalido(`escopo ${escopo.estado}: o grupo não edita depois de entregar`)
+    }
+
+    await tx
+      .insert(respostasDePergunta)
+      .values({ respostaDeEscopoId, perguntaId, texto })
+      .onConflictDoUpdate({
+        target: [respostasDePergunta.respostaDeEscopoId, respostasDePergunta.perguntaId],
+        set: { texto, atualizadoEm: new Date() },
+      })
+  })
+}
+
+/**
+ * Campos da submissão, usados aqui e pelo portão do pré-filtro.
+ *
+ * Reenviar um escopo devolvido apaga a decisão anterior: o CHECK
+ * `decisao_coerente_com_estado` exige o par vazio fora de `aprovado` e
+ * `devolvido`, e o motivo antigo na tela do grupo apareceria como correção
+ * ainda pendente.
+ */
+export function camposDaSubmissao(): Partial<typeof respostasDeEscopo.$inferInsert> {
+  return {
+    estado: 'submetido',
+    submetidoEm: new Date(),
+    decididoEm: null,
+    decididoPorId: null,
+    motivoDaDevolucao: null,
   }
+}
+
+/**
+ * De onde se pode submeter. Vem do mapa de transições, não de uma segunda
+ * lista: `rascunho` na primeira entrega, `devolvido` na correção.
+ */
+export function origensDaSubmissao() {
+  return [...estadosQueLevamA('submetido')]
 }
 
 /**
  * Submete o escopo do grupo.
  *
  * Marca o instante e fecha a edição. Submeter duas vezes é recusado: o segundo
- * clique não pode mover a data e reabrir a janela de edição.
+ * clique não pode mover a data e reabrir a janela de edição — e a data é o que
+ * ordena a fila do instrutor por tempo de espera.
+ *
+ * A legalidade é verificada dentro da escrita, pelo `where`. Ler o estado e
+ * gravar depois perderia a corrida entre o grupo reenviando e o instrutor
+ * decidindo, que no D3 acontece com as duas telas abertas.
  */
 export async function submete(db: Db, respostaDeEscopoId: string): Promise<{ submetidoEm: Date }> {
   const [atualizada] = await db
     .update(respostasDeEscopo)
-    .set({ estado: 'submetido', submetidoEm: new Date() })
-    .where(and(eq(respostasDeEscopo.id, respostaDeEscopoId), isNull(respostasDeEscopo.submetidoEm)))
+    .set(camposDaSubmissao())
+    .where(
+      and(
+        eq(respostasDeEscopo.id, respostaDeEscopoId),
+        inArray(respostasDeEscopo.estado, origensDaSubmissao()),
+      ),
+    )
     .returning({ submetidoEm: respostasDeEscopo.submetidoEm })
 
   if (!atualizada?.submetidoEm) {
