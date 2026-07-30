@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { duracaoTotalPorDia } from '@/db/calendario'
-import { laminasDoDiaCorrente } from '@/db/material'
+import { laminasDoDiaCorrente, referenciasVisiveis } from '@/db/material'
 import { temasComDisponibilidade } from '@/db/temas'
 import { alunos, cursos, grupos, marcos, repositorios } from '@/db/schema'
 import { EXEMPLO, semeia } from '@/db/seed'
@@ -98,6 +98,17 @@ describe('INFRA-1 — scaffold e pipeline', () => {
       expect(laminas).toHaveLength(esperadasNoPrimeiroDia)
       expect(laminas.map((l) => l.ordem)).toEqual(
         Array.from({ length: esperadasNoPrimeiroDia }, (_, i) => i + 1),
+      )
+
+      // Material de referência com os dois estados: o instrutor vê todos, e no
+      // primeiro dia o aluno vê só o que já liberou.
+      const instrutor = { papel: 'instrutor' as const, usuarioId: 'seed' }
+      const aluno = { papel: 'aluno' as const, usuarioId: 'seed', grupoId: null }
+      expect(await referenciasVisiveis(banco.db, cursoId, 1, instrutor)).toHaveLength(
+        EXEMPLO.referencias.length,
+      )
+      expect(await referenciasVisiveis(banco.db, cursoId, 1, aluno)).toHaveLength(
+        EXEMPLO.referencias.filter((r) => r.ordemDeLiberacao <= 1).length,
       )
     } finally {
       await banco.encerra()

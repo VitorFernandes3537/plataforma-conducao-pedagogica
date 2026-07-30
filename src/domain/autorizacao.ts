@@ -24,6 +24,12 @@ export type Recurso =
   | { tipo: 'avaliacao'; grupoId: string }
   /** Envelope de incremento. `liberado` vem da configuração do curso, não de dia fixo. */
   | { tipo: 'incremento'; liberado: boolean }
+  /**
+   * Material de referência — o repositório-espelho, único material de
+   * recuperação (Doc 5 §3.1). `liberado` é derivado de o dia de liberação já
+   * ter chegado, e o atraso é pedagógico (`D3-ORDEM`).
+   */
+  | { tipo: 'material-de-referencia'; liberado: boolean }
   /** Nota agregada. Invisível antes do fechamento da agregação. */
   | { tipo: 'nota'; agregacaoFinalizada: boolean }
   /** Produção própria do aluno: log, contrato diário, push, crítica, recuperação. */
@@ -47,6 +53,10 @@ export function podeVer(ator: Ator, recurso: Recurso): boolean {
 
     // "...incrementos antes da liberação."
     case 'incremento':
+      return recurso.liberado
+
+    // Doc 5 §3.1: o atraso protege o dia corrente, não os anteriores.
+    case 'material-de-referencia':
       return recurso.liberado
 
     // "...notas antes da agregação."

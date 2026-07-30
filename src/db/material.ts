@@ -1,8 +1,10 @@
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, lte } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
+import type { Ator } from '@/domain/autorizacao'
+
 import * as schema from './schema'
-import { dias, materiaisInterativos } from './schema'
+import { dias, materiaisDeReferencia, materiaisInterativos } from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
@@ -52,6 +54,48 @@ export async function laminasDoDiaCorrente(
 
   if (!dia) return []
   return laminasDoDia(db, dia.id)
+}
+
+export type ReferenciaListada = {
+  id: string
+  titulo: string
+  url: string
+  /** Ordem do dia a partir do qual o material fica visível ao aluno. */
+  ordemDeLiberacao: number
+}
+
+/**
+ * Material de referência visível para um ator, no dia corrente.
+ *
+ * O instrutor vê tudo — Doc 7 §3: "Instrutor — Tudo." O aluno vê o que já
+ * liberou, e o filtro é `dia de liberação <= dia corrente`: o atraso protege o
+ * dia corrente, não os anteriores (Doc 5 §3.1).
+ *
+ * O filtro está no SQL de propósito. Trazer tudo e filtrar em memória
+ * funcionaria hoje, com um curso e ~20 alunos, mas colocaria o material não
+ * liberado na resposta do servidor — e material de recuperação vazado antes do
+ * fechamento desmonta a ordem dor → demonstração → resolução (`D3-ORDEM`).
+ */
+export async function referenciasVisiveis(
+  db: Db,
+  cursoId: string,
+  ordemDoDiaCorrente: number,
+  ator: Ator,
+): Promise<ReferenciaListada[]> {
+  const doCurso = eq(dias.cursoId, cursoId)
+  const jaLiberado = lte(dias.ordem, ordemDoDiaCorrente)
+
+  return db
+    .select({
+      id: materiaisDeReferencia.id,
+      titulo: materiaisDeReferencia.titulo,
+      url: materiaisDeReferencia.url,
+      ordemDeLiberacao: dias.ordem,
+    })
+    .from(materiaisDeReferencia)
+    .innerJoin(dias, eq(dias.id, materiaisDeReferencia.diaDeLiberacaoId))
+    .where(ator.papel === 'instrutor' ? doCurso : and(doCurso, jaLiberado))
+    .orderBy(asc(dias.ordem), asc(materiaisDeReferencia.titulo))
 }
 
 /**

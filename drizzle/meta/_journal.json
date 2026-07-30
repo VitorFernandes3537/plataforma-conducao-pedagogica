@@ -29,6 +29,13 @@
       "when": 1785377547650,
       "tag": "0003_material_interativo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785379849622,
+      "tag": "0004_material_de_referencia",
+      "breakpoints": true
     }
   ]
 }

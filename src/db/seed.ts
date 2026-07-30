@@ -9,6 +9,7 @@ import {
   dias,
   grupos,
   marcos,
+  materiaisDeReferencia,
   materiaisInterativos,
   repositorios,
   temas,
@@ -54,6 +55,13 @@ export const EXEMPLO = {
   grupos: [
     ['Ana', 'Bruno'],
     ['Carla'],
+  ],
+  // Material de referência: o espelho do instrutor, liberado por dia. Dois
+  // dias diferentes de propósito, para desenvolvimento ter os dois estados —
+  // liberado e ainda não liberado.
+  referencias: [
+    { ordemDeLiberacao: 1, titulo: 'Espelho do primeiro dia', url: 'https://github.com/instrutor-exemplo/espelho/tree/d1' },
+    { ordemDeLiberacao: 3, titulo: 'Espelho do terceiro dia', url: 'https://github.com/instrutor-exemplo/espelho/tree/d3' },
   ],
   // Calendário curto de propósito: o número de dias é configuração, e um
   // exemplo com a contagem do curso real convidaria a tratá-la como padrão.
@@ -120,12 +128,15 @@ export async function semeia(db: Db) {
     .returning()
   if (!instrutor) throw new Error('seed: instrutor não foi criado')
 
+  const diasPorOrdem = new Map<number, string>()
+
   for (const definicao of EXEMPLO.dias) {
     const [dia] = await db
       .insert(dias)
       .values({ cursoId: curso.id, ordem: definicao.ordem })
       .returning()
     if (!dia) throw new Error('seed: dia não foi criado')
+    diasPorOrdem.set(definicao.ordem, dia.id)
 
     await db.insert(blocos).values(
       definicao.blocos.map((b, indice) => ({
@@ -145,6 +156,18 @@ export async function semeia(db: Db) {
         .insert(materiaisInterativos)
         .values(definicao.laminas.map((l) => ({ diaId: dia.id, ...l })))
     }
+  }
+
+  // Depende dos dias já criados: o material de referência pendura no dia de
+  // liberação, não no curso.
+  for (const referencia of EXEMPLO.referencias) {
+    const dia = diasPorOrdem.get(referencia.ordemDeLiberacao)
+    if (!dia) throw new Error(`seed: dia ${referencia.ordemDeLiberacao} não existe`)
+    await db.insert(materiaisDeReferencia).values({
+      diaDeLiberacaoId: dia,
+      titulo: referencia.titulo,
+      url: referencia.url,
+    })
   }
 
   const [bancoDeTemas] = await db

@@ -162,6 +162,40 @@ export const materiaisInterativos = pgTable(
   ],
 )
 
+/**
+ * Material de referência (Doc 7 §2.1: "MaterialDeReferencia (url, dia de
+ * liberação)").
+ *
+ * É o repositório-espelho do instrutor, e é o **único material de recuperação
+ * do curso** (Doc 5 §3.1). A plataforma não hospeda o código — guarda a URL.
+ *
+ * O atraso é deliberado e pedagógico (`D3-ORDEM`): liberar antes desmonta a
+ * ordem dor → demonstração → resolução, porque a resposta fica disponível
+ * durante o bloco em que travar é o produto do exercício.
+ *
+ * `diaDeLiberacao` é o dia a partir do qual o aluno vê. Qual dia escolher é
+ * decisão do instrutor, não regra do código: o Doc 5 §3.1 diz que a proteção
+ * vale para o dia corrente e não para os anteriores, e é o instrutor quem
+ * traduz isso em calendário.
+ */
+export const materiaisDeReferencia = pgTable(
+  'materiais_de_referencia',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    diaDeLiberacaoId: uuid('dia_de_liberacao_id')
+      .notNull()
+      .references(() => dias.id, { onDelete: 'cascade' }),
+    titulo: text('titulo').notNull(),
+    url: text('url').notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // A plataforma não hospeda código: se não é endereço, não é material de
+    // referência. Rejeitado no banco, não na aplicação.
+    check('material_de_referencia_e_url', sql`${t.url} ~ '^https?://'`),
+  ],
+)
+
 // Doc 2 §3.1 e §3.2 · `D2-TRILHAS`. Não é taxonomia do curso: é distinção
 // estrutural, porque a trilha desafio é opt-in e exige briefing.
 export const trilhaEnum = pgEnum('trilha', ['padrao', 'desafio'])
