@@ -120,6 +120,13 @@
       "when": 1785436078760,
       "tag": "0016_rodadas_de_critica",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1785437831556,
+      "tag": "0017_gerador_de_incremento",
+      "breakpoints": true
     }
   ]
 }

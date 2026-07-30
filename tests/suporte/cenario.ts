@@ -24,6 +24,7 @@ export async function criaCurso(banco: BancoEfemero, valores: ValoresDeCurso = {
       // valores de um curso fictício — quem testa a configurabilidade os troca.
       limiarDeAdiantamento: 0.8,
       unidadeDeSuperacao: 'aluno' as const,
+      minimoDeItensImutaveis: 2,
       ...valores,
     })
     .returning()

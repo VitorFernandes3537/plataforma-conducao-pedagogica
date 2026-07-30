@@ -104,6 +104,16 @@ export const cursos = pgTable(
     /** Como o grupo herda o veredito dos integrantes. Só quando a unidade é grupo. */
     criterioDeSuperacaoDoGrupo: criterioDeSuperacaoDoGrupoEnum('criterio_de_superacao_do_grupo'),
 
+    /**
+     * Quantos itens a seção "o que não muda" do incremento exige.
+     *
+     * A seção é obrigatória porque sem ela metade da turma entra em pânico e
+     * reescreve o projeto inteiro — e o instrumento mede absorção, não reação ao
+     * susto (Doc 6 §4.3). Quantos itens bastam para conter o pânico é
+     * configuração: o gabarito do Doc 6 §4.2 mostra dois.
+     */
+    minimoDeItensImutaveis: integer('minimo_de_itens_imutaveis').notNull(),
+
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -117,6 +127,7 @@ export const cursos = pgTable(
     // O critério de grupo existe se e somente se a unidade é grupo. Sem isso
     // haveria curso com política de grupo e aferição por aluno, que nenhuma tela
     // sabe desenhar.
+    check('minimo_de_itens_imutaveis_positivo', sql`${t.minimoDeItensImutaveis} >= 1`),
     check(
       'criterio_de_grupo_coerente_com_unidade',
       sql`(${t.unidadeDeSuperacao} = 'grupo') = (${t.criterioDeSuperacaoDoGrupo} is not null)`,
@@ -526,6 +537,15 @@ export const perguntasDoFormulario = pgTable(
     ordem: integer('ordem').notNull(),
     enunciado: text('enunciado').notNull(),
     criterioDeAceite: text('criterio_de_aceite').notNull(),
+    /**
+     * Esta resposta alimenta a derivação do incremento (Doc 6 §4.4).
+     *
+     * O documento nomeia as perguntas do curso dele; aqui é uma marca, porque
+     * quais respostas o instrutor lê para derivar o incremento é configuração —
+     * e escrever os códigos daquele formulário em código seria vocabulário de
+     * curso na plataforma.
+     */
+    alimentaIncremento: boolean('alimenta_incremento').notNull().default(false),
   },
   (t) => [
     unique('pergunta_ordem_unica_no_formulario').on(t.formularioId, t.ordem),
@@ -1168,6 +1188,173 @@ export const registrosDeCritica = pgTable(
   (t) => [
     check('critica_exige_explicacao', sql`btrim(${t.explicacaoDoTema}) <> ''`),
     check('critica_exige_cenario', sql`btrim(${t.cenarioQueQuebra}) <> ''`),
+  ],
+)
+
+/**
+ * Versão do incremento entregue a um grupo (Doc 5 §5.2 · Doc 6 §4.6).
+ *
+ * A triagem do terceiro marco decide qual das duas o grupo recebe. "Mesma
+ * estrutura, menos superfície": a versão reduzida não é mais fácil, é menor — e
+ * não tem teto de nota diferente.
+ */
+export const versaoDoIncrementoEnum = pgEnum('versao_do_incremento', ['integral', 'reduzida'])
+
+/**
+ * Uma das mudanças que o incremento pede, declarada pelo CURSO (`D6-ENVELOPE`).
+ *
+ * O Doc 6 §4.1 diz que as mudanças são as mesmas para toda a turma,
+ * instanciadas por domínio — variar os tipos torna os resultados incomparáveis
+ * e triplica o custo de autoria. Então o curso declara quais são, e o instrutor
+ * só instancia.
+ *
+ * Está em tabela, e não em código, por duas razões que se somam. O Doc 6 nomeia
+ * as mudanças com vocabulário do chassi, que a regra §4.2 do CLAUDE.md proíbe em
+ * coluna. E outro curso terá outras mudanças — o instrumento é o formato, não o
+ * conteúdo.
+ *
+ * `entraNaVersaoReduzida` é o que faz a redução ser dado. A versão reduzida não
+ * some com uma mudança por condicional em código: ela inclui só o que o curso
+ * marcou, e o próprio curso decide o que sobrevive.
+ */
+export const modelosDeMudanca = pgTable(
+  'modelos_de_mudanca',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cursoId: uuid('curso_id')
+      .notNull()
+      .references(() => cursos.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    /** O que esta mudança é, escrito para o instrutor ler ao preencher. */
+    rotulo: text('rotulo').notNull(),
+    entraNaVersaoReduzida: boolean('entra_na_versao_reduzida').notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('modelo_de_mudanca_ordem_unica_no_curso').on(t.cursoId, t.ordem),
+    check('modelo_de_mudanca_ordem_positiva', sql`${t.ordem} >= 1`),
+    check('modelo_de_mudanca_rotulo_nao_vazio', sql`btrim(${t.rotulo}) <> ''`),
+  ],
+)
+
+/**
+ * Uma lacuna declarada de uma mudança.
+ *
+ * O Doc 6 §13 é explícito ao endereçar o Doc 7: **"as lacunas do gabarito são
+ * campos, não texto livre"**. Um único campo de texto por mudança cumpriria a
+ * função de guardar e perderia a de estruturar — e o gabarito existe justamente
+ * para o instrutor não ter de reconstruir o formato a cada grupo.
+ *
+ * `chave` é o identificador estável que a tela usa; `rotulo` é o que o humano
+ * lê. Os dois separados porque o rótulo é conteúdo do curso e pode mudar sem
+ * quebrar nada que já foi preenchido.
+ */
+export const lacunasDoModelo = pgTable(
+  'lacunas_do_modelo',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    modeloDeMudancaId: uuid('modelo_de_mudanca_id')
+      .notNull()
+      .references(() => modelosDeMudanca.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    chave: text('chave').notNull(),
+    rotulo: text('rotulo').notNull(),
+    obrigatoria: boolean('obrigatoria').notNull(),
+  },
+  (t) => [
+    unique('lacuna_ordem_unica_no_modelo').on(t.modeloDeMudancaId, t.ordem),
+    unique('lacuna_chave_unica_no_modelo').on(t.modeloDeMudancaId, t.chave),
+    check('lacuna_ordem_positiva', sql`${t.ordem} >= 1`),
+    check('lacuna_chave_nao_vazia', sql`btrim(${t.chave}) <> ''`),
+  ],
+)
+
+/**
+ * O incremento de um grupo (Doc 7 §2.2: pendura em `Grupo` · `D6-ENVELOPE`).
+ *
+ * "O envelope não se escreve — ele se deriva da resposta de escopo do grupo"
+ * (Doc 6 §4.1). `respostaDeEscopoId` não é referência decorativa: é a prova da
+ * derivação, e um gatilho exige que ela esteja **aprovada**, cumprindo o
+ * Doc 7 §2.4.
+ *
+ * `remetente` é obrigatório. O envelope vem assinado por um interessado nomeado
+ * do domínio, e isso não é enfeite — é o que faz a mudança deixar de ser tarefa
+ * do professor e virar pedido de alguém (Doc 6 §4.2.1). Custo: uma linha.
+ *
+ * `diaDeLiberacaoId` reusa o mecanismo do material de referência: o aluno não
+ * vê antes do dia chegar, e o filtro é de consulta, não de tela.
+ */
+export const incrementos = pgTable(
+  'incrementos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    grupoId: uuid('grupo_id')
+      .notNull()
+      .unique()
+      .references(() => grupos.id, { onDelete: 'cascade' }),
+    // `restrict`: apagar o escopo aprovado apagaria a origem da derivação.
+    respostaDeEscopoId: uuid('resposta_de_escopo_id')
+      .notNull()
+      .references(() => respostasDeEscopo.id, { onDelete: 'restrict' }),
+    /** O interessado do domínio que assina o pedido. */
+    remetente: text('remetente').notNull(),
+    /** Uma frase de negócio que situa a mudança. */
+    contexto: text('contexto').notNull(),
+    versao: versaoDoIncrementoEnum('versao').notNull(),
+    diaDeLiberacaoId: uuid('dia_de_liberacao_id')
+      .notNull()
+      .references(() => dias.id, { onDelete: 'restrict' }),
+    criadoPorId: uuid('criado_por_id')
+      .notNull()
+      .references(() => usuarios.id, { onDelete: 'restrict' }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('incremento_exige_remetente', sql`btrim(${t.remetente}) <> ''`),
+    check('incremento_exige_contexto', sql`btrim(${t.contexto}) <> ''`),
+  ],
+)
+
+/** O que o instrutor preencheu numa lacuna. */
+export const valoresDaLacuna = pgTable(
+  'valores_da_lacuna',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    incrementoId: uuid('incremento_id')
+      .notNull()
+      .references(() => incrementos.id, { onDelete: 'cascade' }),
+    lacunaId: uuid('lacuna_id')
+      .notNull()
+      .references(() => lacunasDoModelo.id, { onDelete: 'cascade' }),
+    valor: text('valor').notNull(),
+  },
+  (t) => [
+    unique('valor_unico_por_lacuna').on(t.incrementoId, t.lacunaId),
+    check('valor_da_lacuna_nao_vazio', sql`btrim(${t.valor}) <> ''`),
+  ],
+)
+
+/**
+ * Um item da seção "o que não muda".
+ *
+ * A seção é obrigatória: sem ela metade da turma entra em pânico e reescreve o
+ * projeto inteiro, e o instrumento mede absorção, não reação ao susto
+ * (Doc 6 §4.3). Quantos itens bastam é configuração do curso.
+ */
+export const itensImutaveis = pgTable(
+  'itens_imutaveis',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    incrementoId: uuid('incremento_id')
+      .notNull()
+      .references(() => incrementos.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    texto: text('texto').notNull(),
+  },
+  (t) => [
+    unique('item_imutavel_ordem_unica').on(t.incrementoId, t.ordem),
+    check('item_imutavel_ordem_positiva', sql`${t.ordem} >= 1`),
+    check('item_imutavel_nao_vazio', sql`btrim(${t.texto}) <> ''`),
   ],
 )
 

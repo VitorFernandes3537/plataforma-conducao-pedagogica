@@ -39,6 +39,8 @@ export const EXEMPLO = {
     // regra de agregação, e por isso o critério de grupo fica nulo.
     limiarDeAdiantamento: 0.8,
     unidadeDeSuperacao: 'aluno' as const,
+    // O gabarito do Doc 6 §4.2 mostra dois itens em "o que não muda".
+    minimoDeItensImutaveis: 2,
   },
   turma: { nome: 'Turma de exemplo' },
   instrutor: { githubUserId: 1000, githubLogin: 'instrutor-exemplo', nome: 'Instrutor' },
