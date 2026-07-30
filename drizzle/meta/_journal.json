@@ -15,6 +15,13 @@
       "when": 1785366464619,
       "tag": "0001_limite_de_grupo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785374601186,
+      "tag": "0002_pergunta_condutora",
+      "breakpoints": true
     }
   ]
 }

@@ -3,9 +3,10 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { alunos, cursos, grupos, repositorios, turmas, usuarios } from '@/db/schema'
+import { alunos, grupos, repositorios, turmas, usuarios } from '@/db/schema'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
+import { criaCurso } from './suporte/cenario'
 
 // Nomes vindos literalmente dos critérios de aceite da issue 1 em
 // docs/BACKLOG.md. SSOT: Doc 2 §2.4.1 (tamanho do grupo) · Doc 5 §6
@@ -24,13 +25,10 @@ describe('Issue 1 — modelo genérico: Curso, Turma, Aluno, Grupo', () => {
   const TAMANHO_MAXIMO = 2
 
   async function cenario() {
-    const [curso] = await banco.db
-      .insert(cursos)
-      .values({ nome: 'Curso de teste', tamanhoMaximoDeGrupo: TAMANHO_MAXIMO })
-      .returning()
+    const curso = await criaCurso(banco, { tamanhoMaximoDeGrupo: TAMANHO_MAXIMO })
     const [turma] = await banco.db
       .insert(turmas)
-      .values({ cursoId: curso!.id, nome: 'Turma de teste' })
+      .values({ cursoId: curso.id, nome: 'Turma de teste' })
       .returning()
     const [grupo] = await banco.db
       .insert(grupos)

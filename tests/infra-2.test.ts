@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { alunos, cursos, turmas, usuarios } from '@/db/schema'
+import { alunos, turmas, usuarios } from '@/db/schema'
 import { matriculaEmLote } from '@/db/matricula'
 import {
   AcessoNegado,
@@ -14,6 +14,7 @@ import {
 } from '@/domain/autorizacao'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
+import { criaCurso } from './suporte/cenario'
 
 // Nomes vindos literalmente dos critérios de aceite da INFRA-2 em
 // docs/BACKLOG.md. SSOT: Doc 7 §3 (papéis).
@@ -97,13 +98,10 @@ describe('INFRA-2 — autenticação e papéis', () => {
     })
 
     it('instrutor_cria_alunos_em_lote', async () => {
-      const [curso] = await banco.db
-        .insert(cursos)
-        .values({ nome: 'Curso', tamanhoMaximoDeGrupo: 2 })
-        .returning()
+      const curso = await criaCurso(banco)
       const [turma] = await banco.db
         .insert(turmas)
-        .values({ cursoId: curso!.id, nome: 'Turma' })
+        .values({ cursoId: curso.id, nome: 'Turma' })
         .returning()
 
       const lista = [
@@ -141,13 +139,10 @@ describe('INFRA-2 — autenticação e papéis', () => {
     })
 
     it('rematricula_nao_rebaixa_instrutor_a_aluno', async () => {
-      const [curso] = await banco.db
-        .insert(cursos)
-        .values({ nome: 'Curso', tamanhoMaximoDeGrupo: 2 })
-        .returning()
+      const curso = await criaCurso(banco)
       const [turma] = await banco.db
         .insert(turmas)
-        .values({ cursoId: curso!.id, nome: 'Turma' })
+        .values({ cursoId: curso.id, nome: 'Turma' })
         .returning()
 
       await banco.db

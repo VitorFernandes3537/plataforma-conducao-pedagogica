@@ -48,9 +48,17 @@ export const cursos = pgTable(
     // Doc 2 §2.4.1 diz "1 ou 2" para o curso da série. Aqui é configuração:
     // outro curso instancia outro valor.
     tamanhoMaximoDeGrupo: integer('tamanho_maximo_de_grupo').notNull(),
+    // `D1-PERGUNTA`. Fica afixada na sala do primeiro ao último dia, e na
+    // plataforma com a mesma permanência. Texto do curso, nunca literal.
+    perguntaCondutora: text('pergunta_condutora').notNull(),
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [check('tamanho_maximo_de_grupo_positivo', sql`${t.tamanhoMaximoDeGrupo} >= 1`)],
+  (t) => [
+    check('tamanho_maximo_de_grupo_positivo', sql`${t.tamanhoMaximoDeGrupo} >= 1`),
+    // Curso sem pergunta condutora não é curso por projetos. Vazio ou só
+    // espaço é rejeitado pelo banco, não pela aplicação.
+    check('pergunta_condutora_nao_vazia', sql`length(btrim(${t.perguntaCondutora})) > 0`),
+  ],
 )
 
 // Doc 4 §4 e Doc 7 §2.1: go/no-go duro, ou triagem com consequência. São

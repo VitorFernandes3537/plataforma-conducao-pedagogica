@@ -4,9 +4,10 @@ import { asc, eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { duracaoTotalPorDia } from '@/db/calendario'
-import { blocos, cursos, dias, marcos } from '@/db/schema'
+import { blocos, dias, marcos } from '@/db/schema'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
+import { criaCurso } from './suporte/cenario'
 
 // Nomes vindos literalmente dos critérios de aceite da issue 2 em
 // docs/BACKLOG.md. SSOT: `D4-CALENDARIO` · `D4-RITMO` · `D4-MARCOS`.
@@ -19,11 +20,7 @@ describe('Issue 2 — modelo genérico: Dia, Bloco, Marco', () => {
   let banco: BancoEfemero
 
   async function novoCurso(nome = 'Curso') {
-    const [curso] = await banco.db
-      .insert(cursos)
-      .values({ nome, tamanhoMaximoDeGrupo: 2 })
-      .returning()
-    return curso!
+    return criaCurso(banco, { nome })
   }
 
   beforeEach(async () => {

@@ -23,7 +23,13 @@ type Db = PgDatabase<PgQueryResultHKT, typeof schema>
  * vez de espalhados pelo código.
  */
 export const EXEMPLO = {
-  curso: { nome: 'Curso de exemplo', tamanhoMaximoDeGrupo: 2 },
+  curso: {
+    nome: 'Curso de exemplo',
+    tamanhoMaximoDeGrupo: 2,
+    // `D1-PERGUNTA`. Texto de exemplo: a pergunta real é de cada curso.
+    perguntaCondutora:
+      'Como um sistema representa um negócio que muda de regra sem reescrever tudo?',
+  },
   turma: { nome: 'Turma de exemplo' },
   instrutor: { githubUserId: 1000, githubLogin: 'instrutor-exemplo', nome: 'Instrutor' },
   // Rótulos de dificuldade são dado, não enum. Um deles é de trilha desafio

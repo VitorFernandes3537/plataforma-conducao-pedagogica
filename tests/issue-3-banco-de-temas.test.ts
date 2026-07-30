@@ -2,10 +2,11 @@ import { readFileSync } from 'node:fs'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { bancosDeTemas, cursos, grupos, temas, turmas } from '@/db/schema'
+import { bancosDeTemas, grupos, temas, turmas } from '@/db/schema'
 import { temasComDisponibilidade } from '@/db/temas'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
+import { criaCurso } from './suporte/cenario'
 
 // Nomes vindos literalmente dos critérios de aceite da issue 3 em
 // docs/BACKLOG.md. SSOT: `D2-BANCO` · `D2-BRIEFING` · `D2-TRILHAS`.
@@ -24,19 +25,16 @@ describe('Issue 3 — BancoDeTemas com dificuldade, trilha e briefing', () => {
   let banco: BancoEfemero
 
   async function cenario() {
-    const [curso] = await banco.db
-      .insert(cursos)
-      .values({ nome: 'Curso', tamanhoMaximoDeGrupo: 2 })
-      .returning()
+    const curso = await criaCurso(banco)
     const [turma] = await banco.db
       .insert(turmas)
-      .values({ cursoId: curso!.id, nome: 'Turma' })
+      .values({ cursoId: curso.id, nome: 'Turma' })
       .returning()
     const [bancoDeTemas] = await banco.db
       .insert(bancosDeTemas)
-      .values({ cursoId: curso!.id, nome: 'Banco' })
+      .values({ cursoId: curso.id, nome: 'Banco' })
       .returning()
-    return { curso: curso!, turma: turma!, bancoDeTemas: bancoDeTemas! }
+    return { curso, turma: turma!, bancoDeTemas: bancoDeTemas! }
   }
 
   beforeEach(async () => {
