@@ -302,6 +302,147 @@ export const alunos = pgTable(
 )
 
 /**
+ * A `Estrutura` — o chassi que todos os grupos compartilham.
+ *
+ * O aluno escolhe o tema; a estrutura é fixa, e é essa combinação que faz o
+ * curso ser administrável (Doc 1 §3). Uma por curso.
+ */
+export const estruturas = pgTable('estruturas', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cursoId: uuid('curso_id')
+    .notNull()
+    .unique()
+    .references(() => cursos.id, { onDelete: 'cascade' }),
+  nome: text('nome').notNull(),
+  criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * Os papéis da estrutura.
+ *
+ * Quantos e quais são **configuração**, não enum: outro módulo terá outro
+ * chassi. `obrigatorio` é o que a tabela de tradução precisa cobrir — papel
+ * opcional pode ficar de fora sem invalidar o escopo.
+ */
+export const papeisDaEstrutura = pgTable(
+  'papeis_da_estrutura',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    estruturaId: uuid('estrutura_id')
+      .notNull()
+      .references(() => estruturas.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    nome: text('nome').notNull(),
+    obrigatorio: boolean('obrigatorio').notNull().default(true),
+  },
+  (t) => [
+    unique('papel_ordem_unica_na_estrutura').on(t.estruturaId, t.ordem),
+    unique('papel_nome_unico_na_estrutura').on(t.estruturaId, t.nome),
+    check('papel_ordem_positiva', sql`${t.ordem} >= 1`),
+  ],
+)
+
+/**
+ * O formulário de escopo — versão genérica do contrato de domínio (`D2-CONTRATO`).
+ *
+ * A QUANTIDADE DE PERGUNTAS É CONFIGURAÇÃO. O Doc 2 §4.3 descreve sete neste
+ * curso; nada aqui conta perguntas, e outro módulo instancia outro formulário.
+ */
+export const formularios = pgTable('formularios', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  cursoId: uuid('curso_id')
+    .notNull()
+    .references(() => cursos.id, { onDelete: 'cascade' }),
+  nome: text('nome').notNull(),
+  criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * Pergunta do formulário.
+ *
+ * `criterioDeAceite` é o que torna a pergunta verificável — é dele que a issue
+ * 7 vai derivar a validação. Sem critério declarado, a pergunta é opinião.
+ */
+export const perguntasDoFormulario = pgTable(
+  'perguntas_do_formulario',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    formularioId: uuid('formulario_id')
+      .notNull()
+      .references(() => formularios.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    enunciado: text('enunciado').notNull(),
+    criterioDeAceite: text('criterio_de_aceite').notNull(),
+  },
+  (t) => [
+    unique('pergunta_ordem_unica_no_formulario').on(t.formularioId, t.ordem),
+    check('pergunta_ordem_positiva', sql`${t.ordem} >= 1`),
+  ],
+)
+
+/**
+ * A resposta de escopo (Doc 7 §2.2: `RespostaDeEscopo` pendura em `Grupo`).
+ *
+ * Pertence ao GRUPO, não ao aluno: o contrato é preenchido e entregue uma vez
+ * por grupo (Doc 2 §4.2). É o oposto do repositório, que é individual.
+ *
+ * `submetidoEm` nulo significa rascunho. É fato, não estado inventado — a
+ * máquina de estados completa (aprovado, devolvido) é da issue 9, e vai se
+ * apoiar neste mesmo registro em vez de criar um paralelo.
+ */
+export const respostasDeEscopo = pgTable('respostas_de_escopo', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  grupoId: uuid('grupo_id')
+    .notNull()
+    .unique()
+    .references(() => grupos.id, { onDelete: 'cascade' }),
+  formularioId: uuid('formulario_id')
+    .notNull()
+    .references(() => formularios.id, { onDelete: 'restrict' }),
+  submetidoEm: timestamp('submetido_em', { withTimezone: true }),
+  criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/** Uma resposta por pergunta, dentro da resposta de escopo do grupo. */
+export const respostasDePergunta = pgTable(
+  'respostas_de_pergunta',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    respostaDeEscopoId: uuid('resposta_de_escopo_id')
+      .notNull()
+      .references(() => respostasDeEscopo.id, { onDelete: 'cascade' }),
+    perguntaId: uuid('pergunta_id')
+      .notNull()
+      .references(() => perguntasDoFormulario.id, { onDelete: 'cascade' }),
+    texto: text('texto').notNull(),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('resposta_unica_por_pergunta').on(t.respostaDeEscopoId, t.perguntaId)],
+)
+
+/**
+ * Tabela de tradução: papel da estrutura → nome no negócio → nome no código.
+ *
+ * "Nome de classe" no Doc 2 é vocabulário do curso; aqui é `nomeNoCodigo`,
+ * pela tradução que o CLAUDE.md §2.3 exige.
+ */
+export const linhasDeTraducao = pgTable(
+  'linhas_de_traducao',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    respostaDeEscopoId: uuid('resposta_de_escopo_id')
+      .notNull()
+      .references(() => respostasDeEscopo.id, { onDelete: 'cascade' }),
+    papelId: uuid('papel_id')
+      .notNull()
+      .references(() => papeisDaEstrutura.id, { onDelete: 'cascade' }),
+    nomeNoNegocio: text('nome_no_negocio').notNull(),
+    nomeNoCodigo: text('nome_no_codigo').notNull(),
+  },
+  (t) => [unique('traducao_unica_por_papel').on(t.respostaDeEscopoId, t.papelId)],
+)
+
+/**
  * Escopo pré-aprovado (Doc 7 §2.3: "EscopoPreAprovado — formulário de
  * emergência, pronto antes do D1").
  *

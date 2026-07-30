@@ -43,6 +43,13 @@
       "when": 1785380366585,
       "tag": "0005_escopos_pre_aprovados",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785380944469,
+      "tag": "0006_formulario_de_escopo",
+      "breakpoints": true
     }
   ]
 }
