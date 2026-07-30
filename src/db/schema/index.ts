@@ -349,6 +349,106 @@ export const materiaisInterativos = pgTable(
 )
 
 /**
+ * Os tipos de bloco de material (**SSOT: Doc 11 §10**).
+ *
+ * Vocabulário FECHADO, e definido **fora da plataforma**. É o único enum deste
+ * schema cuja fonte é uma seção declarada SSOT de um documento que não é dos
+ * seis originais — o `INDICE.md` registra o Doc 11 §10 como dono.
+ *
+ * A plataforma **renderiza** o tipo. Não o define, não valida o conteúdo dele e
+ * não gera material (Doc 7 §6 · Doc 11 §10). Fechar o vocabulário é o que faz
+ * todo material futuro herdar a mesma qualidade estrutural sem o instrutor ter
+ * de reconstruir o padrão a cada vez — é o princípio de generalização do
+ * Doc 7 §1 aplicado a conteúdo.
+ *
+ * Nenhum nome aqui menciona conceito de curso: são formas de lâmina, e servem a
+ * qualquer módulo.
+ */
+export const tipoDeBlocoEnum = pgEnum('tipo_de_bloco', [
+  'tese',
+  'mecanismo',
+  'conceitos-2x2',
+  'ancoragem',
+  'codigo-anotado',
+  'forcas-limites',
+  'matriz-comparativa',
+  'predicao',
+  'classificador',
+])
+
+/**
+ * Um bloco de uma lâmina de material interativo (Doc 7 §2.3, v1.4).
+ *
+ * `conteudo` continua entrando como markdown, como o fora de escopo da issue 4
+ * declara: o `tipo` decide só a renderização.
+ *
+ * `conteudoRevelado` é a parte que só aparece depois de o aluno responder — o
+ * gabarito do classificador, a resposta da predição. A plataforma **não sabe**
+ * qual é a resposta certa; ela apenas segura o texto até a submissão. Saber
+ * seria validar semanticamente o conteúdo, que está fora de escopo por decisão
+ * da issue.
+ *
+ * `ocultoAteDiaId` atende ao caso que o Doc 11 §12 lista como critério: um slide
+ * fica oculto até um dia específico porque, mostrado antes, ele entrega a
+ * descoberta que um obstáculo posterior existe para produzir.
+ *
+ * `agregadoLiberadoEm` separa a resposta individual do retrato da turma. O
+ * agregado da predição só aparece depois que o instrutor libera (Doc 11 §11) —
+ * mostrar antes faria o aluno responder olhando a maioria, e a predição deixaria
+ * de medir predição.
+ */
+export const blocosDeMaterial = pgTable(
+  'blocos_de_material',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    materialInterativoId: uuid('material_interativo_id')
+      .notNull()
+      .references(() => materiaisInterativos.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    tipo: tipoDeBlocoEnum('tipo').notNull(),
+    conteudo: text('conteudo').notNull(),
+    conteudoRevelado: text('conteudo_revelado'),
+    ocultoAteDiaId: uuid('oculto_ate_dia_id').references(() => dias.id, { onDelete: 'set null' }),
+    agregadoLiberadoEm: timestamp('agregado_liberado_em', { withTimezone: true }),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('bloco_de_material_ordem_unica').on(t.materialInterativoId, t.ordem),
+    check('bloco_de_material_ordem_positiva', sql`${t.ordem} >= 1`),
+    check('bloco_de_material_conteudo_nao_vazio', sql`btrim(${t.conteudo}) <> ''`),
+  ],
+)
+
+/**
+ * A resposta de um aluno a um bloco interativo (Doc 11 §11, "Persistência").
+ *
+ * Guardada por aluno porque é insumo da retrospectiva do último dia — e porque
+ * uma predição anônima não serve para o aluno olhar depois o que ele mesmo
+ * achou antes de saber.
+ *
+ * `resposta` é texto: a escolha da enquete ou a distribuição dos cartões. A
+ * plataforma não interpreta o conteúdo, então não há por que estruturá-lo aqui.
+ */
+export const respostasDeBloco = pgTable(
+  'respostas_de_bloco',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    blocoId: uuid('bloco_id')
+      .notNull()
+      .references(() => blocosDeMaterial.id, { onDelete: 'cascade' }),
+    alunoId: uuid('aluno_id')
+      .notNull()
+      .references(() => alunos.id, { onDelete: 'cascade' }),
+    resposta: text('resposta').notNull(),
+    submetidoEm: timestamp('submetido_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('resposta_unica_por_bloco_e_aluno').on(t.blocoId, t.alunoId),
+    check('resposta_de_bloco_nao_vazia', sql`btrim(${t.resposta}) <> ''`),
+  ],
+)
+
+/**
  * Material de referência (Doc 7 §2.1: "MaterialDeReferencia (url, dia de
  * liberação)").
  *

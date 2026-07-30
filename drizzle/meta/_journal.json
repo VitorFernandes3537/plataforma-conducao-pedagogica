@@ -148,6 +148,13 @@
       "when": 1785442463631,
       "tag": "0020_atribuicao_de_extensao",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1785443563403,
+      "tag": "0021_blocos_de_material",
+      "breakpoints": true
     }
   ]
 }
