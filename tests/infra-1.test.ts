@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { duracaoTotalPorDia } from '@/db/calendario'
+import { laminasDoDiaCorrente } from '@/db/material'
 import { temasComDisponibilidade } from '@/db/temas'
 import { alunos, cursos, grupos, marcos, repositorios } from '@/db/schema'
 import { EXEMPLO, semeia } from '@/db/seed'
@@ -90,6 +91,14 @@ describe('INFRA-1 — scaffold e pipeline', () => {
       expect(listados).toHaveLength(EXEMPLO.temas.length)
       expect(listados.filter((t) => !t.disponivel)).toHaveLength(1)
       expect(listados.find((t) => t.trilha === 'desafio')?.briefing).toBeTruthy()
+
+      // Lâminas do primeiro dia, para a tela de apresentação ter o que abrir.
+      const laminas = await laminasDoDiaCorrente(banco.db, cursoId, 1)
+      const esperadasNoPrimeiroDia = EXEMPLO.dias[0]?.laminas.length ?? 0
+      expect(laminas).toHaveLength(esperadasNoPrimeiroDia)
+      expect(laminas.map((l) => l.ordem)).toEqual(
+        Array.from({ length: esperadasNoPrimeiroDia }, (_, i) => i + 1),
+      )
     } finally {
       await banco.encerra()
     }

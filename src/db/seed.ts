@@ -9,6 +9,7 @@ import {
   dias,
   grupos,
   marcos,
+  materiaisInterativos,
   repositorios,
   temas,
   turmas,
@@ -57,7 +58,30 @@ export const EXEMPLO = {
   // Calendário curto de propósito: o número de dias é configuração, e um
   // exemplo com a contagem do curso real convidaria a tratá-la como padrão.
   dias: [
-    { ordem: 1, blocos: [{ tipo: 'abertura', duracaoMinutos: 60 }], marco: null },
+    {
+      ordem: 1,
+      blocos: [{ tipo: 'abertura', duracaoMinutos: 60 }],
+      marco: null,
+      // Lâminas de exemplo. A plataforma não gera conteúdo (Doc 7 §6): isto é
+      // dado de desenvolvimento, para a tela de apresentação ter o que abrir.
+      laminas: [
+        {
+          ordem: 1,
+          titulo: 'Conversa de abertura',
+          conteudo: `# Abertura\n\nO que este módulo é, e o que não é.`,
+        },
+        {
+          ordem: 2,
+          titulo: 'Como o dia funciona',
+          conteudo: `# Ritmo do dia\n\nOs blocos, e por que a ordem importa.`,
+        },
+        {
+          ordem: 3,
+          titulo: 'Fechamento',
+          conteudo: `# Fechamento\n\nO que fica registrado e o que vem amanhã.`,
+        },
+      ],
+    },
     {
       ordem: 2,
       blocos: [
@@ -68,11 +92,13 @@ export const EXEMPLO = {
         { tipo: 'fechamento', duracaoMinutos: 15 },
       ],
       marco: null,
+      laminas: [],
     },
     {
       ordem: 3,
       blocos: [{ tipo: 'avaliacao', duracaoMinutos: 90 }],
       marco: { nome: 'Escopo aprovado', tipo: 'duro' as const },
+      laminas: [],
     },
   ],
 } as const
@@ -112,6 +138,12 @@ export async function semeia(db: Db) {
 
     if (definicao.marco) {
       await db.insert(marcos).values({ diaId: dia.id, ...definicao.marco })
+    }
+
+    if (definicao.laminas.length > 0) {
+      await db
+        .insert(materiaisInterativos)
+        .values(definicao.laminas.map((l) => ({ diaId: dia.id, ...l })))
     }
   }
 

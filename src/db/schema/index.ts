@@ -130,6 +130,38 @@ export const turmas = pgTable('turmas', {
   criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
 })
 
+/**
+ * Material interativo de um dia (Doc 7 §2.1: "MaterialInterativo (slides, por
+ * Dia)").
+ *
+ * Cada linha é uma **lâmina**. A leitura é literal: a spec fala em "slides,
+ * por Dia", e o material do dia é o conjunto ordenado. Isso satisfaz os três
+ * critérios da issue 4 sem inventar delimitador de conteúdo nem segunda
+ * tabela — e a navegação em modo apresentação é percorrer `ordem`.
+ *
+ * A plataforma NÃO gera conteúdo pedagógico (Doc 7 §6): ela apresenta o que o
+ * instrutor cadastrar.
+ */
+export const materiaisInterativos = pgTable(
+  'materiais_interativos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    diaId: uuid('dia_id')
+      .notNull()
+      .references(() => dias.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    titulo: text('titulo').notNull(),
+    /** Markdown. Conteúdo entra como texto ou upload — sem editor próprio. */
+    conteudo: text('conteudo').notNull(),
+    criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Mesma disciplina de `blocos`: a ordem é do dado e é determinística.
+    unique('lamina_ordem_unica_no_dia').on(t.diaId, t.ordem),
+    check('lamina_ordem_positiva', sql`${t.ordem} >= 1`),
+  ],
+)
+
 // Doc 2 §3.1 e §3.2 · `D2-TRILHAS`. Não é taxonomia do curso: é distinção
 // estrutural, porque a trilha desafio é opt-in e exige briefing.
 export const trilhaEnum = pgEnum('trilha', ['padrao', 'desafio'])
