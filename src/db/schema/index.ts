@@ -238,6 +238,19 @@ export const obstaculos = pgTable(
      * não por ordinal.
      */
     pergunta: text('pergunta').notNull(),
+    /**
+     * A tarefa de aprofundamento para quem vence o obstáculo antes do tempo
+     * (`D3-EXTENSOES`).
+     *
+     * Ela **aprofunda o mesmo obstáculo e nunca avança para o seguinte** — quem
+     * avança sozinho quebra a sincronia, que é o que torna possível um instrutor
+     * conduzir a turma inteira (Doc 3 §5).
+     *
+     * Nulo é legítimo: um curso pode não pré-escrever extensão. Mas pré-escrever
+     * é o ponto — a decisão D3-05 existe justamente para a escolha não precisar
+     * ser tomada em cima da hora.
+     */
+    extensao: text('extensao'),
     peso: numeric('peso', { precision: 6, scale: 2, mode: 'number' }).notNull(),
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1668,6 +1681,51 @@ export const avaliacoesDaDefesa = pgTable(
       .references(() => niveisDeAvaliacao.id, { onDelete: 'restrict' }),
   },
   (t) => [unique('avaliacao_da_defesa_unica').on(t.registroDeDefesaId, t.eixoId, t.alunoId)],
+)
+
+/** O que se atribui a quem termina antes (Doc 7 §2.3 · Doc 3 §5). */
+export const tipoDeAtribuicaoEnum = pgEnum('tipo_de_atribuicao', ['extensao', 'monitoria'])
+
+/**
+ * Atribuição de extensão ou monitoria a um aluno, num obstáculo (Doc 7 §2.3).
+ *
+ * As duas opções existem para o mesmo problema: quem vence antes do tempo não
+ * pode avançar para o obstáculo seguinte. A extensão aprofunda o mesmo
+ * obstáculo; a monitoria põe quem venceu para apoiar outro grupo, dentro da
+ * escada de suporte.
+ *
+ * `diaId` porque a atribuição acontece num dia e o painel do instrutor precisa
+ * responder quem está em quê **hoje**. Um gatilho amarra o dia ao obstáculo:
+ * atribuir extensão de um obstáculo num dia que trabalha outro seria mandar o
+ * aluno aprofundar o que a turma ainda não viu.
+ *
+ * **A plataforma não escolhe quem monitora quem.** Está fora de escopo por
+ * decisão da issue, e a razão é do Doc 3 §5: a rotatividade é obrigatória, e
+ * quem garante que ela acontece é o instrutor lendo o histórico — se virar
+ * rotina fixa, o aluno forte para de codar e vira professor não remunerado.
+ */
+export const atribuicoesDeExtensao = pgTable(
+  'atribuicoes_de_extensao',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    alunoId: uuid('aluno_id')
+      .notNull()
+      .references(() => alunos.id, { onDelete: 'cascade' }),
+    obstaculoId: uuid('obstaculo_id')
+      .notNull()
+      .references(() => obstaculos.id, { onDelete: 'cascade' }),
+    diaId: uuid('dia_id')
+      .notNull()
+      .references(() => dias.id, { onDelete: 'cascade' }),
+    tipo: tipoDeAtribuicaoEnum('tipo').notNull(),
+    atribuidoPorId: uuid('atribuido_por_id')
+      .notNull()
+      .references(() => usuarios.id, { onDelete: 'restrict' }),
+    atribuidoEm: timestamp('atribuido_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  // Uma por aluno e dia: quem está em extensão não está em monitoria ao mesmo
+  // tempo, e as três horas de aula não comportam as duas.
+  (t) => [unique('atribuicao_unica_por_aluno_no_dia').on(t.alunoId, t.diaId)],
 )
 
 /**

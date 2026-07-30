@@ -141,6 +141,13 @@
       "when": 1785440194915,
       "tag": "0019_reflexoes_de_fechamento",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1785442463631,
+      "tag": "0020_atribuicao_de_extensao",
+      "breakpoints": true
     }
   ]
 }
