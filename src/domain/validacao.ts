@@ -221,6 +221,6 @@ function dentroDaFaixa(texto: string, regra: Regra): boolean {
 }
 
 /** Passou no pré-filtro? É o que decide se o formulário chega ao instrutor. */
-export function aprovadoNoPreFiltro(reprovacoes: readonly Reprovacao[]): boolean {
+export function aprovadoNoPreFiltro(reprovacoes: { readonly length: number }): boolean {
   return reprovacoes.length === 0
 }
