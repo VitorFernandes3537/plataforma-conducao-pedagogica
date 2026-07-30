@@ -634,3 +634,38 @@ Doc 6 §5.1 (reflexão sobre a tese) · Doc 6 §7 (reflexão da linguagem espelh
 | 1.2 | **Propagação da ADR 0002 para a INFRA-2.** O contexto dizia apenas que "o mecanismo de login é decisão de desenvolvedor"; a decisão foi tomada e é identidade pelo GitHub, sem senha. "OAuth de terceiros" sai de fora de escopo, porque passou a ser o mecanismo. Entra em fora de escopo a infraestrutura de organização do GitHub, avaliada e descartada. Nenhum critério de aceite mudou: os seis nomes de teste seguem idênticos |
 | 1.1 | **Ressincronização de ponteiro, nenhuma issue alterada.** "Deriva de" passa de `doc-7-spec-plataforma.md` v1.1 para v1.2. As cinco correções do Doc 7 v1.2 foram conferidas uma a uma contra o corpo deste backlog e já estavam refletidas: registro diário por aluno (issue 11), `peso` do obstáculo sem flag de "central" e pesos configurados por eixo (issue 18), reflexão da linguagem espelho (issue 23) e `Grupo` de 1 ou 2 alunos (issue 1). Nenhum critério de aceite mudou, nenhuma issue publicada no GitHub ficou dessincronizada |
 | 1.0 | Backlog criado a partir do Doc 7 v1.1 §7. 25 issues — 19 do §7, 4 das features acrescentadas ao §4 pela errata, 2 de infraestrutura |
+
+---
+
+# 24 — Tipos de bloco em material interativo
+
+**Milestone:** `pós-M5 — incremento` · **Labels:** `instrutor`, `aluno`
+
+## Contexto
+Adição posterior a todas as issues anteriores. **Não altera nenhuma entidade, critério ou teste existente.**
+
+`MaterialInterativo` passa a ter `BlocoDeMaterial (tipo, conteudo, ordem)`. O `tipo` vem de um vocabulário fechado definido **fora da plataforma**, no Doc 11 §10: `tese`, `mecanismo`, `conceitos-2x2`, `ancoragem`, `codigo-anotado`, `forcas-limites`, `matriz-comparativa`, `predicao`, `classificador`.
+
+A plataforma **renderiza** o tipo; não o define, não o valida semanticamente e não gera conteúdo (Doc 7 §6). O conteúdo continua entrando como markdown, como declarado no fora de escopo da issue 4.
+
+Os tipos `predicao` e `classificador` são interativos e registram resposta por aluno.
+
+## SSOT
+Doc 11 §10 e §11. Doc 7 §2.3.
+
+## Critérios de aceite
+- [ ] Bloco de material tem tipo de vocabulário fechado → teste: `bloco_tem_tipo_de_vocabulario_fechado`
+- [ ] Tipo desconhecido é rejeitado no cadastro → teste: `rejeita_tipo_de_bloco_desconhecido`
+- [ ] Blocos são ordenados dentro do material → teste: `blocos_respeitam_ordem`
+- [ ] Material sem blocos continua funcionando como antes → teste: `material_sem_blocos_permanece_valido`
+- [ ] `predicao` registra resposta por aluno → teste: `predicao_registra_resposta_por_aluno`
+- [ ] Agregado da `predicao` só aparece após liberação do instrutor → teste: `agregado_visivel_apenas_apos_liberacao`
+- [ ] `classificador` só mostra o resultado após submissão → teste: `classificador_revela_apos_submissao`
+- [ ] Bloco pode ser oculto até um dia específico → teste: `bloco_oculto_ate_o_dia`
+
+## Fora de escopo
+- Editor visual de slides. O conteúdo entra como markdown (issue 4)
+- Validação semântica do conteúdo de cada tipo
+- Geração de conteúdo pedagógico (Doc 7 §6)
+
+---

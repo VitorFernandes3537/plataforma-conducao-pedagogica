@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Estado** | Fechado |
-| **Versão** | 1.4 |
+| **Versão** | 1.5 |
 | **Curso** | POO aplicada com C#/.NET — 60h / 15 dias |
 | **Depende de** | — (documento raiz da série) |
 | **É consumido por** | Doc 3 (Mapa de Paredes) · Doc 4 (Cronograma) · Doc 5 (Protocolos) · Doc 6 (Avaliação) · Doc 7 (Plataforma) |
@@ -98,18 +98,38 @@ Cliente  --solicita-->  Atendimento  --contem-->  Item / Servico
 
 Os quatro papéis são **obrigatórios em todos os domínios, sem exceção** (decisão D2-06). O nome de cada papel muda; a existência dele, não.
 
+### 1.3.1 O quinto papel — Guardião da coleção
+
+Existe um quinto papel que **não é declarado no Contrato e não deve ser**: alguém precisa guardar a coleção de atendimentos e validar as regras que envolvem mais de um deles.
+
+| Domínio | Guardião |
+|---|---|
+| Biblioteca | `Acervo` |
+| Barbearia | `Agenda` |
+| Oficina | `Painel de serviços` |
+
+**Por que não é declarado:** ele é a descoberta da parede P4 (Doc 3). Pedi-lo no Contrato do D3 entregaria a resposta antes da dor.
+
+**Por que está registrado aqui:** ele consome o quinto slot do orçamento, e o instrutor precisa saber disso ao aprovar um Contrato. Uma dupla que chegar ao D9 com 5 conceitos já usados não tem onde colocá-lo.
+
 ### 1.4 Orçamento de complexidade
 
 Teto rígido. Domínio que exigir mais é rejeitado ou podado no D3.
 
 | Limite | Valor |
 |---|---|
-| Classes de domínio | Máximo 5 |
+| **Conceitos** de domínio | Máximo 5 |
 | Máquinas de estado | Exatamente 1 |
 | Categorias com cálculo variável | Exatamente 3 |
 | Estados na máquina | Entre 3 e 5 |
 
+> **Conceito, não arquivo.** Uma hierarquia conta como **um** conceito. As 3 categorias de cálculo variável são 3 classes e 1 conceito — sem isso, o Critério 3 do chassi violaria o próprio orçamento.
+
 O orçamento não é sugestão. Existe porque 45 horas efetivas com alunos no primeiro contato com POO não comportam mais, e porque um projeto maior impede que todas as duplas cheguem à mesma parede no mesmo dia.
+
+**Os 5 conceitos, na prática:** Cliente · Atendimento · Item/Serviço (hierarquia) · Recurso escasso · Guardião da coleção (§1.3.1).
+
+**O domínio de demonstração do instrutor não está sujeito a este orçamento.** Biblioteca opera com 6 conceitos — o excedente é `Titulo`, que existe para ilustrar a distinção entre a obra e o objeto físico (§2.1).
 
 ### 1.5 Escopo técnico
 
@@ -567,6 +587,7 @@ Referenciado aqui, mas de propriedade de outro documento:
 | 1.1 | Ver seção 9 |
 | 1.2 | Contrato de Domínio recebe uma quarta função: fonte de derivação do envelope de incremento (§4.1). Nota vinda do Doc 6 |
 | 1.3 | Cláusula de edição do Contrato após aprovação, restrita à poda por rebaixamento de trilha (§4.5.1). Nota pendente do Doc 5, §5.3 |
+| 1.5 | Orçamento passa a contar **conceitos**, não classes — uma hierarquia é um conceito. Sem isso, o Critério 3 do chassi violava o próprio orçamento (3 categorias = 3 classes). Quinto papel "Guardião da coleção" registrado em §1.3.1, não declarável no Contrato. Domínio de demonstração isentado do orçamento |
 | 1.4 | Correção: §2.4 dizia "envelope do D11", contradizendo o Doc 4 e o próprio §4.1 — agora D12. Regra de aluno sem par adicionada (§2.4.1): grupo aceita 1 ou 2 alunos |
 
 ---

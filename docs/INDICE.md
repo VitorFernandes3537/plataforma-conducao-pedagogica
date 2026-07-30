@@ -6,8 +6,8 @@
 |---|---|
 | **Curso** | POO aplicada com C#/.NET — 60h / 15 dias contínuos |
 | **Turma** | ~20 alunos, 10–12 duplas, iniciantes vindos de front-end e TypeScript |
-| **Versão do índice** | 1.1 |
-| **Estado da série** | 7 de 7 documentos fechados |
+| **Versão do índice** | 1.2 |
+| **Estado da série** | 11 documentos fechados |
 | **Última emissão** | Auditoria cruzada aplicada — 4 inconsistências de fato e 6 lacunas de modelo resolvidas |
 
 ---
@@ -17,12 +17,16 @@
 | Doc | Arquivo | Versão | Responde |
 |---|---|---|---|
 | **1** | `doc-1-metodo.md` | 1.0 | Por que o curso é assim. Pergunta condutora, tese, princípios, aderência ao PBL, protocolo de mudança |
-| **2** | `doc-2-chassi-de-dominio.md` | **1.4** | O esqueleto comum aos projetos, o banco de domínios e o Contrato de Domínio |
+| **2** | `doc-2-chassi-de-dominio.md` | **1.5** | O esqueleto comum aos projetos, o banco de domínios e o Contrato de Domínio |
 | **3** | `doc-3-mapa-de-paredes.md` | **1.2** | As 5 paredes, o que se ensina em cada uma e o que fica de fora |
 | **4** | `doc-4-cronograma.md` | **1.2** | O que acontece em cada um dos 15 dias |
 | **5** | `doc-5-protocolos.md` | **1.2** | Condução, apoio, recuperação, crítica, entrega, mural |
 | **6** | `doc-6-avaliacao.md` | **1.2** | Eixos, unidade de avaliação, escala, envelope de incremento, defesa oral |
 | **7** | `doc-7-spec-plataforma.md` | **1.1** | Como isso vira software. Modelo de dados, milestones, backlog de 19 issues |
+| **8** | `doc-8-plano-de-aula.md` | 1.0 | Plano de aula institucional. Ementa, objetivos de aprendizagem, referências |
+| **9** | `doc-9-repositorio-espelho.md` | 1.0 | Spec do repositório-espelho Biblioteca. 33 commits, convenção, tags |
+| **10** | `doc-10-template-aluno.md` | 1.0 | Template C# entregue ao aluno no D4 |
+| **11** | `doc-11-paradigmas.md` | **1.1** | Material de paradigmas do D1. Roteiro, biblioteca de referência, tipos de slide |
 
 ---
 
@@ -64,6 +68,10 @@ Vários documentos têm seções de "avaliado e rejeitado" — dupla-irmã, Hemo
 | **Doc 5** | `D5-ESCADA` `D5-CONDUCAO` `D5-RECUPERACAO` `D5-CRITICA` `D5-NAOAPROVACAO` `D5-ENTREGA` `D5-CONTRATODIARIO` `D5-MURAL` |
 | **Doc 6** | `D6-EIXOS` `D6-ESCALA` `D6-PESOS-PAREDE` `D6-ENVELOPE` `D6-DEFESA` `D6-CAPTURA` `D6-IA` |
 | **Doc 7** | derivado — sem fatos próprios |
+| **Doc 8** | derivado — exceto a redação dos objetivos de aprendizagem e das referências |
+| **Doc 9** | derivado — sem fatos próprios |
+| **Doc 10** | derivado — sem fatos próprios |
+| **Doc 11** | **§10 é SSOT** — vocabulário de tipos de slide. O resto é derivado |
 
 ---
 
@@ -121,5 +129,6 @@ Os ~11 envelopes de incremento **não** entram nesta fila: são derivados dos Co
 
 | Versão | Mudança |
 |---|---|
+| 1.2 | Docs 8 a 11 adicionados à série. Doc 2 vai a v1.5 (orçamento por conceito, quinto papel). Doc 7 vai a v1.4 (`BlocoDeMaterial`). Doc 11 §10 passa a ser SSOT dos tipos de slide |
 | 1.1 | Auditoria cruzada aplicada. Docs 2, 3, 4, 5, 6 e 7 versionados. Unidade de avaliação declarada no Doc 6 §1.1. Ver `ERRATA.md` |
 | 1.0 | Índice criado com a série completa |

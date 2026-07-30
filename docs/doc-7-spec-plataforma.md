@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Estado** | Fechado |
-| **Versão** | 1.3 |
+| **Versão** | 1.4 |
 | **Natureza** | **Derivado** — não possui fatos próprios |
 | **Depende de** | Docs 1 a 6 |
 | **Processo** | SDD: esta spec gera o backlog de issues. TDD: os critérios de aceite viram nomes de teste |
@@ -112,7 +112,7 @@ Mural ──── ItemDeMural (pergunta, autor, status, Obstaculo)
 RodadaDeCritica ──── ParDeCritica (revisor, revisado) ──── RegistroDeCritica
 RegistroDeRecuperacao (aluno, dia, o que perdeu, o que repôs, por quem)
 Rubrica ──── Eixo (peso, unidade: aluno | grupo) ──── ItemDeAvaliacao (escala, peso)
-MaterialInterativo (slides, por Dia)
+MaterialInterativo (slides, por Dia) ──── BlocoDeMaterial (tipo, conteudo, ordem)
 BancoDePerguntas ──── Pergunta (usada na defesa oral)
 RegistroDeDefesa (grupo, perguntas usadas, ajuste por eixo)
 MaterialDeReferencia (url, dia de liberação)   ← repositório-espelho, liberação temporizada
@@ -134,6 +134,7 @@ AtribuicaoDeExtensao (aluno, obstáculo, tipo: extensão | monitoria)
 | `Aluno` tem estado `copiloto`, que altera a origem da nota do Eixo 1 | Doc 6, §9.1 |
 | `Eixo` declara sua unidade: aluno ou grupo | Doc 6, §1.1 |
 | Nenhum limiar ou quantidade é constante — todos configuráveis por curso | Doc 7, §1 |
+| `BlocoDeMaterial` tem `tipo` de um vocabulário fechado, definido fora da plataforma | Doc 11, §10 |
 
 ---
 
@@ -389,6 +390,7 @@ Toda regra aqui aponta para os Docs 1 a 6. Se algo neste documento contradisser 
 
 | Versão | Mudança |
 |---|---|
+| 1.4 | **Adição, nada removido nem renomeado.** §2.3: `MaterialInterativo` passa a ter `BlocoDeMaterial (tipo, conteudo, ordem)`. O vocabulário de tipos é propriedade do **Doc 11 §10** — a plataforma renderiza, não define. Nenhuma entidade, critério de aceite ou teste existente é afetado. A implementação é posterior ao M5, como issue 24 |
 | 1.3 | **Propagação, nenhum fato novo.** §2.1: o diagrama indentava `Marco` sob `Bloco`, atribuindo o marco a um bloco. O Doc 4 §4, que é dono, atribui cada marco a um **dia** — Marco 1 no D3, Marco 2 no D8, Marco 3 no D12 — e o `BACKLOG.md` já descrevia corretamente "um dia pode ter um marco". Corrigida a indentação: `Bloco` e `Marco` passam a ser ramos irmãos de `Dia` |
 | 1.2 | **Propagação, nenhum fato novo.** §2.1: `Grupo` passa de "2 alunos" para "1–2 alunos" — a decisão já estava em Doc 2 §2.4.1, na ERRATA §3 e §4, e no §2.4 e no changelog v1.1 deste próprio documento; só o diagrama não havia acompanhado. §4 M2: "registro diário por grupo" passa a "por aluno", conforme a unidade declarada em Doc 6 §1.1 e a movimentação registrada na ERRATA §2.2, já refletida no §2.2 daqui. §4 M5: "pesos 50/30/20" passa a "pesos configuráveis por curso", conforme a nota cross-doc de Doc 6 §13 endereçada a este documento; "peso dobrado do obstáculo central" passa a "peso do obstáculo via campo `peso`", conforme ERRATA §2.3 e Doc 6 §3.1, alinhando-se ao §2.4 daqui; "reflexão do Python" passa a "reflexão da linguagem espelho", tradução do termo do curso (Doc 6 §7) para o vocabulário genérico exigido pela §1 |
 | 1.1 | Correções após auditoria cruzada. Dois mecanismos inventados removidos: "obstáculo central" vira campo `peso`, "modo copiloto" vira estado de `Aluno`. `Repositorio`, `RegistroDiario` e `ConfirmacaoDePush` movidos de `Grupo` para `Aluno`, conforme a unidade de avaliação declarada no Doc 6 §1.1. `Grupo` passa a aceitar 1 ou 2 alunos. Constantes "18 temas" e "9 em 11" substituídas por configuração. Entidades adicionadas para defesa oral, material de referência com liberação temporizada, escopos de emergência e atribuição de extensão |
