@@ -1382,6 +1382,27 @@ export const unidadeDoEixoEnum = pgEnum('unidade_do_eixo', ['aluno', 'grupo'])
 export const fonteDoEixoEnum = pgEnum('fonte_do_eixo', [
   'avaliacao_de_obstaculo',
   'avaliacao_de_incremento',
+  'presenca_de_instrumentos',
+])
+
+/**
+ * Instrumentos cuja PRESENÇA o agregador sabe conferir.
+ *
+ * O eixo de prática não pontua qualidade — pontua entrega. O Doc 6 §5 é
+ * explícito no push: "frequência, existência do push, não granularidade". E o
+ * §5.1 repete sobre commits: o que conta é a existência do registro.
+ *
+ * Mecanismos, não itens de curso: qual eixo confere quais instrumentos, e com
+ * que peso, é configuração. `historico_de_commits` não entra porque a
+ * plataforma não lê o GitHub — está fora de escopo em toda issue que toca o
+ * assunto.
+ */
+export const tipoDeInstrumentoEnum = pgEnum('tipo_de_instrumento', [
+  'confirmacao_de_push',
+  'log_de_obstaculo',
+  'contrato_diario',
+  'registro_de_critica',
+  'reflexao_de_fechamento',
 ])
 
 /**
@@ -1426,6 +1447,96 @@ export const eixos = pgTable(
     // avaliado num eixo que não vale nada, e ninguém veria.
     check('eixo_peso_positivo', sql`${t.peso} > 0`),
     check('eixo_nome_nao_vazio', sql`btrim(${t.nome}) <> ''`),
+  ],
+)
+
+/**
+ * Um instrumento que o eixo confere, com o peso dele.
+ *
+ * O Doc 6 §5 dá pesos diferentes: a reflexão da linguagem espelho tem "peso
+ * pequeno" (§7) e o histórico de commits, "peso baixo" (§5.1). Quanto vale cada
+ * um é do curso — e sem peso por instrumento o eixo trataria a confirmação de
+ * push e a reflexão que captura o pensamento como a mesma coisa.
+ */
+export const instrumentosDoEixo = pgTable(
+  'instrumentos_do_eixo',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eixoId: uuid('eixo_id')
+      .notNull()
+      .references(() => eixos.id, { onDelete: 'cascade' }),
+    tipo: tipoDeInstrumentoEnum('tipo').notNull(),
+    peso: numeric('peso', { precision: 6, scale: 4, mode: 'number' }).notNull(),
+  },
+  (t) => [
+    unique('instrumento_unico_no_eixo').on(t.eixoId, t.tipo),
+    check('instrumento_peso_positivo', sql`${t.peso} > 0`),
+  ],
+)
+
+/**
+ * Uma reflexão de fechamento declarada pelo curso (Doc 6 §5.1 e §7).
+ *
+ * São duas no curso da série, e as duas capturam coisas diferentes: uma olha o
+ * código pela linguagem espelho, e a outra olha o PENSAMENTO. O §5.1 diz que a
+ * segunda é "o único instrumento que captura o pensamento, e sem ele a tese
+ * central não é avaliada em lugar nenhum".
+ *
+ * O enunciado é dado, e por dois motivos que se somam: é conteúdo do curso, e a
+ * pergunta é o instrumento inteiro — trocar a pergunta é trocar o que se
+ * captura.
+ *
+ * `diaId` é o dia em que a reflexão é respondida. Um gatilho amarra a resposta
+ * a ele, senão a retrospectiva do último dia poderia ser respondida no
+ * primeiro, quando não há o que retrospectar.
+ */
+export const reflexoesDeFechamento = pgTable(
+  'reflexoes_de_fechamento',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cursoId: uuid('curso_id')
+      .notNull()
+      .references(() => cursos.id, { onDelete: 'cascade' }),
+    ordem: integer('ordem').notNull(),
+    enunciado: text('enunciado').notNull(),
+    diaId: uuid('dia_id')
+      .notNull()
+      .references(() => dias.id, { onDelete: 'restrict' }),
+  },
+  (t) => [
+    unique('reflexao_ordem_unica_no_curso').on(t.cursoId, t.ordem),
+    check('reflexao_ordem_positiva', sql`${t.ordem} >= 1`),
+    check('reflexao_enunciado_nao_vazio', sql`btrim(${t.enunciado}) <> ''`),
+  ],
+)
+
+/**
+ * A resposta de um aluno a uma reflexão.
+ *
+ * Pendura no registro diário, que pendura em aluno e dia — é o mesmo contêiner
+ * do push, do log e do contrato, e é o que dá a "pertence a um aluno e a um
+ * dia" sem cada instrumento carregar os dois por conta própria.
+ *
+ * "Não há resposta certa. Avalia-se se a resposta demonstra consciência da
+ * mudança, não se ela usa o vocabulário correto" (Doc 6 §5.1). Por isso o texto
+ * é livre e nada aqui o pontua: o eixo confere que a reflexão existe.
+ */
+export const respostasDeReflexao = pgTable(
+  'respostas_de_reflexao',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    registroDiarioId: uuid('registro_diario_id')
+      .notNull()
+      .references(() => registrosDiarios.id, { onDelete: 'cascade' }),
+    reflexaoId: uuid('reflexao_id')
+      .notNull()
+      .references(() => reflexoesDeFechamento.id, { onDelete: 'cascade' }),
+    texto: text('texto').notNull(),
+    atualizadoEm: timestamp('atualizado_em', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('resposta_unica_por_reflexao').on(t.registroDiarioId, t.reflexaoId),
+    check('resposta_de_reflexao_nao_vazia', sql`btrim(${t.texto}) <> ''`),
   ],
 )
 

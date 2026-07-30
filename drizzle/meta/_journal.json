@@ -134,6 +134,13 @@
       "when": 1785439039081,
       "tag": "0018_rubrica_e_defesa",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785440194915,
+      "tag": "0019_reflexoes_de_fechamento",
+      "breakpoints": true
     }
   ]
 }
