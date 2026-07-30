@@ -3,7 +3,16 @@ import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { formularioDoCurso, perguntasDoFormularioEmOrdem } from '@/db/formulario'
-import { formularios, perguntasDoFormulario } from '@/db/schema'
+import { abreRascunho, respostaDoGrupo } from '@/db/resposta-de-escopo'
+import {
+  alunos,
+  formularios,
+  grupos,
+  perguntasDoFormulario,
+  respostasDeEscopo,
+  turmas,
+  usuarios,
+} from '@/db/schema'
 
 import { criaBancoEfemero, type BancoEfemero } from './suporte/banco-efemero'
 import { criaCurso } from './suporte/cenario'
@@ -17,6 +26,46 @@ function semComentarios(fonte: string): string {
 
 describe('Issue 6 — FormularioDeEscopo configurável', () => {
   let banco: BancoEfemero
+
+  /** Curso com formulário de duas perguntas, uma turma e um grupo de dois. */
+  async function cenario() {
+    const curso = await criaCurso(banco)
+    const [turma] = await banco.db
+      .insert(turmas)
+      .values({ cursoId: curso.id, nome: 'Turma' })
+      .returning()
+    const [formulario] = await banco.db
+      .insert(formularios)
+      .values({ cursoId: curso.id, nome: 'Formulário' })
+      .returning()
+    const perguntas = await banco.db
+      .insert(perguntasDoFormulario)
+      .values([
+        { formularioId: formulario!.id, ordem: 1, enunciado: 'Primeira', criterioDeAceite: 'a' },
+        { formularioId: formulario!.id, ordem: 2, enunciado: 'Segunda', criterioDeAceite: 'b' },
+      ])
+      .returning()
+
+    const [grupo] = await banco.db.insert(grupos).values({ turmaId: turma!.id }).returning()
+
+    const pessoas = await banco.db
+      .insert(usuarios)
+      .values([
+        { githubUserId: 1, githubLogin: 'ana', nome: 'Ana', papel: 'aluno' },
+        { githubUserId: 2, githubLogin: 'bruno', nome: 'Bruno', papel: 'aluno' },
+      ])
+      .returning()
+    await banco.db.insert(alunos).values(
+      pessoas.map((p, indice) => ({
+        turmaId: turma!.id,
+        usuarioId: p.id,
+        grupoId: grupo!.id,
+        posicaoNoGrupo: indice + 1,
+      })),
+    )
+
+    return { curso, turma: turma!, formulario: formulario!, perguntas, grupo: grupo! }
+  }
 
   beforeEach(async () => {
     banco = await criaBancoEfemero()
@@ -96,5 +145,39 @@ describe('Issue 6 — FormularioDeEscopo configurável', () => {
       .map((f) => semComentarios(readFileSync(f, 'utf8')))
       .join('\n')
     expect(fontes).not.toMatch(/\b7\b|\bsete\b/i)
+  })
+
+  it('resposta_de_escopo_pertence_ao_grupo', async () => {
+    const { formulario, grupo, turma } = await cenario()
+
+    const rascunho = await abreRascunho(banco.db, grupo.id, formulario.id)
+
+    // Doc 7 §2.2: `RespostaDeEscopo` pendura em Grupo. A prova ESTRUTURAL é que
+    // a tabela não tem coluna de aluno — se um dia alguém acrescentar, este
+    // teste cai antes de a unidade de avaliação derivar.
+    const colunas = Object.keys(respostasDeEscopo)
+    expect(colunas).toContain('grupoId')
+    expect(colunas).not.toContain('alunoId')
+    expect(colunas).not.toContain('usuarioId')
+
+    // Um contrato por grupo, entregue uma vez (Doc 2 §4.2). Os dois integrantes
+    // abrem o MESMO rascunho — chamar de novo não cria um segundo.
+    const deNovo = await abreRascunho(banco.db, grupo.id, formulario.id)
+    expect(deNovo.id).toBe(rascunho.id)
+    expect(await banco.db.select().from(respostasDeEscopo)).toHaveLength(1)
+
+    // E o banco recusa a segunda resposta mesmo por escrita direta.
+    await expect(
+      banco.db.insert(respostasDeEscopo).values({ grupoId: grupo.id, formularioId: formulario.id }),
+    ).rejects.toThrow()
+
+    const doGrupo = await respostaDoGrupo(banco.db, grupo.id)
+    expect(doGrupo?.grupoId).toBe(grupo.id)
+    expect(doGrupo?.submetidoEm).toBeNull()
+    expect(doGrupo?.respostas).toHaveLength(0)
+
+    // Grupo sem rascunho devolve null, não erro.
+    const [outroGrupo] = await banco.db.insert(grupos).values({ turmaId: turma.id }).returning()
+    expect(await respostaDoGrupo(banco.db, outroGrupo!.id)).toBeNull()
   })
 })
