@@ -3,12 +3,16 @@ import { readFileSync } from 'node:fs'
 import { and, eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { NaoAutorizado } from '@/db/fila-de-aprovacao'
 import {
   escalaDoCurso,
   garanteRegistroDiario,
   lancaAvaliacaoDoAluno,
+  lancaAvaliacaoDoGrupo,
+  lancamentoDoDia,
   registroDoDia,
   RegistroInvalido,
+  removeAvaliacao,
 } from '@/db/registro-diario'
 import {
   alunos,
@@ -279,6 +283,138 @@ describe('Issue 11 — RegistroDiario: avaliação, log e push', () => {
     )
     expect(cruzado).toBeInstanceOf(Error)
     expect(causaDe(cruzado)).toMatch(/dia .* e do curso .* e o aluno .* e do curso/)
+  })
+
+  it('lancamento_por_grupo_preenche_ambos', async () => {
+    const c = await cenario()
+
+    const { alunosAtingidos } = await lancaAvaliacaoDoGrupo(banco.db, c.grupo.id, {
+      diaId: c.dia.id,
+      obstaculoId: c.primeiro.id,
+      valor: 2,
+      instrutorId: c.instrutora.id,
+    })
+
+    // Todos os integrantes, quantos forem. Três aqui porque o teto é
+    // configuração (Doc 2 §2.4.1) — um teste com dois deixaria passar um
+    // lançamento embutido em `[0]` e `[1]`.
+    expect(alunosAtingidos).toHaveLength(TAMANHO_DE_GRUPO)
+    expect(new Set(alunosAtingidos).size).toBe(TAMANHO_DE_GRUPO)
+
+    for (const { aluno } of c.integrantes) {
+      const registro = await registroDoDia(banco.db, aluno.id, c.dia.id)
+      expect(registro?.avaliacoes).toHaveLength(1)
+      expect(registro?.avaliacoes[0]?.valor).toBe(2)
+      expect(registro?.avaliacoes[0]?.superado).toBe(true)
+      expect(registro?.avaliacoes[0]?.lancadoPorId).toBe(c.instrutora.id)
+    }
+
+    // Cada aluno tem a PRÓPRIA linha. É o que permite divergir um sem mexer no
+    // outro — o valor igual é padrão, não vínculo.
+    const linhas = await banco.db.select().from(avaliacoesDeObstaculo)
+    expect(linhas).toHaveLength(TAMANHO_DE_GRUPO)
+
+    // Relançar para o grupo corrige o valor de todos.
+    await lancaAvaliacaoDoGrupo(banco.db, c.grupo.id, {
+      diaId: c.dia.id,
+      obstaculoId: c.primeiro.id,
+      valor: 3,
+      instrutorId: c.instrutora.id,
+    })
+    for (const { aluno } of c.integrantes) {
+      const registro = await registroDoDia(banco.db, aluno.id, c.dia.id)
+      expect(registro?.avaliacoes[0]?.valor).toBe(3)
+    }
+    expect(await banco.db.select().from(avaliacoesDeObstaculo)).toHaveLength(TAMANHO_DE_GRUPO)
+
+    // Grupo de um aluno escreve uma linha. O método aceita grupo solo
+    // (Doc 2 §2.4.1), e o lançamento não pode presumir companhia.
+    const [grupoSolo] = await banco.db.insert(grupos).values({ turmaId: c.turma.id }).returning()
+    const [usuarioSolo] = await banco.db
+      .insert(usuarios)
+      .values({ githubUserId: 6900, githubLogin: 'solo', nome: 'Solo', papel: 'aluno' })
+      .returning()
+    await banco.db.insert(alunos).values({
+      turmaId: c.turma.id,
+      usuarioId: usuarioSolo!.id,
+      grupoId: grupoSolo!.id,
+      posicaoNoGrupo: 1,
+    })
+
+    const solo = await lancaAvaliacaoDoGrupo(banco.db, grupoSolo!.id, {
+      diaId: c.dia.id,
+      obstaculoId: c.primeiro.id,
+      valor: 1,
+      instrutorId: c.instrutora.id,
+    })
+    expect(solo.alunosAtingidos).toHaveLength(1)
+
+    // Só o instrutor lança. A matriz já barra a rota; esta é a segunda tranca.
+    await expect(
+      lancaAvaliacaoDoGrupo(banco.db, c.grupo.id, {
+        diaId: c.dia.id,
+        obstaculoId: c.primeiro.id,
+        valor: 0,
+        instrutorId: c.integrantes[0]!.usuario.id,
+      }),
+    ).rejects.toThrow(NaoAutorizado)
+  })
+
+  it('instrutor_diverge_nota_individual', async () => {
+    const c = await cenario()
+    const [um, dois, tres] = c.integrantes.map((i) => i.aluno)
+
+    await lancaAvaliacaoDoGrupo(banco.db, c.grupo.id, {
+      diaId: c.dia.id,
+      obstaculoId: c.primeiro.id,
+      valor: 2,
+      instrutorId: c.instrutora.id,
+    })
+
+    // "O instrutor diverge apenas quando observa diferença real entre os
+    // repositórios" (Doc 6 §1.1). Divergir é reescrever o valor de um só.
+    await lancaAvaliacaoDoAluno(banco.db, dois!.id, {
+      diaId: c.dia.id,
+      obstaculoId: c.primeiro.id,
+      valor: 0,
+      instrutorId: c.instrutora.id,
+    })
+
+    const valores = await Promise.all(
+      [um!, dois!, tres!].map(async (a) => {
+        const r = await registroDoDia(banco.db, a.id, c.dia.id)
+        return r?.avaliacoes[0]?.valor
+      }),
+    )
+    expect(valores).toEqual([2, 0, 2])
+
+    // Divergir para baixo tira a superação de um sem tirar dos outros: o
+    // predicado vem de `contaComoSuperacao`, não de comparação com número.
+    const doDivergido = await registroDoDia(banco.db, dois!.id, c.dia.id)
+    expect(doDivergido?.avaliacoes[0]?.superado).toBe(false)
+    expect(doDivergido?.avaliacoes[0]?.descritor).toBe(ESCALA[0]!.descritor)
+
+    // "Sem avaliação" não é a mesma coisa que nível 0 — o Doc 6 §3.2 grava zero
+    // explícito, e zero é afirmação sobre o aluno. Corrigir um lançamento
+    // errado não pode obrigar o instrutor a afirmar isso.
+    const { removidas } = await removeAvaliacao(
+      banco.db,
+      tres!.id,
+      c.dia.id,
+      c.primeiro.id,
+      c.instrutora.id,
+    )
+    expect(removidas).toBe(1)
+    const semNota = await registroDoDia(banco.db, tres!.id, c.dia.id)
+    expect(semNota?.avaliacoes).toHaveLength(0)
+
+    // A tela do fechamento distingue os três estados. Sem isso, o aluno
+    // esquecido seria indistinguível do aluno que tirou zero.
+    const fila = await lancamentoDoDia(banco.db, c.turma.id, c.dia.id, c.primeiro.id)
+    expect(fila).toHaveLength(TAMANHO_DE_GRUPO)
+    expect(fila.find((l) => l.alunoId === um!.id)?.valor).toBe(2)
+    expect(fila.find((l) => l.alunoId === dois!.id)?.valor).toBe(0)
+    expect(fila.find((l) => l.alunoId === tres!.id)?.valor).toBeNull()
   })
 
   it('nenhum_numero_da_escala_mora_no_codigo', async () => {

@@ -208,6 +208,48 @@ export async function lancaAvaliacaoDoAluno(
 }
 
 /**
+ * Lança a mesma avaliação para todos os integrantes de um grupo.
+ *
+ * "A avaliação diária é lançada por aluno, com o mesmo valor aplicado aos
+ * integrantes por padrão" (Doc 6 §1.1). Por padrão, não por regra: cada aluno
+ * recebe a própria linha, e é isso que permite divergir um deles em seguida sem
+ * mexer no outro.
+ *
+ * A lista de integrantes vem do banco, nunca de um número. Grupo de um aluno
+ * escreve uma linha, e o teto é `cursos.tamanhoMaximoDeGrupo`, que é
+ * configuração (Doc 2 §2.4.1).
+ */
+export async function lancaAvaliacaoDoGrupo(
+  db: Db,
+  grupoId: string,
+  lancamento: Lancamento,
+): Promise<{ alunosAtingidos: string[]; nivel: Nivel }> {
+  await exigeInstrutor(db, lancamento.instrutorId)
+
+  const integrantes = await db
+    .select({ id: alunos.id, turmaId: alunos.turmaId })
+    .from(alunos)
+    .where(eq(alunos.grupoId, grupoId))
+    .orderBy(asc(alunos.posicaoNoGrupo))
+
+  if (integrantes.length === 0) {
+    throw new RegistroInvalido('grupo sem integrantes: não há a quem lançar')
+  }
+
+  const cursoId = await cursoDoAluno(db, integrantes[0]!.id)
+  const nivel = await nivelDoCurso(db, cursoId, lancamento.valor)
+
+  await db.transaction(async (tx) => {
+    await travaOLancamento(tx, lancamento.diaId, integrantes[0]!.turmaId)
+    for (const integrante of integrantes) {
+      await gravaAvaliacao(tx, integrante.id, lancamento, nivel.id, lancamento.instrutorId)
+    }
+  })
+
+  return { alunosAtingidos: integrantes.map((i) => i.id), nivel }
+}
+
+/**
  * Apaga a avaliação de um obstáculo num dia.
  *
  * "Sem avaliação" e "nível 0" são estados diferentes, e os dois têm de ser
@@ -315,4 +357,51 @@ export async function registroDoDia(
     logs,
     pushConfirmado: push.length > 0,
   }
+}
+
+/**
+ * O lançamento de um obstáculo numa turma inteira, aluno por aluno.
+ *
+ * É a tela do fechamento: o instrutor precisa ver quem ainda não tem nota tanto
+ * quanto quem já tem, senão o aluno esquecido é indistinguível do aluno que
+ * tirou zero — e essa diferença é o que separa "não superou" de "ninguém
+ * olhou".
+ */
+export async function lancamentoDoDia(
+  db: Db,
+  turmaId: string,
+  diaId: string,
+  obstaculoId: string,
+): Promise<
+  {
+    alunoId: string
+    grupoId: string | null
+    valor: number | null
+    descritor: string | null
+    superado: boolean | null
+  }[]
+> {
+  return db
+    .select({
+      alunoId: alunos.id,
+      grupoId: alunos.grupoId,
+      valor: niveisDeAvaliacao.valor,
+      descritor: niveisDeAvaliacao.descritor,
+      superado: niveisDeAvaliacao.contaComoSuperacao,
+    })
+    .from(alunos)
+    .leftJoin(
+      registrosDiarios,
+      and(eq(registrosDiarios.alunoId, alunos.id), eq(registrosDiarios.diaId, diaId)),
+    )
+    .leftJoin(
+      avaliacoesDeObstaculo,
+      and(
+        eq(avaliacoesDeObstaculo.registroDiarioId, registrosDiarios.id),
+        eq(avaliacoesDeObstaculo.obstaculoId, obstaculoId),
+      ),
+    )
+    .leftJoin(niveisDeAvaliacao, eq(niveisDeAvaliacao.id, avaliacoesDeObstaculo.nivelId))
+    .where(eq(alunos.turmaId, turmaId))
+    .orderBy(asc(alunos.grupoId), asc(alunos.posicaoNoGrupo))
 }
