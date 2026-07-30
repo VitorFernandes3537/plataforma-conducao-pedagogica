@@ -1,9 +1,7 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
-import { exigeAcesso } from '@/domain/autorizacao'
-
-import { atorDoUsuario } from './ator'
+import { exigeProducaoPropria } from './ator'
 import { exigeInstrutor } from './fila-de-aprovacao'
 import * as schema from './schema'
 import {
@@ -286,26 +284,6 @@ export async function removeAvaliacao(
     .returning({ id: avaliacoesDeObstaculo.id })
 
   return { removidas: removidas.length }
-}
-
-/**
- * Confere que quem escreve é o próprio aluno, ou o instrutor.
- *
- * Doc 7 §3 dá ao aluno "registrar log, contrato diário, push". A matriz pura já
- * sabe disso pelo recurso `producao-propria`; aqui só se descobre de quem é a
- * produção. O instrutor passa porque a linha do §3 é "Instrutor — tudo".
- */
-async function exigeProducaoPropria(db: Db, autorId: string, alunoId: string): Promise<void> {
-  const [dono] = await db
-    .select({ usuarioId: alunos.usuarioId, turmaId: alunos.turmaId })
-    .from(alunos)
-    .where(eq(alunos.id, alunoId))
-    .limit(1)
-
-  if (!dono) throw new RegistroInvalido('aluno não encontrado')
-
-  const ator = await atorDoUsuario(db, autorId, dono.turmaId)
-  exigeAcesso(ator, { tipo: 'producao-propria', usuarioId: dono.usuarioId })
 }
 
 /**

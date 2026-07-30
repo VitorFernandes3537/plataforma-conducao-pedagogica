@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
-import type { Ator } from '@/domain/autorizacao'
+import { exigeAcesso, type Ator } from '@/domain/autorizacao'
 
 import * as schema from './schema'
 import { alunos, usuarios } from './schema'
@@ -56,4 +56,31 @@ export async function atorDoUsuario(db: Db, usuarioId: string, turmaId?: string)
   if (!matricula) throw new AtorDesconhecido('usuário não está matriculado nesta turma')
 
   return { papel: 'aluno', usuarioId: usuario.id, grupoId: matricula.grupoId }
+}
+
+/**
+ * Confere que quem escreve é o próprio aluno, ou o instrutor.
+ *
+ * Doc 7 §3 dá ao aluno "registrar log, contrato diário, push". A matriz pura já
+ * sabe disso pelo recurso `producao-propria`; o que falta é descobrir de quem é
+ * a produção, e isso exige o banco.
+ *
+ * Mora aqui, e não em cada instrumento, porque a regra é a mesma para log, push
+ * e contrato diário — e três cópias dela divergiriam na primeira exceção.
+ */
+export async function exigeProducaoPropria(
+  db: Db,
+  autorId: string,
+  alunoId: string,
+): Promise<void> {
+  const [dono] = await db
+    .select({ usuarioId: alunos.usuarioId, turmaId: alunos.turmaId })
+    .from(alunos)
+    .where(eq(alunos.id, alunoId))
+    .limit(1)
+
+  if (!dono) throw new AtorDesconhecido('aluno não encontrado')
+
+  const ator = await atorDoUsuario(db, autorId, dono.turmaId)
+  exigeAcesso(ator, { tipo: 'producao-propria', usuarioId: dono.usuarioId })
 }
