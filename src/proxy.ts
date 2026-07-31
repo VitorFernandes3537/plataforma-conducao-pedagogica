@@ -31,5 +31,5 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // Matcher negativo: sem ele o proxy roda em CSS, JS e imagem, e no Next 16
   // ele é função Node faturada por invocação.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|icon.svg).*)'],
 }

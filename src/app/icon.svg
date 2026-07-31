@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="PCP">
+  <!--
+    Ícone do aplicativo: monograma, não símbolo.
+
+    Papel com filete e tinta cheia — as duas cores que o sistema já tem, e o
+    filete de 1px que é o átomo de forma do cartão. Nada inverte: papel não
+    inverte (ADR 0003), então em barra escura ele lê como um pedaço de papel,
+    que é o certo.
+
+    Não é a régua do dia comprimida, e a razão é dura: as larguras da régua SÃO
+    as durações de um curso específico. Um ícone com cinco barras congelaria
+    "cinco blocos, nestas proporções" num arquivo — quantidade pedagógica virando
+    constante, que é exatamente o que a plataforma não faz.
+  -->
+  <rect x="0.6" y="0.6" width="30.8" height="30.8" rx="7.4" fill="#FCFBF6" stroke="#C9C4B4" stroke-width="1.2" />
+  <path
+    d="M10.8 25.2V7.2h5.6a5 5 0 0 1 0 10h-5.6"
+    fill="none"
+    stroke="#17150F"
+    stroke-width="3.4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

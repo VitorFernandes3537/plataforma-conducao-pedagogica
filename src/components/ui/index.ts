@@ -11,6 +11,7 @@ export { Campo, CampoDeProsa } from './campo'
 export { Escala, type NotaDaEscala } from './escala'
 export { Aviso, AusenciaDeclarada, EstadoVazio } from './estado'
 export { Etiqueta, EtiquetaCheia } from './etiqueta'
+export { Logotipo } from './logotipo'
 export {
   ListaDeVerificacao,
   ListaForaDeEscopo,
