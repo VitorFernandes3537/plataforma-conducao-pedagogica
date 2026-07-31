@@ -18,6 +18,7 @@ import {
   niveisDeAvaliacao,
   obstaculos,
   papeisDaEstrutura,
+  perguntasDaDefesa,
   perguntasDoFormulario,
   regrasDeValidacao,
   repositorios,
@@ -137,6 +138,18 @@ export const EXEMPLO = {
       { ordem: 3, nome: 'Recurso escasso', obrigatorio: false },
     ],
   },
+  /**
+   * O banco de perguntas da defesa oral (Doc 6 §6). É configuração do curso, e
+   * faltava — sem ele a ficha do grupo não tinha o que oferecer para registrar
+   * a defesa do D15. Duas por grupo é o de praxe, mas o banco é maior: o
+   * instrutor escolhe na hora, sobre aquele código.
+   */
+  perguntasDaDefesa: [
+    'Mostre onde a regra da transição mora. Se eu pedir outra transição proibida, é aqui que se mexe?',
+    'Sem olhar o código: qual era o incremento que chegou, e o que ele obrigou a mudar?',
+    'Qual decisão de design fez a mudança do D12 ser fácil — ou difícil?',
+    'Aponte um estado que o sistema recusa criar, e diga por quê no negócio.',
+  ],
   instrutor: { githubUserId: 1000, githubLogin: 'instrutor-exemplo', nome: 'Instrutor' },
   // Rótulos de dificuldade são dado, não enum. Um deles é de trilha desafio
   // e por isso carrega briefing — sem ele o banco rejeita a linha.
@@ -305,6 +318,16 @@ async function semeiaEm(db: Db) {
   await db
     .insert(niveisDeAvaliacao)
     .values(EXEMPLO.niveisDeAvaliacao.map((n) => ({ cursoId: curso.id, ...n })))
+
+  await db
+    .insert(perguntasDaDefesa)
+    .values(
+      EXEMPLO.perguntasDaDefesa.map((enunciado, i) => ({
+        cursoId: curso.id,
+        ordem: i + 1,
+        enunciado,
+      })),
+    )
 
   const obstaculosCriados = await db
     .insert(obstaculos)
