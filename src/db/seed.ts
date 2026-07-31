@@ -5,6 +5,7 @@ import {
   alunos,
   bancosDeTemas,
   blocos,
+  blocosDeMaterial,
   cursos,
   dias,
   estruturas,
@@ -203,6 +204,36 @@ export const EXEMPLO = {
           ordem: 1,
           titulo: 'Conversa de abertura',
           conteudo: `# Abertura\n\nO que este módulo é, e o que não é.`,
+          /**
+           * Blocos de exemplo, e a razão de existirem: sem eles nenhum dos nove
+           * tipos tinha dado em desenvolvimento, e o modo apresentação não tinha
+           * o que conduzir. Três tipos, escolhidos pelo que exercitam — um que
+           * só desenha, um que registra resposta e libera agregado, e um que
+           * segura gabarito até a submissão.
+           *
+           * `ocultoAteDiaId` fica nulo aqui: bloco que só aparece mais tarde é
+           * caso do material real, e o seed não tem por que adivinhar qual.
+           */
+          blocos: [
+            {
+              ordem: 1,
+              tipo: 'tese' as const,
+              conteudo: `# O lugar onde o comportamento mora determina o custo da mudança\n\nNão existe abordagem melhor. Existe abordagem melhor para um tipo de problema.`,
+              conteudoRevelado: null,
+            },
+            {
+              ordem: 2,
+              tipo: 'predicao' as const,
+              conteudo: `> Quantos lugares do código você precisa abrir para atender esse pedido?\n\n- 1\n- 2\n- 3\n- mais de 3`,
+              conteudoRevelado: `São quatro, e o critério acaba escrito em dois lugares.`,
+            },
+            {
+              ordem: 3,
+              tipo: 'classificador' as const,
+              conteudo: `Classifique cada trecho na categoria dele.\n\n| # | Trecho |\n|---|---|\n| 1 | \`itens.filter(i => i.ativo)\` |\n| 2 | \`for (let i = 0; i < n; i++) {}\` |`,
+              conteudoRevelado: `1 — funcional · 2 — imperativo`,
+            },
+          ],
         },
         {
           ordem: 2,
@@ -296,10 +327,29 @@ async function semeiaEm(db: Db) {
       await db.insert(marcos).values({ diaId: dia.id, ...definicao.marco })
     }
 
-    if (definicao.laminas.length > 0) {
-      await db
+    for (const definicaoDaLamina of definicao.laminas) {
+      const { blocos: blocosDaLamina, ...lamina } = definicaoDaLamina as typeof definicaoDaLamina & {
+        blocos?: readonly {
+          ordem: number
+          tipo: (typeof schema.tipoDeBlocoEnum.enumValues)[number]
+          conteudo: string
+          conteudoRevelado: string | null
+        }[]
+      }
+
+      const [criada] = await db
         .insert(materiaisInterativos)
-        .values(definicao.laminas.map((l) => ({ diaId: dia.id, ...l })))
+        .values({ diaId: dia.id, ...lamina })
+        .returning()
+      if (!criada) throw new Error('seed: lâmina não foi criada')
+
+      if (blocosDaLamina && blocosDaLamina.length > 0) {
+        await db
+          .insert(blocosDeMaterial)
+          .values(
+            blocosDaLamina.map((b) => ({ materialInterativoId: criada.id, ...b })),
+          )
+      }
     }
   }
 

@@ -2,7 +2,7 @@ import { asc, eq, sql } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import * as schema from './schema'
-import { blocos, dias } from './schema'
+import { blocos, dias, marcos } from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
@@ -31,6 +31,48 @@ export async function duracaoTotalPorDia(db: Db, cursoId: string): Promise<Durac
     .where(eq(dias.cursoId, cursoId))
     .groupBy(dias.id, dias.ordem)
     .orderBy(asc(dias.ordem))
+}
+
+export type DiaDoCurso = {
+  id: string
+  ordem: number
+  cursoId: string
+  marco: { nome: string; tipo: 'duro' | 'triagem' } | null
+}
+
+/**
+ * Um dia pelo identificador dele.
+ *
+ * Existe porque a apresentação é endereçada por dia — `/instrutor/apresentacao/
+ * [diaId]` — e nenhuma consulta traduzia um `diaId` de volta para a ordem dele.
+ * `diaCorrenteDaTurma` faz isso pela turma, e a apresentação não tem turma: o
+ * material é do CURSO, e o mesmo dia serve todas as turmas que o rodam.
+ *
+ * A ordem é o que a régua precisa, e o marco vem junto porque um dia de marco
+ * muda a moldura da tela inteira.
+ */
+export async function diaPorId(db: Db, diaId: string): Promise<DiaDoCurso | null> {
+  const [linha] = await db
+    .select({
+      id: dias.id,
+      ordem: dias.ordem,
+      cursoId: dias.cursoId,
+      marcoNome: marcos.nome,
+      marcoTipo: marcos.tipo,
+    })
+    .from(dias)
+    .leftJoin(marcos, eq(marcos.diaId, dias.id))
+    .where(eq(dias.id, diaId))
+    .limit(1)
+
+  if (!linha) return null
+
+  return {
+    id: linha.id,
+    ordem: linha.ordem,
+    cursoId: linha.cursoId,
+    marco: linha.marcoNome && linha.marcoTipo ? { nome: linha.marcoNome, tipo: linha.marcoTipo } : null,
+  }
 }
 
 /**
