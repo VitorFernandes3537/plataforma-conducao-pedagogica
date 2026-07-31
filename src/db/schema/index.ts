@@ -251,6 +251,26 @@ export const obstaculos = pgTable(
      * ser tomada em cima da hora.
      */
     extensao: text('extensao'),
+    /**
+     * Os critérios de superação, um por linha.
+     *
+     * "Comportamento verificável, binário — vira checklist na plataforma"
+     * (Doc 3 §2). Binário é o ponto: a tela do aluno mostra marca cheia ou
+     * vazia, nunca porcentagem, porque o Doc 3 possui o "passou" e o Doc 6
+     * possui o "como".
+     *
+     * Texto com uma linha por critério, e não tabela própria: quantos existem é
+     * do curso, e nada na plataforma precisa referenciar um critério
+     * individualmente.
+     */
+    criteriosDeSuperacao: text('criterios_de_superacao'),
+    /**
+     * O que explicitamente NÃO se ensina aqui, um por linha.
+     *
+     * "Impede que a aula cresça no calor do momento" (Doc 3 §2) — e mostrar o
+     * que não fazer é carga pedagógica, não estilo (ADR 0003 §5).
+     */
+    escopoFora: text('escopo_fora'),
     peso: numeric('peso', { precision: 6, scale: 2, mode: 'number' }).notNull(),
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
   },
