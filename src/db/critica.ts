@@ -3,14 +3,17 @@ import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import { chaveDoPar, sorteiaEmparelhamento } from '@/domain/sorteio'
 
-import { exigeInstrutor } from './fila-de-aprovacao'
+import { exigeInstrutor, NaoAutorizado } from './fila-de-aprovacao'
 import * as schema from './schema'
 import {
+  alunos,
   grupos,
   paresDeCritica,
   perguntasDoRoteiro,
   registrosDeCritica,
+  repositorios,
   rodadasDeCritica,
+  temas,
   turmas,
 } from './schema'
 
@@ -178,8 +181,24 @@ export async function sorteiaRodada(
 export async function registraCritica(
   db: Db,
   parId: string,
+  grupoAutorId: string,
   registro: { explicacaoDoTema: string; cenarioQueQuebra: string },
 ): Promise<{ id: string }> {
+  // Quem escreve é o grupo que REVISA aquele par, e a checagem mora aqui e não na
+  // tela: server action é endpoint, e sem isto qualquer grupo escreveria a
+  // crítica de qualquer par pelo parId (ADR 0001 §3). O `grupoAutorId` vem da
+  // sessão, nunca do formulário — se viesse, a checagem não protegeria nada.
+  const [par] = await db
+    .select({ revisorId: paresDeCritica.revisorId })
+    .from(paresDeCritica)
+    .where(eq(paresDeCritica.id, parId))
+    .limit(1)
+
+  if (!par) throw new CriticaInvalida('par de crítica não encontrado')
+  if (par.revisorId !== grupoAutorId) {
+    throw new NaoAutorizado('a crítica é escrita pelo grupo que revisa')
+  }
+
   const explicacaoDoTema = registro.explicacaoDoTema.trim()
   const cenarioQueQuebra = registro.cenarioQueQuebra.trim()
 
@@ -254,6 +273,156 @@ export async function pendenciasDaRodada(
       deve: p.revisorId === grupoId,
       aguarda: p.revisadoId === grupoId,
     }))
+}
+
+export type GrupoDaCritica = {
+  grupoId: string
+  tema: string | null
+  /** As URLs dos repositórios do grupo, na ordem dos integrantes. */
+  repositorios: readonly string[]
+}
+
+export type RegistroDaCritica = {
+  explicacaoDoTema: string
+  cenarioQueQuebra: string
+}
+
+export type CriticaDoGrupo = {
+  rodada: { ordem: number; nome: string }
+  /**
+   * O sentido em que o grupo consultado revisa outro. Nulo quando ele não foi
+   * sorteado como revisor nesta rodada.
+   */
+  escrevo: {
+    parId: string
+    revisado: GrupoDaCritica
+    /** O que o grupo já escreveu. Nulo antes de escrever. */
+    registro: RegistroDaCritica | null
+  } | null
+  /**
+   * O sentido em que o grupo é revisado. O `registro` é a crítica que ele
+   * recebeu — some enquanto o revisor não escreveu.
+   */
+  recebo: {
+    revisor: GrupoDaCritica
+    registro: RegistroDaCritica | null
+  } | null
+}
+
+/**
+ * A identidade de alguns grupos: tema e repositórios.
+ *
+ * O revisor precisa disso para se orientar — o Doc 5 §4.1 diz que ele lê o
+ * README e o contrato no repositório do colega, e se orienta em cerca de três
+ * minutos sem conhecer o domínio de antes.
+ */
+async function identidadesDeGrupos(
+  db: Db,
+  ids: readonly string[],
+): Promise<Map<string, GrupoDaCritica>> {
+  if (ids.length === 0) return new Map()
+
+  const linhas = await db
+    .select({
+      grupoId: grupos.id,
+      tema: temas.nome,
+      url: repositorios.url,
+      posicao: alunos.posicaoNoGrupo,
+    })
+    .from(grupos)
+    .leftJoin(temas, eq(temas.id, grupos.temaId))
+    .leftJoin(alunos, eq(alunos.grupoId, grupos.id))
+    .leftJoin(repositorios, eq(repositorios.alunoId, alunos.id))
+    .where(inArray(grupos.id, [...ids]))
+    .orderBy(asc(alunos.posicaoNoGrupo))
+
+  const porGrupo = new Map<string, GrupoDaCritica>()
+  for (const linha of linhas) {
+    const atual =
+      porGrupo.get(linha.grupoId) ??
+      ({ grupoId: linha.grupoId, tema: linha.tema ?? null, repositorios: [] as string[] })
+    if (linha.url) (atual.repositorios as string[]).push(linha.url)
+    porGrupo.set(linha.grupoId, atual)
+  }
+  return porGrupo
+}
+
+/**
+ * A crítica de um grupo numa rodada, nos dois sentidos.
+ *
+ * É o que a tela do aluno pede, e não existia: `pendenciasDaRodada` só diz o que
+ * falta, sem a identidade do outro grupo nem o texto já escrito, e
+ * `situacaoDaRodada` é a visão da turma inteira, do instrutor.
+ *
+ * O filtro é de consulta, não de tela (ADR 0001 · CLAUDE §5.3): só chegam ao
+ * navegador os dois pares em que este grupo entra. A crítica que um terceiro
+ * grupo escreveu sobre um quarto não é buscada, então não há o que esconder.
+ *
+ * Devolve nulo quando a rodada não existe. Grupo não sorteado tem `escrevo` e
+ * `recebo` nulos, e é assim que a tela sabe declarar a ausência — em vez de
+ * mostrar formulário para uma crítica que ninguém pediu.
+ */
+export async function criticaDoGrupoNaRodada(
+  db: Db,
+  rodadaId: string,
+  grupoId: string,
+): Promise<CriticaDoGrupo | null> {
+  const [rodada] = await db
+    .select({ ordem: rodadasDeCritica.ordem, nome: rodadasDeCritica.nome })
+    .from(rodadasDeCritica)
+    .where(eq(rodadasDeCritica.id, rodadaId))
+    .limit(1)
+
+  if (!rodada) return null
+
+  const pares = await db
+    .select({
+      parId: paresDeCritica.id,
+      revisorId: paresDeCritica.revisorId,
+      revisadoId: paresDeCritica.revisadoId,
+      explicacaoDoTema: registrosDeCritica.explicacaoDoTema,
+      cenarioQueQuebra: registrosDeCritica.cenarioQueQuebra,
+    })
+    .from(paresDeCritica)
+    .leftJoin(registrosDeCritica, eq(registrosDeCritica.parId, paresDeCritica.id))
+    .where(
+      and(
+        eq(paresDeCritica.rodadaId, rodadaId),
+        or(eq(paresDeCritica.revisorId, grupoId), eq(paresDeCritica.revisadoId, grupoId)),
+      ),
+    )
+
+  const comoRevisor = pares.find((p) => p.revisorId === grupoId) ?? null
+  const comoRevisado = pares.find((p) => p.revisadoId === grupoId) ?? null
+
+  const identidades = await identidadesDeGrupos(
+    db,
+    [comoRevisor?.revisadoId, comoRevisado?.revisorId].filter((x): x is string => x !== undefined),
+  )
+
+  const registroDe = (p: (typeof pares)[number]): RegistroDaCritica | null =>
+    p.explicacaoDoTema !== null && p.cenarioQueQuebra !== null
+      ? { explicacaoDoTema: p.explicacaoDoTema, cenarioQueQuebra: p.cenarioQueQuebra }
+      : null
+
+  const semIdentidade = (id: string): GrupoDaCritica => ({ grupoId: id, tema: null, repositorios: [] })
+
+  return {
+    rodada,
+    escrevo: comoRevisor
+      ? {
+          parId: comoRevisor.parId,
+          revisado: identidades.get(comoRevisor.revisadoId) ?? semIdentidade(comoRevisor.revisadoId),
+          registro: registroDe(comoRevisor),
+        }
+      : null,
+    recebo: comoRevisado
+      ? {
+          revisor: identidades.get(comoRevisado.revisorId) ?? semIdentidade(comoRevisado.revisorId),
+          registro: registroDe(comoRevisado),
+        }
+      : null,
+  }
 }
 
 /** A rodada inteira, para o instrutor ver quem ainda não escreveu. */

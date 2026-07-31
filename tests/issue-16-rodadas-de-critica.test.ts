@@ -186,7 +186,7 @@ describe('Issue 16 — rodadas de crítica com sorteio e roteiros', () => {
     // iniciantes de virar elogio mútuo (Doc 5 §4.2).
     for (const vazio of ['', '   ']) {
       await expect(
-        registraCritica(banco.db, par.parId, {
+        registraCritica(banco.db, par.parId, par.revisorId, {
           explicacaoDoTema: vazio,
           cenarioQueQuebra: 'E se cancelarem depois de começar?',
         }),
@@ -202,7 +202,7 @@ describe('Issue 16 — rodadas de crítica com sorteio e roteiros', () => {
       }),
     ).rejects.toThrow()
 
-    await registraCritica(banco.db, par.parId, {
+    await registraCritica(banco.db, par.parId, par.revisorId, {
       explicacaoDoTema: '  Eles controlam reservas de sala com prazo de devolução.  ',
       cenarioQueQuebra: 'E se cancelarem depois de já ter começado?',
     })
@@ -239,7 +239,7 @@ describe('Issue 16 — rodadas de crítica com sorteio e roteiros', () => {
     // leitura humana, e automatizar isso seria corrigir conteúdo (Doc 7 §6).
     for (const vazio of ['', '  ']) {
       await expect(
-        registraCritica(banco.db, par.parId, {
+        registraCritica(banco.db, par.parId, par.revisorId, {
           explicacaoDoTema: 'Eles controlam reservas de sala.',
           cenarioQueQuebra: vazio,
         }),
@@ -254,7 +254,7 @@ describe('Issue 16 — rodadas de crítica com sorteio e roteiros', () => {
       }),
     ).rejects.toThrow()
 
-    await registraCritica(banco.db, par.parId, {
+    await registraCritica(banco.db, par.parId, par.revisorId, {
       explicacaoDoTema: 'Eles controlam reservas de sala.',
       cenarioQueQuebra: 'E se o cliente cancelar depois de já ter começado?',
     })
@@ -291,7 +291,7 @@ describe('Issue 16 — rodadas de crítica com sorteio e roteiros', () => {
     // O revisor escreve. A pendência DELE some, a do outro lado continua — e é
     // essa metade que costuma sumir das telas, porque quem espera não tem nada a
     // fazer e ninguém lembra dele.
-    await registraCritica(banco.db, ida.parId, {
+    await registraCritica(banco.db, ida.parId, ida.revisorId, {
       explicacaoDoTema: 'Eles controlam reservas de sala.',
       cenarioQueQuebra: 'E se cancelarem depois de começar?',
     })
@@ -305,7 +305,7 @@ describe('Issue 16 — rodadas de crítica com sorteio e roteiros', () => {
     expect(doRevisado.some((p) => p.deve)).toBe(true)
 
     // Com os dois sentidos escritos, ninguém tem pendência.
-    await registraCritica(banco.db, volta.parId, {
+    await registraCritica(banco.db, volta.parId, volta.revisorId, {
       explicacaoDoTema: 'Eles atendem chamados com prioridade.',
       cenarioQueQuebra: 'E se dois chamados disputarem o mesmo técnico?',
     })
