@@ -59,7 +59,7 @@ export function Ficha({ ficha }: { ficha: FichaDaFila }) {
   }
 
   return (
-    <Cartao className="max-w-[76ch]">
+    <Cartao>
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h2 className="text-base font-semibold tracking-tight text-tinta">
           {ficha.integrantes.length > 0 ? ficha.integrantes.join(' · ') : 'Grupo sem integrante'}

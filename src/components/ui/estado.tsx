@@ -60,7 +60,7 @@ export function EstadoVazio({
 }) {
   return (
     <div
-      className={`flex max-w-[62ch] flex-col items-center gap-3 rounded-[var(--radius-cartao)] border border-dashed border-linha-forte px-6 py-10 text-center ${className}`}
+      className={`mx-auto flex w-full max-w-[62ch] flex-col items-center gap-3 rounded-[var(--radius-cartao)] border border-dashed border-linha-forte px-6 py-10 text-center ${className}`}
     >
       <MarcaBilhete className="h-12 w-auto text-tinta-tenue" />
       <p className="font-prosa text-base text-tinta">{titulo}</p>

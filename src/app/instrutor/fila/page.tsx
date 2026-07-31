@@ -115,7 +115,10 @@ export default async function FilaDeAprovacao({
           automática não chega aqui — o formulário volta para o grupo antes.
         </EstadoVazio>
       ) : (
-        <div className="flex flex-col gap-5">
+        // Duas colunas a partir de xl. A fila é lida de pé, circulando pela
+        // sala, e o ganho de ver dois grupos sem rolar é o mesmo do dia do
+        // instrutor. `items-start` para uma ficha alta não esticar a vizinha.
+        <div className="grid gap-5 xl:grid-cols-2 xl:items-start">
           {fichas.map((ficha) => (
             <Ficha key={ficha.respostaDeEscopoId} ficha={ficha} />
           ))}

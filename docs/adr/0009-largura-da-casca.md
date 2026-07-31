@@ -2,12 +2,48 @@
 
 | | |
 |---|---|
-| **Estado** | Aceita |
+| **Estado** | Aceita, revisada (ver §Revisão) |
 | **Data** | 2026-07-31 |
 | **Autoridade** | `docs/doc-7-spec-plataforma.md` §0.2 delega design e arquitetura ao desenvolvedor |
 | **Decide o que não estava decidido** | Nenhuma ADR falava de largura de casca |
 | **Relacionada** | ADR 0003 §7 (a régua), ADR 0006 §8 (desktop-first) |
 | **Não altera** | Nenhum documento da série |
+
+---
+
+## Revisão — a casca preenche, e centra no monitor largo
+
+O dono viu a casca num monitor de 1440 e a leu como defeito, não como margem:
+a coluna de leitura media 1024px ancorada à esquerda, e sobravam **416px de
+vazio assimétrico** à direita. Em várias telas — a entrada do instrutor, a fila,
+os espécimes de material — o card não chegava perto da borda, e o resultado
+parecia desalinhado.
+
+Isto é exatamente o **argumento contrário #1** desta ADR se realizando: "ancorar
+à esquerda pode ser pose… o sinal de que falhou é alguém procurando conteúdo no
+lado direito da tela." Foi o que aconteceu.
+
+A correção que a §1 original previa — pôr teto na `cheia` — não resolvia o vazio
+da `leitura`. A decisão nova é outra:
+
+- **A casca preenche o monitor comum** (1366–1440): teto de `82rem` na `leitura`,
+  `100rem` na `cheia`, e `mx-auto`. Num monitor comum o teto é maior que a
+  largura disponível, então a casca ocupa tudo e não há o que centrar.
+- **Centra só no monitor muito largo**, onde o teto morde: a margem fica
+  simétrica, que é a única leitura sã de um vazio grande.
+
+Não é voltar às colunas estreitas centradas que o dono rejeitou no começo —
+aquelas eram `max-w-2xl` (42rem) desperdiçando espaço dos dois lados. Esta
+preenche, e só reparte o excesso onde ele é grande demais para ficar de um lado
+só. O restante desta ADR — medida de leitura em `ch`, a régua de ponta a ponta,
+o `desafio` sem cap inerte — continua valendo.
+
+Consertos que vieram junto, cada um pela mesma causa (medida estreita contra
+espaço vazio): a fila ganhou duas colunas de fichas; a pergunta condutora passou
+de 62ch para 90ch e alinhou à margem, para a pergunta do curso caber numa linha
+em vez de deixar "tudo?" sozinho na segunda; e a barra de controle da
+apresentação ganhou `mt-auto`, para ficar no rodapé quando a lâmina é curta em
+vez de subir para o meio da tela.
 
 ---
 
