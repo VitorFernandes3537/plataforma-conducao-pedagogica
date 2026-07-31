@@ -1,10 +1,12 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { Ficha, type FichaDaFila } from '@/components/instrutor/ficha-da-fila'
 import { AusenciaDeclarada, Cabecalho, Cartao, Casca, EstadoVazio, Linha } from '@/components/ui'
 import { db } from '@/db'
 import { turmasDoInstrutor } from '@/db/dia-corrente'
 import { filaDoInstrutor } from '@/db/fila-de-aprovacao'
+import { auth } from '@/lib/auth'
 
 export const metadata = { title: 'Fila de aprovação — PCP' }
 
@@ -34,8 +36,16 @@ export default async function FilaDeAprovacao({
   searchParams: Promise<{ turma?: string }>
 }) {
   const { turma: turmaPedida } = await searchParams
+
+  // Revalida a sessão por conta própria (ADR 0010 §1). Ler `searchParams` já
+  // torna esta rota dinâmica, mas o modo de renderização é consequência e não o
+  // motivo: quem decide o escopo de um grupo precisa dizer quem é, e o papel é
+  // conferido de novo no módulo de banco, contra a linha e não contra o token.
+  const sessao = await auth()
+  if (!sessao?.usuarioId) redirect('/entrar?callbackUrl=/instrutor/fila')
+
   const banco = db()
-  const turmas = await turmasDoInstrutor(banco)
+  const turmas = await turmasDoInstrutor(banco, sessao.usuarioId)
 
   if (turmas.length === 0) {
     return (
