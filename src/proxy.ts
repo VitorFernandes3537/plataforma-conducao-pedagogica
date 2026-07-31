@@ -14,7 +14,7 @@ export async function proxy(request: NextRequest) {
   const sessao = await auth()
 
   if (!sessao) {
-    const login = new URL('/api/auth/signin', request.url)
+    const login = new URL('/entrar', request.url)
     login.searchParams.set('callbackUrl', pathname)
     return NextResponse.redirect(login)
   }

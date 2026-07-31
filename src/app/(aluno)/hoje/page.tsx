@@ -27,7 +27,7 @@ import { auth } from '@/lib/auth'
  */
 export default async function Hoje() {
   const sessao = await auth()
-  if (!sessao?.usuarioId) redirect('/api/auth/signin?callbackUrl=/hoje')
+  if (!sessao?.usuarioId) redirect('/entrar?callbackUrl=/hoje')
 
   const banco = db()
   const matricula = await matriculaDoUsuario(banco, sessao.usuarioId)

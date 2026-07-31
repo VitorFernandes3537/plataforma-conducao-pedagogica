@@ -32,6 +32,13 @@ async function buscaUsuario(githubUserId: number) {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [GitHub],
+  // Sem estas duas chaves o Auth.js serve as páginas dele: fora do layout raiz,
+  // em inglês, sem as fontes do projeto e com um `prefers-color-scheme: dark`
+  // que o `color-scheme: light` do sistema não alcança, porque é outro
+  // documento. `error` aponta para a mesma rota de propósito — a recusa por
+  // falta de matrícula é o desfecho mais provável do primeiro dia, e ela precisa
+  // cair ao lado do botão de tentar de novo, não numa página sem saída.
+  pages: { signIn: '/entrar', error: '/entrar' },
   // Sessão em JWT: não há adapter de banco, então o proxy consegue decidir
   // sem consultar o Postgres a cada request.
   session: { strategy: 'jwt' },
