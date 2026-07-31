@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 
-import { Botao, Campo, Cartao, Etiqueta } from '@/components/ui'
+import { Botao, CampoDeProsa, Cartao, Etiqueta } from '@/components/ui'
 
 import { confirmaPushAction, registraLogAction } from '@/app/(aluno)/acoes'
 
@@ -52,10 +52,15 @@ export function FechamentoDoDia({
     >
       {erro && <p className="legenda mb-3 text-portao">{erro}</p>}
 
-      <Campo
+      {/* Estava num `Campo`, que renderiza `<input>` de uma linha. O log é
+          prosa de várias linhas e é item avaliado (Doc 6 §5) — um campo de uma
+          linha pede uma frase, e o que se pede aqui não é uma frase. A altura
+          não é enfeite: ela é a única coisa na tela que diz o tamanho da
+          resposta esperada. */}
+      <CampoDeProsa
         id="log-do-obstaculo"
         rotulo="Log do obstáculo"
-        ajuda="Onde travou, o que tentou, o que destravou."
+        ajuda="Onde travou, o que tentou, o que destravou. O log entra na avaliação — o código não é corrigido aqui."
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
         disabled={pendente}
