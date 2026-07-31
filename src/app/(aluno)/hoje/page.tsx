@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { ContratoDeHoje } from '@/components/aluno/contrato-de-hoje'
@@ -76,6 +77,25 @@ export default async function Hoje() {
           </Etiqueta>
         )}
       </Cabecalho>
+
+      {/* As telas que o aluno tem além do dia. Não é menu global — é o percurso
+          dele, e cada uma abre sozinha dizendo quando serve (o escopo no D3, o
+          incremento no D12). A crítica fica de fora daqui porque depende da
+          rodada, e o aluno chega a ela pelo link que o instrutor compartilha. */}
+      <nav
+        aria-label="As suas telas"
+        className="-mt-3 flex flex-wrap gap-x-5 gap-y-1 border-b border-linha pb-4"
+      >
+        <Link href="/escopo" className="legenda hover:text-tinta">
+          escopo do grupo
+        </Link>
+        <Link href="/incremento" className="legenda hover:text-tinta">
+          incremento
+        </Link>
+        <Link href="/percurso" className="legenda hover:text-tinta">
+          percurso e nota
+        </Link>
+      </nav>
 
       {obstaculo && (
         <Cartao cru>

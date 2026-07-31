@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 import { LancamentoDaTurma } from '@/components/instrutor/lancamento-da-turma'
 import { LateralDoDia } from '@/components/instrutor/lateral-do-dia'
 import { MuralDoDia } from '@/components/instrutor/mural-do-dia'
@@ -86,6 +88,25 @@ export default async function DiaDaTurma({ params }: { params: Promise<{ turmaId
           </Etiqueta>
         )}
       </Cabecalho>
+
+      {/* Os atalhos da turma. O dia é o hub do instrutor, e daqui ele alcança as
+          outras telas que servem esta turma — sem menu global, que a ADR 0006 §2
+          recusa: cada tela é um momento, não um item de navegação. A ficha de
+          cada grupo se alcança pelos nomes, na avaliação e no fechamento. */}
+      <nav
+        aria-label="Telas desta turma"
+        className="-mt-3 flex flex-wrap gap-x-5 gap-y-1 border-b border-linha pb-4"
+      >
+        <Link href={`/instrutor/fila?turma=${turmaId}`} className="legenda hover:text-tinta">
+          fila de aprovação
+        </Link>
+        <Link href={`/instrutor/apresentacao/${dia.diaId}`} className="legenda hover:text-tinta">
+          apresentação do dia
+        </Link>
+        <Link href={`/instrutor/agregacao?turma=${turmaId}`} className="legenda hover:text-tinta">
+          fechamento
+        </Link>
+      </nav>
 
       {/* Duas colunas a partir de lg. A coluna principal é o obstáculo do dia; a
           lateral é a sala fora dele.
