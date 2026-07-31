@@ -31,7 +31,9 @@
      Quatro níveis de UMA tinta. Nenhum cinza novo entra no sistema. */
   --color-tinta: #17150f;
   --color-tinta-media: #4a4640;
-  --color-tinta-fraca: #7c776d;
+  /* Escurecida de #7c776d: sobre `recuo` dava 3.97:1, abaixo do minimo de
+     4.5:1 para texto. A mudanca e imperceptivel e o nivel volta a passar. */
+  --color-tinta-fraca: #736e65;
   --color-tinta-tenue: #ada79a;
 
   /* ── Estrutura ────────────────────────────────────────────────────── */

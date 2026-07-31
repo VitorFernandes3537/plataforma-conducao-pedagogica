@@ -10,7 +10,9 @@ type Comum = {
 }
 
 const BASE =
-  'w-full rounded-[var(--radius-controle)] border bg-superficie px-3 py-2 text-[0.9375rem] text-tinta placeholder:text-tinta-tenue'
+  // Placeholder em `fraca` e nao `tenue`: tenue da 2.31:1, e placeholder e
+  // texto que alguem precisa ler para saber o que escrever.
+  'w-full rounded-[var(--radius-controle)] border bg-superficie px-3 py-2 text-[0.9375rem] text-tinta placeholder:text-tinta-fraca'
 
 function Moldura({
   rotulo,

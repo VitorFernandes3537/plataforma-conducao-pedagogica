@@ -94,9 +94,12 @@ export function ReguaDoDia({
                   {bloco.tipo}
                 </span>
               )}
+              {/* `fraca` e nao `tenue` no dia que nao e o corrente: sao dez
+                  pixels de numero, e tenue os deixava em 2.31:1. A hierarquia
+                  entre corrente e resto continua, so nao custa a leitura. */}
               <span
                 className={`dado shrink-0 text-[0.625rem] ${
-                  ehCorrente ? 'text-tinta' : 'text-tinta-tenue'
+                  ehCorrente ? 'text-tinta' : 'text-tinta-fraca'
                 }`}
               >
                 {bloco.duracaoMinutos}
