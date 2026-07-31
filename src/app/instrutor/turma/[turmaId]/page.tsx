@@ -1,12 +1,15 @@
 import { LancamentoDaTurma } from '@/components/instrutor/lancamento-da-turma'
+import { LateralDoDia } from '@/components/instrutor/lateral-do-dia'
 import { MuralDoDia } from '@/components/instrutor/mural-do-dia'
 import { ReguaDoDia } from '@/components/regua-do-dia'
 import { AusenciaDeclarada, Cabecalho, Cartao, Casca, Etiqueta } from '@/components/ui'
 import { db } from '@/db'
 import { blocosDoDia } from '@/db/calendario'
 import { diaCorrenteDaTurma } from '@/db/dia-corrente'
+import { atribuicoesDoDia } from '@/db/extensao'
 import { muralEmAberto } from '@/db/mural'
 import { painelDoDia } from '@/db/painel'
+import { recuperacoesDaTurmaNoDia } from '@/db/recuperacao'
 import { escalaDoCurso, lancamentoDoDia } from '@/db/registro-diario'
 import { AvancarDia } from './avancar-dia'
 
@@ -41,11 +44,13 @@ export default async function DiaDaTurma({ params }: { params: Promise<{ turmaId
     )
   }
 
-  const [blocos, painel, escala, mural] = await Promise.all([
+  const [blocos, painel, escala, mural, reposicoes, atribuicoes] = await Promise.all([
     blocosDoDia(banco, dia.diaId),
     painelDoDia(banco, turmaId, dia.diaId),
     escalaDoCurso(banco, dia.cursoId),
     muralEmAberto(banco, turmaId),
+    recuperacoesDaTurmaNoDia(banco, turmaId, dia.diaId),
+    atribuicoesDoDia(banco, turmaId, dia.diaId),
   ])
 
   const alunos = painel.obstaculoId
@@ -82,8 +87,19 @@ export default async function DiaDaTurma({ params }: { params: Promise<{ turmaId
         )}
       </Cabecalho>
 
+      {/* Duas colunas a partir de lg. A coluna principal é o obstáculo do dia; a
+          lateral é a sala fora dele.
+
+          Antes daqui a tela era uma coluna só com teto de 72ch por cartão, e
+          sobrava um vão à direita que não tinha motivo visível — a medida de
+          leitura estava trabalhando, mas contra um espaço vazio. As duas colunas
+          fazem a mesma medida virar estrutura: o teto continua protegendo a
+          linha "nome … alvo" do lançamento, e o que sobrava passou a carregar os
+          dois momentos do instrutor que a ADR 0006 §3 lista e nenhuma tela
+          servia. */}
+      <div className="grid gap-x-8 gap-y-8 lg:grid-cols-[minmax(0,66ch)_minmax(0,34ch)] lg:items-start">
+        <div className="flex min-w-0 flex-col gap-8">
       <Cartao
-        className="max-w-[72ch]"
         legenda="Superação do obstáculo"
         acao={
           painel.apuracao.limiarAtingido ? (
@@ -115,14 +131,7 @@ export default async function DiaDaTurma({ params }: { params: Promise<{ turmaId
         )}
       </Cartao>
 
-      {/* Duas colunas a partir de xl, e é aqui que a largura vira ganho em vez
-          de esticamento: o lançamento e o mural são consultados dentro dos
-          mesmos 180 minutos, e lado a lado o instrutor deixa de rolar a tela
-          entre um e outro. Abaixo de xl eles empilham com medida própria, para
-          a linha "nome … alvo" não abrir os dois extremos. */}
-      <div className="grid gap-8 xl:grid-cols-2 xl:items-start">
-        {painel.obstaculoId && (
-          <div className="max-w-[72ch] xl:max-w-none">
+          {painel.obstaculoId && (
             <LancamentoDaTurma
               turmaId={turmaId}
               diaId={dia.diaId}
@@ -130,12 +139,12 @@ export default async function DiaDaTurma({ params }: { params: Promise<{ turmaId
               escala={escala}
               alunos={alunos}
             />
-          </div>
-        )}
+          )}
 
-        <div className="max-w-[72ch] xl:max-w-none">
           <MuralDoDia turmaId={turmaId} grupos={mural} />
         </div>
+
+        <LateralDoDia reposicoes={reposicoes} atribuicoes={atribuicoes} />
       </div>
     </Casca>
   )

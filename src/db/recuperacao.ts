@@ -153,21 +153,27 @@ export async function recuperacoesDoAluno(
  *
  * Complementa a leitura por aluno: na janela de 20 minutos da abertura, o
  * instrutor olha a turma, não um aluno por vez.
+ *
+ * O NOME vem junto. A consulta devolvia só `alunoId`, e a tela teria de exibir
+ * uuid — o mesmo defeito que `lancamentoDoDia` e `filaDoInstrutor` já tiveram:
+ * passa no teste e falha na sala, porque ninguém reconhece um aluno por id.
  */
 export async function recuperacoesDaTurmaNoDia(
   db: Db,
   turmaId: string,
   diaId: string,
-): Promise<{ alunoId: string; oQuePerdeu: string; oQueRepos: string }[]> {
+): Promise<{ alunoId: string; nome: string; oQuePerdeu: string; oQueRepos: string }[]> {
   return db
     .select({
       alunoId: registrosDiarios.alunoId,
+      nome: usuarios.nome,
       oQuePerdeu: registrosDeRecuperacao.oQuePerdeu,
       oQueRepos: registrosDeRecuperacao.oQueRepos,
     })
     .from(registrosDeRecuperacao)
     .innerJoin(registrosDiarios, eq(registrosDiarios.id, registrosDeRecuperacao.registroDiarioId))
     .innerJoin(alunos, eq(alunos.id, registrosDiarios.alunoId))
+    .innerJoin(usuarios, eq(usuarios.id, alunos.usuarioId))
     .where(and(eq(alunos.turmaId, turmaId), eq(registrosDiarios.diaId, diaId)))
     .orderBy(asc(registrosDeRecuperacao.registradoEm))
 }

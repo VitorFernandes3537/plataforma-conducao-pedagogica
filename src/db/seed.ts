@@ -281,6 +281,17 @@ export async function semeia(bancoOuTransacao: Db) {
   return bancoOuTransacao.transaction(async (db) => semeiaEm(db as Db))
 }
 
+/**
+ * Qual obstáculo o dia trabalha, no curso de exemplo.
+ *
+ * Só o dia do meio: o primeiro é abertura e o último é marco, e nenhum dos dois
+ * trabalha obstáculo no calendário real. Ter os dois casos em desenvolvimento é
+ * o ponto — a tela do instrutor tem um ramo para cada.
+ */
+function obstaculoDoDia(ordem: number, criados: readonly { id: string }[]): string | null {
+  return ordem === 2 ? (criados[0]?.id ?? null) : null
+}
+
 async function semeiaEm(db: Db) {
   const [curso] = await db.insert(cursos).values(EXEMPLO.curso).returning()
   if (!curso) throw new Error('seed: curso não foi criado')
@@ -295,7 +306,10 @@ async function semeiaEm(db: Db) {
     .insert(niveisDeAvaliacao)
     .values(EXEMPLO.niveisDeAvaliacao.map((n) => ({ cursoId: curso.id, ...n })))
 
-  await db.insert(obstaculos).values(EXEMPLO.obstaculos.map((o) => ({ cursoId: curso.id, ...o })))
+  const obstaculosCriados = await db
+    .insert(obstaculos)
+    .values(EXEMPLO.obstaculos.map((o) => ({ cursoId: curso.id, ...o })))
+    .returning()
 
   // Sem instrutor não há como abrir a área de instrutor em desenvolvimento.
   const [instrutor] = await db
@@ -309,7 +323,16 @@ async function semeiaEm(db: Db) {
   for (const definicao of EXEMPLO.dias) {
     const [dia] = await db
       .insert(dias)
-      .values({ cursoId: curso.id, ordem: definicao.ordem })
+      .values({
+        cursoId: curso.id,
+        ordem: definicao.ordem,
+        // Nenhum dia apontava para obstáculo, então `painelDoDia` devolvia nulo
+        // sempre e a tela do instrutor caía em "dia sem obstáculo" nos três dias
+        // — o lançamento da avaliação, que é o miolo dela, nunca aparecia em
+        // desenvolvimento. Dia de abertura e dia de marco seguem sem obstáculo
+        // de propósito: eles existem no calendário real (Doc 4 §3 e §4).
+        obstaculoId: obstaculoDoDia(definicao.ordem, obstaculosCriados),
+      })
       .returning()
     if (!dia) throw new Error('seed: dia não foi criado')
     diasPorOrdem.set(definicao.ordem, dia.id)
