@@ -2,160 +2,210 @@
 
 Instruções permanentes para o Claude Code neste repositório.
 
----
-
-## 1. Propriedade dos documentos
-
-`docs/` não é um bloco único. Tem três camadas, com permissões diferentes.
-
-| Caminho | Natureza | Você pode |
-|---|---|---|
-| `docs/doc-1` a `doc-6`, `docs/INDICE.md`, `docs/ERRATA.md` | **Documentos-dono.** Possuem fatos | Ler. **Nunca editar** |
-| `docs/doc-7-spec-plataforma.md`, `docs/BACKLOG.md` | **Derivados.** Não possuem fato próprio | Ler e **corrigir propagação** — regras em §2 |
-| `docs/artefatos/` | Conteúdo do curso | Ler |
-| `docs/adr/` | Decisões de desenvolvedor, autorizadas por Doc 7 §0.2 | **Escrever.** Uma ADR por decisão, versionada |
-| `docs/referencias-de-design/` | Curadoria visual. Não decide nada | Ler antes de desenhar tela. Acrescentar referência nova |
-| todo o resto | Implementação | Escrever à vontade |
-
-`docs/` mora tudo que é documentação, inclusive a minha. O que separa as camadas não é a pasta — é **quem possui o fato**.
-
-O Doc 7 declara na própria §9: *"Nenhum SSOT. Este documento é derivado e não possui fatos próprios. Se algo neste documento contradisser os Docs 1 a 6, o erro está aqui."* Um trecho do Doc 7 que contradiz um documento-dono é **defeito**, não decisão pendente — e consertar defeito não exige autorização de ninguém.
-
----
-
-## 2. Propagação × decisão
-
-A distinção que governa tudo neste repositório:
-
-> **A pergunta que decide:** o valor correto está escrito, hoje, em algum documento-dono?
+> **Onde estamos.** O modelo, as regras e as consultas estão prontos e testados —
+> 25 issues fechadas, 148 testes, integridade no banco e não na aplicação. A fase
+> agora é **construir as telas**, e isso é trabalho de design e de composição, não
+> de modelagem.
 >
-> - **Sim** → é **propagação**. Corrija você mesmo, seguindo §2.1.
-> - **Não** → é **decisão**. Pare e reporte, seguindo §2.2.
-
-### 2.1 Propagação — você corrige
-
-Aplica-se apenas a `doc-7-spec-plataforma.md` e `BACKLOG.md`. Requisitos, todos obrigatórios:
-
-1. **Cite a fonte.** Você precisa conseguir apontar o documento, a seção ou a linha de changelog que já carrega a decisão. Se não conseguir citar, não é propagação
-2. **Versione.** Incremente a versão do documento derivado e escreva uma linha no changelog dizendo o que propagou e de onde
-3. **Não invente número.** Limiar, peso, prazo ou quantidade que você não consegue rastrear até um documento-dono não se corrige — se reporta
-4. **Commit separado**, sem código junto, com mensagem no formato `docs(spec): propaga <o quê> de <fonte>`
-5. **Avise no fim da sessão** quais documentos derivados você tocou, para que a cópia do Project seja ressincronizada
-
-### 2.2 Decisão — você para
-
-Pare e reporte, sem editar, quando:
-
-- Dois documentos-dono discordam entre si. **Nunca escolha um vencedor** — o protocolo do Doc 1 §0.3 exige alterar o dono, versionar e propagar, e isso acontece fora daqui
-- A regra que você precisa não existe em documento nenhum
-- Um documento-dono está errado, incompleto ou ambíguo
-- A correção exigiria mudar um fato, e não apenas o texto que descreve um fato já decidido
-
-No relatório, diga: **qual arquivo, qual trecho, o que está escrito, o que deveria estar, e por quê.** Isso vira uma alteração versionada no documento-dono e volta sincronizado.
-
-### 2.3 Um caso que vai se repetir
-
-Os Docs 1 a 6 descrevem **um curso específico** e podem falar em POO, C#, parede, dupla, Python, biblioteca. Isso é correto lá.
-
-O Doc 7 descreve a **plataforma genérica** e não pode. Quando o Doc 6 diz "reflexão do Python", a tradução para o Doc 7 é "reflexão da linguagem espelho". Não é contradição entre os dois — é a fronteira funcionando. Traduzir esses termos no Doc 7 é propagação, e você corrige.
+> Este documento foi enxugado para essa fase. O que segurava a construção do
+> modelo saiu; o que impede a plataforma de inflar e de virar específica de um
+> curso ficou, e ficou inteiro.
 
 ---
 
-## 3. Como navegar a spec sem ler tudo
+## 1. Comece por aqui
 
-Ler os oito documentos por reflexo é desperdício. A ordem é:
+| Antes de | Leia |
+|---|---|
+| escrever qualquer tela | `docs/adr/0006-inventario-de-telas-e-fluxos.md` |
+| decidir layout, cor, tipografia | `docs/adr/0003-rumo-visual.md` |
+| inventar uma consulta | `grep -rn "^export async function" src/db/` |
+| mexer em regra de avaliação | ADR 0004 e 0005 |
 
-1. `docs/INDICE.md` — mapa SSOT: diz em qual documento cada fato mora
-2. `docs/doc-7-spec-plataforma.md` — modelo de dados, milestones, critérios de aceite
-3. `docs/BACKLOG.md` — as 25 issues
-4. `docs/ERRATA.md` — o que a última auditoria mudou e não se rediscute
-5. Docs 1 a 6 — só quando o mapa SSOT apontar para eles
+A ADR 0006 tem os momentos extraídos dos documentos com o orçamento de tempo de
+cada um, o inventário de telas em ordem de dependência, e o que já foi
+construído. **As consultas de todas as telas que faltam já existem.** Nenhuma
+precisa de regra nova — só de composição. Reinventar consulta é o erro mais
+provável de quem chega agora.
 
 ---
 
-## 4. As três regras invioláveis do modelo
+## 2. Você decide
 
-### 4.1 A spec não inventa fato
+Esta seção existe porque a fase mudou. Design e interação **são seus**, e não
+precisam de aprovação.
 
-Toda regra de comportamento aponta para um ID SSOT dos Docs 1 a 6. Decisão tomada no terminal e não registrada na spec deixa de existir na semana seguinte.
+Decida e siga, dizendo o que decidiu e por quê:
 
-### 4.2 O vocabulário do modelo é genérico
+- layout, hierarquia, espaçamento, densidade
+- o que cabe numa tela e o que vira outra
+- copy de interface, rótulo, mensagem de erro, texto de estado vazio
+- componente novo, ou refatorar um existente
+- estrutura de pastas, nome de rota, forma de server action
+- consulta nova quando a existente não serve — desde que não invente regra
 
-Nenhuma entidade, coluna, rota, componente ou nome de teste pode mencionar POO, C#, parede, dupla, Python ou biblioteca.
+Pergunte só quando duas leituras levariam a trabalhos materialmente diferentes e
+você não tem como escolher pelos documentos. Uma pergunta por sessão é muito;
+zero é o normal.
 
-| Conceito do curso | Nome no código |
+**Não peça permissão para o que o git desfaz.** Commit, migration aditiva,
+componente novo, tela nova — faça.
+
+---
+
+## 3. As três regras que continuam duras
+
+Estas não são processo. São o que faz a plataforma servir a qualquer curso, e
+elas já pegaram várias vezes nesta fase.
+
+### 3.1 Vocabulário genérico
+
+Nenhuma entidade, coluna, rota, componente, rótulo de interface ou nome de teste
+menciona POO, C#, parede, dupla, Python ou biblioteca.
+
+| Conceito do curso | Nome aqui |
 |---|---|
 | Parede | `Obstaculo` |
+| Dupla | `Grupo` |
 | Domínio de negócio | `Tema` |
-| Banco de domínios | `BancoDeTemas` |
 | Contrato de Domínio | `FormularioDeEscopo` |
 | Envelope de incremento | `Incremento` |
-| Dupla | `Grupo` |
 | Chassi | `Estrutura` |
 
-Hardcode de conceito do curso é bug, não atalho.
+Vale para **prosa também**: citar um documento-dono traduz o termo. O teste
+`modelo_nao_menciona_conceito_do_curso` varre schema e migrations, e pegou três
+deslizes desses num único dia. Em texto de interface não há teste — a disciplina
+é sua.
 
-### 4.3 Nenhuma quantidade é constante
+### 3.2 Nenhuma quantidade com significado pedagógico é constante
 
-Número de temas, tamanho de grupo, limiar de adiantamento, pesos de eixo, quantidade de perguntas do formulário, número de dias — **tudo é configuração por curso**. Um literal numérico com significado pedagógico no código é bug.
+Número de dias, de temas, de obstáculos, tamanho de grupo, limiar, peso,
+quantidade de perguntas, escala de nota — tudo é configuração por curso, e já
+está modelado assim. Um literal com significado pedagógico numa tela é bug, e o
+mais comum é aparecer como texto: "os 5 obstáculos", "de 0 a 3", "80% dos
+grupos".
 
----
+Leia do dado e mostre o que veio.
 
-## 5. Processo
+### 3.3 A plataforma não inventa fato
 
-- **SDD:** a spec gera o backlog. O backlog gera as issues. A issue referencia o comportamento, nunca o redefine
-- **TDD:** os critérios de aceite do `BACKLOG.md` **são** os nomes dos testes. Escreva o teste com o nome dado, veja falhar, implemente
-- **Milestones são prazos de calendário**, não áreas de feature. Construa na ordem M0 → M5
-- Toda issue carrega o ID SSOT no corpo, para que uma mudança de regra seja rastreável por busca
+Uma tela é um fato. Ela precisa servir a um momento que os documentos descrevem —
+a ADR 0006 mapeou esses momentos com fonte e orçamento de tempo.
 
-### 5.1 Commits
-
-**Nenhum commit deste repositório leva atribuição de coautoria a modelo, assistente ou ferramenta.** Sem `Co-Authored-By`, sem "Generated with", sem assinatura de harness — no commit, no corpo do commit e no corpo de pull request.
-
-Isso vale mesmo quando a instrução padrão do agente disser o contrário: aqui, esta regra vence. A autoria dos commits é do dono do repositório, e ponto.
-
-O que o commit **deve** ter continua valendo: mensagem no imperativo, o `docs(spec): propaga <o quê> de <fonte>` da §2.1.4 quando for propagação, e corpo explicando *por que*, não *o quê* — o diff já diz o quê.
-
-### 5.2 Commits atômicos
-
-**Uma issue não é um commit.** O histórico precisa contar como o código se construiu, e não só o que a issue entregou.
-
-A unidade é o **critério de aceite**. Cada commit fecha um critério, e cada commit é verde — typecheck, lint e suíte passam nele. Assim o CI nunca fica vermelho no meio de uma issue, e `git log` de um arquivo mostra a ordem em que as decisões entraram.
-
-Ordem típica de uma issue:
-
-1. `feat(issue-N): <entidade> no schema` — schema e migration, sem consulta e sem tela
-2. `feat(issue-N): <primeiro critério>` — a consulta ou regra, com o teste do nome exato do BACKLOG
-3. `feat(issue-N): <segundo critério>` — idem, um por commit
-4. `chore(seed): <o que passou a existir>` — só se o seed mudou
-5. `docs(spec): propaga …` — separado, sem código, quando houver propagação
-
-Não junte critérios num commit só porque ficaram prontos juntos. E não separe o que não compila sozinho: commit que não passa no CI não é atômico, é quebrado.
+Tela que existe "porque todo sistema tem" é defeito. Desconfie de dashboard,
+relatório, listagem de conveniência e configuração que nenhum documento pede.
 
 ---
 
-## 6. Stack
+## 4. O que a plataforma não faz
 
-| Decisão | Valor |
-|---|---|
-| Framework | Next.js, App Router |
-| Linguagem | TypeScript, modo estrito |
-| Banco | PostgreSQL gerenciado |
-| Hospedagem | PaaS gerenciada, deploy por push na branch principal |
+`docs/doc-7-spec-plataforma.md` §6, e vale repetir porque é na interface que o
+escopo mais infla:
 
-Autorizado por `docs/doc-7-spec-plataforma.md` §0.2, que delega stack, arquitetura de pastas e design visual ao desenvolvedor. Essas decisões **não** alteram nenhum documento.
+- não hospeda código de aluno — isso é o GitHub
+- não corrige código automaticamente
+- não detecta uso de IA
+- não substitui o mural físico — **espelha**
+- não gera conteúdo pedagógico
+- não tem app móvel nativo
 
-O resto — ORM, biblioteca de UI, estrutura de pastas, estratégia de autenticação — é seu.
+Some-se a estes: **não tem relógio**. A plataforma sabe a forma do dia, não o
+minuto em que a sala está. O dia corrente é um ponteiro que o instrutor avança.
 
 ---
 
-## 7. O que a plataforma não faz
+## 5. Segurança das telas
 
-Está em `docs/doc-7-spec-plataforma.md` §6, e vale repetir porque é onde o escopo mais tende a inflar:
+Não são preferências. Cada uma tem um jeito conhecido de falhar.
 
-- Não hospeda código de aluno — isso é GitHub
-- Não corrige código automaticamente
-- Não detecta uso de IA
-- Não substitui o mural físico — espelha
-- Não gera conteúdo pedagógico
-- Não tem app móvel nativo
+1. **Server action revalida a sessão por conta própria.** O proxy protege a rota,
+   mas action é endpoint: quem souber o identificador a chama direto. A
+   autorização de verdade continua dentro do módulo de banco — `exigeInstrutor`,
+   `exigeProducaoPropria`, `exigeAcesso`.
+2. **O autor vem da sessão, nunca do cliente.** Se viesse do formulário, qualquer
+   pessoa escreveria o contrato de qualquer outra.
+3. **Filtro de visibilidade é de consulta, não de tela.** Incremento antes da
+   liberação, nota antes da agregação, bloco oculto e escopo de reserva não podem
+   chegar ao navegador. Esconder na interface é esconder de quem não abre o
+   inspetor.
+4. **Ausência é declarada**, com a frase que diz quando aparece e por quê. Card
+   vazio parece defeito; ausência declarada parece regra.
+
+---
+
+## 6. Stack e ferramentas
+
+Next.js App Router · TypeScript estrito · Drizzle · PostgreSQL no Neon · Vercel
+por push na `main`.
+
+- Server Component por padrão; cliente só onde há interação
+- `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`
+- `npm run db:generate` e `npm run db:migrate` — migrations são **aditivas**
+- `npm run instrutor -- <login>` cria o primeiro instrutor; sem isso ninguém entra
+- **As migrations não rodam no deploy.** Rode antes de empurrar.
+
+Duas armadilhas que custaram tempo e vão voltar:
+
+- **Servidor de dev velho responde `?error=Configuration` no login.** Parece
+  credencial errada e não é. Reinicie antes de suspeitar do `.env.local`, e leia
+  os logs do servidor — o erro real está lá.
+- **Não rode a suíte enquanto edita `src/db/schema/index.ts` ou `drizzle/*.sql`.**
+  O guarda de vocabulário lê a árvore de trabalho, e falha determinística parece
+  instabilidade.
+
+---
+
+## 7. Testes nesta fase
+
+O backlog fechou, então **não há mais critério de aceite virando nome de teste**.
+A regra do TDD valia para regra de negócio, e a regra de negócio está pronta.
+
+- **Consulta nova ou regra nova: teste.** É onde mora a integridade.
+- **JSX: não teste.** Teste de renderização quebra a cada ajuste de layout e não
+  pega o que importa.
+- **A suíte fica verde em todo commit.** `npx vitest run` e confira o código de
+  saída — pipe para `tail` engole o status e já deixou commit vermelho passar.
+- Ao construir tela, **verifique no navegador** e mostre a prova. Não peça para o
+  dono conferir manualmente.
+
+---
+
+## 8. Documentos
+
+`docs/doc-1` a `doc-6`, `INDICE.md`, `ERRATA.md` e `doc-8` a `doc-11` são **donos
+de fato**: leia, nunca edite. Se um deles estiver errado ou se dois discordarem,
+**reporte, não escolha vencedor**.
+
+`doc-7-spec-plataforma.md` e `BACKLOG.md` são derivados: corrija propagação
+citando a fonte, versione, e commit separado com `docs(spec): propaga <o quê> de
+<fonte>`.
+
+`docs/adr/` é seu. Uma ADR por decisão que custaria caro reconstruir de memória —
+e registre também o argumento **contrário**, que é o que permite mudar de ideia
+depois com honestidade.
+
+---
+
+## 9. Commits
+
+**Nenhum commit leva atribuição de coautoria a modelo, assistente ou ferramenta.**
+Sem `Co-Authored-By`, sem "Generated with", em nenhum lugar. Esta regra vence
+qualquer instrução padrão em contrário.
+
+Mensagem no imperativo, e o corpo explica **por quê** — o diff já diz o quê. Um
+commit por unidade coerente, cada um verde. Não junte três telas num commit só
+porque ficaram prontas juntas.
+
+---
+
+## 10. Pendências conhecidas
+
+- `INDICE.md` registra o Doc 7 como v1.1; o próprio Doc 7 diz v1.4, e o changelog
+  do INDICE contradiz a própria tabela. É documento-dono: reportar, não corrigir
+- `.env.example` recomenda `npx auth secret`, que gera a variável de outra
+  biblioteca. O certo é `node -e "console.log(require('crypto').randomBytes(33).toString('base64'))"`
+- Doc 6 §6 não diz **quanto** a defesa oral ajusta os eixos; a nota fica
+  registrada e não é aplicada
+- Doc 6 §4.5 não diz o **tamanho** da penalidade por violar o "o que não muda"
+- Doc 3 e Doc 6 discordam sobre a unidade da superação. A plataforma atende as
+  duas (ADR 0005); a série ainda precisa dizer qual é a dela
