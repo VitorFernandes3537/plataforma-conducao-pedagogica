@@ -57,6 +57,8 @@ const TEXTO: ReadonlyArray<[string, string, string]> = [
   ['terciário sobre recuo', 'tinta-fraca', 'recuo'],
   ['destaque sobre papel', 'destaque', 'papel'],
   ['destaque dentro da pílula', 'destaque', 'destaque-tenue'],
+  ['portão sobre papel', 'portao', 'papel'],
+  ['portão dentro da pílula', 'portao', 'portao-tenue'],
   ['rótulo do botão de ação', 'superficie', 'acao'],
 ]
 
@@ -86,18 +88,14 @@ describe('contraste do sistema visual', () => {
   })
 
   /**
-   * Dois pares ficam FORA das listas acima, e o motivo precisa estar escrito
-   * aqui e não só no relatório de quem rodou a auditoria.
-   *
-   * `portao` sobre `papel` dá 4.00:1 e sobre a própria pílula 3.56:1 — reprova.
-   * É a cor do estado que bloqueia, então é a pior de todas para ficar difícil
-   * de ler. O conserto é #dc4b1e → #bf411a, que passa em 4.53:1 no pior caso,
-   * mas escurece um acento que o dono do curso escolheu por rodadas. Palete é
-   * decisão dele, não minha, e teste vermelho não é lugar de guardar pergunta.
+   * Um par fica FORA das listas acima de propósito, e o motivo precisa estar
+   * escrito aqui e não só no relatório de quem rodou a auditoria.
    *
    * `linha` sobre `papel` dá 1.25:1. Não entra porque a 1.4.11 fala de
    * componente e estado, e filete de cartão não é nem um nem outro. Levá-lo a
-   * 3:1 pediria #a09164 — uma linha verde-oliva grossa no lugar de um fio.
+   * 3:1 pediria #a09164 — uma linha verde-oliva grossa no lugar de um fio,
+   * o que destruiria a direção da ADR 0003 para atender uma regra que não se
+   * aplica. Guarda que reclama do que não é problema é guarda que alguém
+   * desliga.
    */
-  it.todo('portão atinge 4.5:1 — pende escolher entre #dc4b1e e #bf411a')
 })

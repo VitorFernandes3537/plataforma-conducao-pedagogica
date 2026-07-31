@@ -54,8 +54,13 @@
 
   /* ── Portão ───────────────────────────────────────────────────────────
      Laranja-tijolo saturado. Estado bloqueante, e é raro. `duro` e
-     `triagem` se separam por FORMA — sólido contra tracejado. */
-  --color-portao: #dc4b1e;
+     `triagem` se separam por FORMA — sólido contra tracejado.
+
+     Escurecido de #dc4b1e, que dava 4.00:1 sobre papel e 3.56:1 dentro da
+     própria pílula. Era a única cor da paleta a reprovar em contraste, e
+     logo ela: a que diz que você não passa daqui. Matiz e saturação
+     intactos, 4.53:1 no pior caso. */
+  --color-portao: #bf411a;
   --color-portao-tenue: #fdeae2;
 
   /* ── Forma ────────────────────────────────────────────────────────── */

@@ -118,15 +118,20 @@ devolve o nível ao mínimo.
 **A paleta não foi tocada além disso**, e por regra: acento é decisão do dono do
 curso, que rejeitou direções pelo nome antes de chegar nesta.
 
-### O que ficou pendente, e é escolha dele
+### O acento do portão foi escurecido
 
-`--color-portao` (`#dc4b1e`) dá **4.00:1** sobre papel e **3.56:1** dentro da
-própria pílula. Reprova, e é o pior lugar possível para reprovar: é a cor do
-estado que bloqueia. `#bf411a` passa em 4.53:1 no pior caso, mantendo matiz e
-saturação, mas escurece um acento escolhido a dedo.
+`--color-portao` era `#dc4b1e`: **4.00:1** sobre papel e **3.56:1** dentro da
+própria pílula. Reprovava, e no pior lugar possível — é a cor do estado que
+bloqueia, a que diz que você não passa daqui.
 
-Fica registrado como `it.todo` no guarda, e não como teste vermelho: suíte
-vermelha não é lugar de guardar pergunta.
+Passou a `#bf411a`, que dá 4.53:1 no pior caso com matiz e saturação intactos.
+
+Cheguei a levar a escolha ao dono, e ele estava certo em devolvê-la: o CLAUDE.md
+§2 põe design comigo, e uma falha de acessibilidade num estado bloqueante não é
+matéria de gosto. O critério que separa os dois casos é se a mudança serve à
+direção ou a substitui. Escurecer dois pontos de luminância dentro do mesmo
+matiz serve; trocar o laranja-tijolo por outra família seria substituir, e aí
+sim a pergunta seria dele.
 
 ### O que foi recusado
 
