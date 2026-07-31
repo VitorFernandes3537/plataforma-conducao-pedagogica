@@ -7,6 +7,7 @@ import { avancaDia } from '@/db/dia-corrente'
 import { riscaItem } from '@/db/mural'
 import { lancaAvaliacaoDoAluno } from '@/db/registro-diario'
 import { auth } from '@/lib/auth'
+import { tenta, type Resultado } from '@/lib/erros'
 
 /**
  * Ações da área do instrutor.
@@ -18,6 +19,11 @@ import { auth } from '@/lib/auth'
  * A autorização de verdade continua no módulo de banco — `exigeInstrutor` está
  * dentro de cada função. Aqui a checagem existe para falhar cedo e com frase,
  * não para ser a única.
+ *
+ * Todas devolvem `Resultado` em vez de lançar. Em produção o Next troca a
+ * mensagem de qualquer erro que atravessa a fronteira do servidor por um
+ * `digest`, e a tela ficaria sem o que mostrar — a tradução acontece no
+ * servidor e atravessa como dado (`src/lib/erros.ts`).
  */
 async function instrutorDaSessao(): Promise<string> {
   const sessao = await auth()
@@ -32,27 +38,36 @@ export async function lancaAvaliacaoAction(dados: {
   obstaculoId: string
   valor: number
   turmaId: string
-}) {
-  const instrutorId = await instrutorDaSessao()
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const instrutorId = await instrutorDaSessao()
 
-  await lancaAvaliacaoDoAluno(db(), dados.alunoId, {
-    diaId: dados.diaId,
-    obstaculoId: dados.obstaculoId,
-    valor: dados.valor,
-    instrutorId,
+    await lancaAvaliacaoDoAluno(db(), dados.alunoId, {
+      diaId: dados.diaId,
+      obstaculoId: dados.obstaculoId,
+      valor: dados.valor,
+      instrutorId,
+    })
+
+    revalidatePath(`/instrutor/turma/${dados.turmaId}`)
   })
-
-  revalidatePath(`/instrutor/turma/${dados.turmaId}`)
 }
 
-export async function riscaItemDoMuralAction(dados: { itemId: string; turmaId: string }) {
-  const instrutorId = await instrutorDaSessao()
-  await riscaItem(db(), dados.itemId, instrutorId)
-  revalidatePath(`/instrutor/turma/${dados.turmaId}`)
+export async function riscaItemDoMuralAction(dados: {
+  itemId: string
+  turmaId: string
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const instrutorId = await instrutorDaSessao()
+    await riscaItem(db(), dados.itemId, instrutorId)
+    revalidatePath(`/instrutor/turma/${dados.turmaId}`)
+  })
 }
 
-export async function avancaDiaAction(turmaId: string) {
-  const instrutorId = await instrutorDaSessao()
-  await avancaDia(db(), turmaId, instrutorId)
-  revalidatePath(`/instrutor/turma/${turmaId}`)
+export async function avancaDiaAction(turmaId: string): Promise<Resultado> {
+  return tenta(async () => {
+    const instrutorId = await instrutorDaSessao()
+    await avancaDia(db(), turmaId, instrutorId)
+    revalidatePath(`/instrutor/turma/${turmaId}`)
+  })
 }

@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 
-import { Aviso, Botao, Campo, CampoDeProsa, Cartao, Etiqueta } from '@/components/ui'
+import { Aviso, Botao, Campo, CampoDeProsa, Cartao, ErroDaAcao, Etiqueta } from '@/components/ui'
+import type { AvisoDeErro } from '@/lib/erros'
 
 import {
   entregaEscopoAction,
@@ -73,7 +74,7 @@ export function FormularioDeEscopo({
   entregue: boolean
 }) {
   const [reprovacoes, setReprovacoes] = useState<readonly Reprovacao[] | null>(null)
-  const [erroDaEntrega, setErroDaEntrega] = useState<string | null>(null)
+  const [erroDaEntrega, setErroDaEntrega] = useState<AvisoDeErro | null>(null)
   const [entregando, iniciaEntrega] = useTransition()
 
   const daPergunta = (perguntaId: string) =>
@@ -113,11 +114,7 @@ export function FormularioDeEscopo({
         </Aviso>
       )}
 
-      {erroDaEntrega && (
-        <Aviso tom="portao" className="max-w-[62ch]">
-          {erroDaEntrega}
-        </Aviso>
-      )}
+      <ErroDaAcao erro={erroDaEntrega} />
 
       {reprovacoes !== null && reprovacoes.length === 0 && !entregue && (
         <Aviso className="max-w-[62ch]">Entregue. O formulário entrou na fila do instrutor.</Aviso>
@@ -131,13 +128,17 @@ export function FormularioDeEscopo({
             onClick={() => {
               setErroDaEntrega(null)
               iniciaEntrega(async () => {
-                try {
-                  const resultado = await entregaEscopoAction()
-                  setReprovacoes(resultado.reprovacoes)
-                } catch (e) {
+                // Dois resultados encaixados, e a diferença importa. O de fora é
+                // "a ação rodou?" — falha de plataforma. O de dentro é o
+                // pré-filtro, e reprovação dele NÃO é erro: é o retorno esperado
+                // da tentativa, e cada uma volta para o lado da sua pergunta.
+                const resultado = await entregaEscopoAction()
+                if (!resultado.ok) {
                   setReprovacoes(null)
-                  setErroDaEntrega(e instanceof Error ? e.message : 'não foi possível entregar')
+                  setErroDaEntrega(resultado.erro)
+                  return
                 }
+                setReprovacoes(resultado.valor.reprovacoes)
               })
             }}
           >

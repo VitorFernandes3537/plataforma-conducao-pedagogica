@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/db'
 import { aprova, devolve } from '@/db/fila-de-aprovacao'
 import { auth } from '@/lib/auth'
+import { tenta, type Resultado } from '@/lib/erros'
 
 /**
  * Decisões da fila de aprovação.
@@ -24,22 +25,28 @@ async function instrutorDaSessao(): Promise<string> {
   return sessao.usuarioId
 }
 
-export async function aprovaEscopoAction(dados: { respostaDeEscopoId: string }) {
-  const instrutorId = await instrutorDaSessao()
-  await aprova(db(), dados.respostaDeEscopoId, instrutorId)
-  revalidatePath('/instrutor/fila')
-  revalidatePath('/escopo')
+export async function aprovaEscopoAction(dados: {
+  respostaDeEscopoId: string
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const instrutorId = await instrutorDaSessao()
+    await aprova(db(), dados.respostaDeEscopoId, instrutorId)
+    revalidatePath('/instrutor/fila')
+    revalidatePath('/escopo')
+  })
 }
 
 export async function devolveEscopoAction(dados: {
   respostaDeEscopoId: string
   motivo: string
-}) {
-  const instrutorId = await instrutorDaSessao()
-  // O motivo é exigido aqui, dentro de `devolve` e por CHECK no banco. Devolver
-  // sem dizer o que corrigir gastaria de novo os minutos que a fila tem por
-  // grupo (Doc 2 §4.5) — e o grupo voltaria para a fila com o mesmo defeito.
-  await devolve(db(), dados.respostaDeEscopoId, instrutorId, dados.motivo)
-  revalidatePath('/instrutor/fila')
-  revalidatePath('/escopo')
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const instrutorId = await instrutorDaSessao()
+    // O motivo é exigido aqui, dentro de `devolve` e por CHECK no banco.
+    // Devolver sem dizer o que corrigir gastaria de novo os minutos que a fila
+    // tem por grupo (Doc 2 §4.5) — e o grupo voltaria com o mesmo defeito.
+    await devolve(db(), dados.respostaDeEscopoId, instrutorId, dados.motivo)
+    revalidatePath('/instrutor/fila')
+    revalidatePath('/escopo')
+  })
 }

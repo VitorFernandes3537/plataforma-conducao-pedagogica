@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState, useTransition } from 'react'
 
 import { Bloco, type TipoDeBloco } from '@/components/material/blocos'
 import { Prosa } from '@/components/material/prosa'
-import { Botao, Etiqueta } from '@/components/ui'
+import { Botao, ErroDaAcao, Etiqueta } from '@/components/ui'
+import type { AvisoDeErro } from '@/lib/erros'
 import { analisa } from '@/lib/markdown'
 
 import { liberaAgregadoAction } from '@/app/instrutor/apresentacao/[diaId]/acoes'
@@ -175,7 +176,7 @@ export function Apresentacao({
  * medir predição, que é a única coisa que ela mede.
  */
 function Agregado({ bloco, diaId }: { bloco: BlocoDaLamina; diaId: string }) {
-  const [erro, setErro] = useState<string | null>(null)
+  const [erro, setErro] = useState<AvisoDeErro | null>(null)
   const [pendente, iniciaTransicao] = useTransition()
 
   if (!bloco.agregado) return null
@@ -198,11 +199,8 @@ function Agregado({ bloco, diaId }: { bloco: BlocoDaLamina; diaId: string }) {
             onClick={() => {
               setErro(null)
               iniciaTransicao(async () => {
-                try {
-                  await liberaAgregadoAction({ blocoId: bloco.id, diaId })
-                } catch (e) {
-                  setErro(e instanceof Error ? e.message : 'não foi possível liberar')
-                }
+                const resultado = await liberaAgregadoAction({ blocoId: bloco.id, diaId })
+                if (!resultado.ok) setErro(resultado.erro)
               })
             }}
           >
@@ -211,7 +209,7 @@ function Agregado({ bloco, diaId }: { bloco: BlocoDaLamina; diaId: string }) {
         )}
       </div>
 
-      {erro && <p className="legenda mt-2 text-portao">{erro}</p>}
+      <ErroDaAcao erro={erro} className="mt-2" />
 
       {total === 0 ? (
         <p className="legenda mt-3">ninguém respondeu ainda</p>

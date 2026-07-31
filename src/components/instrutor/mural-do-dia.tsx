@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 
 import { MarcaBilhete } from '@/components/marcas'
-import { Botao, Cartao, EstadoVazio, Linha } from '@/components/ui'
+import { Botao, Cartao, ErroDaAcao, EstadoVazio, Linha } from '@/components/ui'
+import type { AvisoDeErro } from '@/lib/erros'
 
 import { riscaItemDoMuralAction } from '@/app/instrutor/acoes'
 
@@ -39,7 +40,7 @@ export function MuralDoDia({
   turmaId: string
   grupos: readonly GrupoDoMural[]
 }) {
-  const [erro, setErro] = useState<string | null>(null)
+  const [erro, setErro] = useState<AvisoDeErro | null>(null)
   const [riscando, setRiscando] = useState<string | null>(null)
   const [pendente, iniciaTransicao] = useTransition()
 
@@ -61,7 +62,7 @@ export function MuralDoDia({
       <MarcaBilhete className="pointer-events-none absolute -left-16 top-1 hidden w-12 text-tinta-tenue lg:block" />
 
       <Cartao legenda="Precisamos saber" contagem={total}>
-        {erro && <p className="legenda mb-3 text-portao">{erro}</p>}
+        <ErroDaAcao erro={erro} className="mb-3" />
 
         <div className="flex flex-col gap-5">
           {grupos.map((grupo) => (
@@ -83,13 +84,12 @@ export function MuralDoDia({
                           setErro(null)
                           setRiscando(item.id)
                           iniciaTransicao(async () => {
-                            try {
-                              await riscaItemDoMuralAction({ itemId: item.id, turmaId })
-                            } catch (e) {
-                              setErro(e instanceof Error ? e.message : 'não foi possível riscar')
-                            } finally {
-                              setRiscando(null)
-                            }
+                            const resultado = await riscaItemDoMuralAction({
+                              itemId: item.id,
+                              turmaId,
+                            })
+                            if (!resultado.ok) setErro(resultado.erro)
+                            setRiscando(null)
                           })
                         }}
                       >

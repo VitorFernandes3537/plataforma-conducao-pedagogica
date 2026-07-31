@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 
-import { Cartao, Etiqueta, Linha } from '@/components/ui'
+import { Cartao, ErroDaAcao, Etiqueta, Linha } from '@/components/ui'
+import type { AvisoDeErro } from '@/lib/erros'
 
 import { lancaAvaliacaoAction } from '@/app/instrutor/acoes'
 
@@ -48,7 +49,7 @@ type Props = {
  * lançamento que ficou para trás.
  */
 export function LancamentoDaTurma({ turmaId, diaId, obstaculoId, escala, alunos }: Props) {
-  const [erro, setErro] = useState<string | null>(null)
+  const [erro, setErro] = useState<AvisoDeErro | null>(null)
   const [emCurso, setEmCurso] = useState<string | null>(null)
   const [pendente, iniciaTransicao] = useTransition()
 
@@ -66,9 +67,16 @@ export function LancamentoDaTurma({ turmaId, diaId, obstaculoId, escala, alunos 
         ) : undefined
       }
     >
-      {erro && <p className="legenda mb-3 text-portao">{erro}</p>}
+      <ErroDaAcao erro={erro} className="mb-3" />
 
-      <ul>
+      {/* Duas colunas quando o cartão é largo, e é isso que resolve a tensão
+          entre "preencher a largura" e "não abrir os dois extremos": a linha
+          `nome … alvo` continua curta porque a coluna é curta, e a turma inteira
+          cabe sem rolar — que é o que o instrutor precisa circulando pela sala.
+
+          `columns` e não `grid` porque a lista é uma coluna que transborda para
+          a seguinte: com grid, ordem alfabética viraria leitura em zigue-zague. */}
+      <ul className="gap-x-10 [column-fill:balance] lg:columns-2">
         {alunos.map((aluno) => (
           <Linha
             key={aluno.alunoId}
@@ -93,19 +101,15 @@ export function LancamentoDaTurma({ turmaId, diaId, obstaculoId, escala, alunos 
                         setErro(null)
                         setEmCurso(aluno.alunoId)
                         iniciaTransicao(async () => {
-                          try {
-                            await lancaAvaliacaoAction({
-                              alunoId: aluno.alunoId,
-                              diaId,
-                              obstaculoId,
-                              valor: nivel.valor,
-                              turmaId,
-                            })
-                          } catch (e) {
-                            setErro(e instanceof Error ? e.message : 'não foi possível lançar')
-                          } finally {
-                            setEmCurso(null)
-                          }
+                          const resultado = await lancaAvaliacaoAction({
+                            alunoId: aluno.alunoId,
+                            diaId,
+                            obstaculoId,
+                            valor: nivel.valor,
+                            turmaId,
+                          })
+                          if (!resultado.ok) setErro(resultado.erro)
+                          setEmCurso(null)
                         })
                       }}
                     >

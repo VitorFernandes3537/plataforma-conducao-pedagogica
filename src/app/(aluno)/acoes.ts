@@ -7,6 +7,7 @@ import { abreContratoDiario, fechaContratoDiario } from '@/db/contrato-diario'
 import { escreveNoMural } from '@/db/mural'
 import { confirmaPush, registraLogDeObstaculo } from '@/db/registro-diario'
 import { auth } from '@/lib/auth'
+import { tenta, type Resultado } from '@/lib/erros'
 
 /**
  * Ações do aluno.
@@ -15,6 +16,10 @@ import { auth } from '@/lib/auth'
  * ele pode — `exigeProducaoPropria` está lá dentro. A sessão aqui serve para
  * falhar cedo e para o autor nunca vir do cliente: se viesse, qualquer pessoa
  * escreveria o contrato de qualquer outra.
+ *
+ * Devolvem `Resultado` em vez de lançar, pelo motivo de `src/lib/erros.ts`: em
+ * produção o Next troca a mensagem por um `digest` e a tela fica sem o que
+ * mostrar.
  */
 async function autorDaSessao(): Promise<string> {
   const sessao = await auth()
@@ -27,16 +32,18 @@ export async function abreContratoAction(dados: {
   diaId: string
   faremos: string
   naoFaremos: string
-}) {
-  const autorId = await autorDaSessao()
-  await abreContratoDiario(
-    db(),
-    dados.alunoId,
-    dados.diaId,
-    { faremos: dados.faremos, naoFaremos: dados.naoFaremos },
-    autorId,
-  )
-  revalidatePath('/hoje')
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const autorId = await autorDaSessao()
+    await abreContratoDiario(
+      db(),
+      dados.alunoId,
+      dados.diaId,
+      { faremos: dados.faremos, naoFaremos: dados.naoFaremos },
+      autorId,
+    )
+    revalidatePath('/hoje')
+  })
 }
 
 export async function fechaContratoAction(dados: {
@@ -44,29 +51,33 @@ export async function fechaContratoAction(dados: {
   diaId: string
   cumprido: boolean
   motivo: string
-}) {
-  const autorId = await autorDaSessao()
-  await fechaContratoDiario(
-    db(),
-    dados.alunoId,
-    dados.diaId,
-    { cumprido: dados.cumprido, motivo: dados.motivo },
-    autorId,
-  )
-  revalidatePath('/hoje')
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const autorId = await autorDaSessao()
+    await fechaContratoDiario(
+      db(),
+      dados.alunoId,
+      dados.diaId,
+      { cumprido: dados.cumprido, motivo: dados.motivo },
+      autorId,
+    )
+    revalidatePath('/hoje')
+  })
 }
 
 export async function escreveNoMuralAction(dados: {
   grupoId: string
   obstaculoId: string
   texto: string
-}) {
-  // Escrever no mural não passa por `exigeProducaoPropria`: o item é do GRUPO,
-  // e o Doc 5 §8.1 diz que quem escreve é quem travou. A sessão garante que há
-  // alguém logado; o vínculo com o grupo vem da matrícula, não do cliente.
-  await autorDaSessao()
-  await escreveNoMural(db(), dados.grupoId, dados.obstaculoId, dados.texto)
-  revalidatePath('/hoje')
+}): Promise<Resultado> {
+  return tenta(async () => {
+    // Escrever no mural não passa por `exigeProducaoPropria`: o item é do GRUPO,
+    // e o Doc 5 §8.1 diz que quem escreve é quem travou. A sessão garante que há
+    // alguém logado; o vínculo com o grupo vem da matrícula, não do cliente.
+    await autorDaSessao()
+    await escreveNoMural(db(), dados.grupoId, dados.obstaculoId, dados.texto)
+    revalidatePath('/hoje')
+  })
 }
 
 export async function registraLogAction(dados: {
@@ -74,21 +85,28 @@ export async function registraLogAction(dados: {
   diaId: string
   obstaculoId: string
   texto: string
-}) {
-  const autorId = await autorDaSessao()
-  await registraLogDeObstaculo(
-    db(),
-    dados.alunoId,
-    dados.diaId,
-    dados.obstaculoId,
-    dados.texto,
-    autorId,
-  )
-  revalidatePath('/hoje')
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const autorId = await autorDaSessao()
+    await registraLogDeObstaculo(
+      db(),
+      dados.alunoId,
+      dados.diaId,
+      dados.obstaculoId,
+      dados.texto,
+      autorId,
+    )
+    revalidatePath('/hoje')
+  })
 }
 
-export async function confirmaPushAction(dados: { alunoId: string; diaId: string }) {
-  const autorId = await autorDaSessao()
-  await confirmaPush(db(), dados.alunoId, dados.diaId, autorId)
-  revalidatePath('/hoje')
+export async function confirmaPushAction(dados: {
+  alunoId: string
+  diaId: string
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const autorId = await autorDaSessao()
+    await confirmaPush(db(), dados.alunoId, dados.diaId, autorId)
+    revalidatePath('/hoje')
+  })
 }

@@ -10,6 +10,7 @@ import { formularioDoCurso } from '@/db/formulario'
 import { submeteSePassar, type ResultadoDoPreFiltro } from '@/db/pre-filtro'
 import { abreRascunho, gravaLinhaDeTraducao, gravaResposta } from '@/db/resposta-de-escopo'
 import { auth } from '@/lib/auth'
+import { tenta, type Resultado } from '@/lib/erros'
 
 /**
  * Ações do formulário de escopo.
@@ -66,37 +67,46 @@ async function contextoDaSessao(): Promise<Contexto> {
   }
 }
 
-export async function gravaRespostaAction(dados: { perguntaId: string; texto: string }) {
-  const { respostaDeEscopoId } = await contextoDaSessao()
-  await gravaResposta(db(), respostaDeEscopoId, dados.perguntaId, dados.texto)
-  revalidatePath('/escopo')
+export async function gravaRespostaAction(dados: {
+  perguntaId: string
+  texto: string
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const { respostaDeEscopoId } = await contextoDaSessao()
+    await gravaResposta(db(), respostaDeEscopoId, dados.perguntaId, dados.texto)
+    revalidatePath('/escopo')
+  })
 }
 
 export async function gravaTraducaoAction(dados: {
   papelId: string
   nomeNoNegocio: string
   nomeNoCodigo: string
-}) {
-  const { respostaDeEscopoId } = await contextoDaSessao()
-  await gravaLinhaDeTraducao(db(), respostaDeEscopoId, dados.papelId, {
-    nomeNoNegocio: dados.nomeNoNegocio,
-    nomeNoCodigo: dados.nomeNoCodigo,
+}): Promise<Resultado> {
+  return tenta(async () => {
+    const { respostaDeEscopoId } = await contextoDaSessao()
+    await gravaLinhaDeTraducao(db(), respostaDeEscopoId, dados.papelId, {
+      nomeNoNegocio: dados.nomeNoNegocio,
+      nomeNoCodigo: dados.nomeNoCodigo,
+    })
+    revalidatePath('/escopo')
   })
-  revalidatePath('/escopo')
 }
 
-export async function escolheTemaAction(dados: { temaId: string }) {
-  const sessao = await auth()
-  if (!sessao?.usuarioId) throw new Error('Sessão expirada. Entre de novo.')
+export async function escolheTemaAction(dados: { temaId: string }): Promise<Resultado> {
+  return tenta(async () => {
+    const sessao = await auth()
+    if (!sessao?.usuarioId) throw new Error('Sessão expirada. Entre de novo.')
 
-  const matricula = await matriculaDoUsuario(db(), sessao.usuarioId)
-  if (!matricula?.grupoId) throw new Error('O tema é do grupo, e você ainda não tem grupo.')
+    const matricula = await matriculaDoUsuario(db(), sessao.usuarioId)
+    if (!matricula?.grupoId) throw new Error('O tema é do grupo, e você ainda não tem grupo.')
 
-  // A garantia de "um tema por grupo por turma" é do índice único do banco, não
-  // desta chamada. A alocação acontece por negociação em sala, ou seja, todos ao
-  // mesmo tempo — verificar antes e gravar depois perderia a corrida.
-  await alocaTema(db(), matricula.grupoId, dados.temaId)
-  revalidatePath('/escopo')
+    // A garantia de "um tema por grupo por turma" é do índice único do banco,
+    // não desta chamada. A alocação acontece por negociação em sala, ou seja,
+    // todos ao mesmo tempo — verificar antes e gravar depois perderia a corrida.
+    await alocaTema(db(), matricula.grupoId, dados.temaId)
+    revalidatePath('/escopo')
+  })
 }
 
 /**
@@ -110,9 +120,11 @@ export async function escolheTemaAction(dados: { temaId: string }) {
  * Devolve as reprovações em vez de lançar: elas não são erro, são o retorno
  * esperado da tentativa, e cada uma volta para o lado da pergunta que a causou.
  */
-export async function entregaEscopoAction(): Promise<ResultadoDoPreFiltro> {
-  const { respostaDeEscopoId } = await contextoDaSessao()
-  const resultado = await submeteSePassar(db(), respostaDeEscopoId)
-  revalidatePath('/escopo')
-  return resultado
+export async function entregaEscopoAction(): Promise<Resultado<ResultadoDoPreFiltro>> {
+  return tenta(async () => {
+    const { respostaDeEscopoId } = await contextoDaSessao()
+    const resultado = await submeteSePassar(db(), respostaDeEscopoId)
+    revalidatePath('/escopo')
+    return resultado
+  })
 }

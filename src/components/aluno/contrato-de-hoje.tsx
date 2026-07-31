@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 
-import { Botao, Campo, Cartao, Etiqueta } from '@/components/ui'
+import { Botao, Campo, Cartao, ErroDaAcao, Etiqueta } from '@/components/ui'
+import type { AvisoDeErro, Resultado } from '@/lib/erros'
 
 import { abreContratoAction, fechaContratoAction } from '@/app/(aluno)/acoes'
 
@@ -37,19 +38,16 @@ export function ContratoDeHoje({
   const [faremos, setFaremos] = useState(contrato?.faremos ?? '')
   const [naoFaremos, setNaoFaremos] = useState(contrato?.naoFaremos ?? '')
   const [motivo, setMotivo] = useState('')
-  const [erro, setErro] = useState<string | null>(null)
+  const [erro, setErro] = useState<AvisoDeErro | null>(null)
   const [pendente, iniciaTransicao] = useTransition()
 
   const fechado = contrato?.cumprido !== null && contrato?.cumprido !== undefined
 
-  function executa(acao: () => Promise<void>) {
+  function executa(acao: () => Promise<Resultado>) {
     setErro(null)
     iniciaTransicao(async () => {
-      try {
-        await acao()
-      } catch (e) {
-        setErro(e instanceof Error ? e.message : 'não foi possível gravar')
-      }
+      const resultado = await acao()
+      if (!resultado.ok) setErro(resultado.erro)
     })
   }
 
@@ -83,7 +81,7 @@ export function ContratoDeHoje({
 
   return (
     <Cartao legenda="Contrato de hoje">
-      {erro && <p className="legenda mb-3 text-portao">{erro}</p>}
+      <ErroDaAcao erro={erro} className="mb-3" />
 
       <div className="flex flex-col gap-4">
         <Campo

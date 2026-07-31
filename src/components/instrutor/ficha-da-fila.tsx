@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 
-import { Aviso, Botao, CampoDeProsa, Cartao } from '@/components/ui'
+import { Botao, CampoDeProsa, Cartao, ErroDaAcao } from '@/components/ui'
+import type { AvisoDeErro, Resultado } from '@/lib/erros'
 
 import { aprovaEscopoAction, devolveEscopoAction } from '@/app/instrutor/fila/acoes'
 
@@ -46,17 +47,14 @@ export type FichaDaFila = {
 export function Ficha({ ficha }: { ficha: FichaDaFila }) {
   const [devolvendo, setDevolvendo] = useState(false)
   const [motivo, setMotivo] = useState('')
-  const [erro, setErro] = useState<string | null>(null)
+  const [erro, setErro] = useState<AvisoDeErro | null>(null)
   const [pendente, iniciaTransicao] = useTransition()
 
-  function executa(acao: () => Promise<void>) {
+  function executa(acao: () => Promise<Resultado>) {
     setErro(null)
     iniciaTransicao(async () => {
-      try {
-        await acao()
-      } catch (e) {
-        setErro(e instanceof Error ? e.message : 'não foi possível decidir')
-      }
+      const resultado = await acao()
+      if (!resultado.ok) setErro(resultado.erro)
     })
   }
 
@@ -109,11 +107,7 @@ export function Ficha({ ficha }: { ficha: FichaDaFila }) {
         </div>
       )}
 
-      {erro && (
-        <Aviso tom="portao" className="mt-4">
-          {erro}
-        </Aviso>
-      )}
+      <ErroDaAcao erro={erro} className="mt-4" />
 
       {devolvendo ? (
         <div className="mt-5 border-t border-linha pt-4">

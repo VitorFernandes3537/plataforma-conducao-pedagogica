@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 
-import { Botao, CampoDeProsa, Cartao, Etiqueta } from '@/components/ui'
+import { Botao, CampoDeProsa, Cartao, ErroDaAcao, Etiqueta } from '@/components/ui'
+import type { AvisoDeErro, Resultado } from '@/lib/erros'
 
 import { confirmaPushAction, registraLogAction } from '@/app/(aluno)/acoes'
 
@@ -31,17 +32,14 @@ export function FechamentoDoDia({
   pushConfirmado: boolean
 }) {
   const [texto, setTexto] = useState(logAtual ?? '')
-  const [erro, setErro] = useState<string | null>(null)
+  const [erro, setErro] = useState<AvisoDeErro | null>(null)
   const [pendente, iniciaTransicao] = useTransition()
 
-  function executa(acao: () => Promise<void>) {
+  function executa(acao: () => Promise<Resultado>) {
     setErro(null)
     iniciaTransicao(async () => {
-      try {
-        await acao()
-      } catch (e) {
-        setErro(e instanceof Error ? e.message : 'não foi possível gravar')
-      }
+      const resultado = await acao()
+      if (!resultado.ok) setErro(resultado.erro)
     })
   }
 
@@ -50,7 +48,7 @@ export function FechamentoDoDia({
       legenda="Fechamento"
       acao={pushConfirmado ? <Etiqueta tom="destaque">push confirmado</Etiqueta> : undefined}
     >
-      {erro && <p className="legenda mb-3 text-portao">{erro}</p>}
+      <ErroDaAcao erro={erro} className="mb-3" />
 
       {/* Estava num `Campo`, que renderiza `<input>` de uma linha. O log é
           prosa de várias linhas e é item avaliado (Doc 6 §5) — um campo de uma

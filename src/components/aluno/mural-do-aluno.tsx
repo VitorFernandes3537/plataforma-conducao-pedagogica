@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 
 import { MarcaBilhete } from '@/components/marcas'
-import { Botao, Campo, Cartao, EstadoVazio } from '@/components/ui'
+import { Botao, Campo, Cartao, ErroDaAcao, EstadoVazio } from '@/components/ui'
+import type { AvisoDeErro } from '@/lib/erros'
 
 import { escreveNoMuralAction } from '@/app/(aluno)/acoes'
 
@@ -38,7 +39,7 @@ export function MuralDoAluno({
   grupos: readonly GrupoDoMural[]
 }) {
   const [texto, setTexto] = useState('')
-  const [erro, setErro] = useState<string | null>(null)
+  const [erro, setErro] = useState<AvisoDeErro | null>(null)
   const [pendente, iniciaTransicao] = useTransition()
 
   const total = grupos.reduce((soma, g) => soma + g.itens.length, 0)
@@ -74,7 +75,7 @@ export function MuralDoAluno({
 
         {grupoId && obstaculoId && (
           <div className="mt-6 border-t border-linha pt-5">
-            {erro && <p className="legenda mb-2 text-portao">{erro}</p>}
+            <ErroDaAcao erro={erro} className="mb-2" />
             <Campo
               id="duvida-do-mural"
               rotulo="Escreva a dúvida"
@@ -90,12 +91,9 @@ export function MuralDoAluno({
               onClick={() => {
                 setErro(null)
                 iniciaTransicao(async () => {
-                  try {
-                    await escreveNoMuralAction({ grupoId, obstaculoId, texto })
-                    setTexto('')
-                  } catch (e) {
-                    setErro(e instanceof Error ? e.message : 'não foi possível escrever')
-                  }
+                  const resultado = await escreveNoMuralAction({ grupoId, obstaculoId, texto })
+                  if (resultado.ok) setTexto('')
+                  else setErro(resultado.erro)
                 })
               }}
             >

@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 
-import { Botao } from '@/components/ui'
+import { Botao, ErroDaAcao } from '@/components/ui'
+import type { AvisoDeErro } from '@/lib/erros'
 
 import { avancaDiaAction } from '../../acoes'
 
@@ -15,7 +16,7 @@ import { avancaDiaAction } from '../../acoes'
  */
 export function AvancarDia({ turmaId, rotulo }: { turmaId: string; rotulo: string }) {
   const [confirmando, setConfirmando] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
+  const [erro, setErro] = useState<AvisoDeErro | null>(null)
   const [pendente, iniciaTransicao] = useTransition()
 
   if (!confirmando) {
@@ -24,7 +25,7 @@ export function AvancarDia({ turmaId, rotulo }: { turmaId: string; rotulo: strin
         <Botao variante="fantasma" onClick={() => setConfirmando(true)}>
           {rotulo}
         </Botao>
-        {erro && <p className="legenda text-portao">{erro}</p>}
+        <ErroDaAcao erro={erro} />
       </div>
     )
   }
@@ -42,19 +43,16 @@ export function AvancarDia({ turmaId, rotulo }: { turmaId: string; rotulo: strin
           onClick={() => {
             setErro(null)
             iniciaTransicao(async () => {
-              try {
-                await avancaDiaAction(turmaId)
-                setConfirmando(false)
-              } catch (e) {
-                setErro(e instanceof Error ? e.message : 'não foi possível avançar')
-              }
+              const resultado = await avancaDiaAction(turmaId)
+              if (resultado.ok) setConfirmando(false)
+              else setErro(resultado.erro)
             })
           }}
         >
           {pendente ? 'avançando…' : 'confirmar'}
         </Botao>
       </div>
-      {erro && <p className="legenda text-portao">{erro}</p>}
+      <ErroDaAcao erro={erro} />
     </div>
   )
 }

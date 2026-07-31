@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 
-import { Botao, Cartao, Etiqueta, Linha } from '@/components/ui'
+import { Botao, Cartao, ErroDaAcao, Etiqueta, Linha } from '@/components/ui'
+import type { AvisoDeErro } from '@/lib/erros'
 
 import { escolheTemaAction } from '@/app/(aluno)/escopo/acoes'
 
@@ -37,7 +38,7 @@ export function EscolhaDeTema({
   temas: readonly Tema[]
   temaEscolhido: { id: string; nome: string; briefing: string | null } | null
 }) {
-  const [erro, setErro] = useState<string | null>(null)
+  const [erro, setErro] = useState<AvisoDeErro | null>(null)
   const [emCurso, setEmCurso] = useState<string | null>(null)
   const [pendente, iniciaTransicao] = useTransition()
 
@@ -59,7 +60,7 @@ export function EscolhaDeTema({
 
   return (
     <Cartao legenda="O tema do grupo" contagem={temas.filter((t) => t.disponivel).length}>
-      {erro && <p className="legenda mb-3 text-portao">{erro}</p>}
+      <ErroDaAcao erro={erro} className="mb-3" />
 
       <p className="max-w-[62ch] text-[0.9375rem] leading-relaxed text-tinta-media">
         Escolha o que o grupo combinou em sala. A partir daqui o tema é do grupo,
@@ -79,13 +80,9 @@ export function EscolhaDeTema({
                     setErro(null)
                     setEmCurso(tema.id)
                     iniciaTransicao(async () => {
-                      try {
-                        await escolheTemaAction({ temaId: tema.id })
-                      } catch (e) {
-                        setErro(e instanceof Error ? e.message : 'não foi possível escolher')
-                      } finally {
-                        setEmCurso(null)
-                      }
+                      const resultado = await escolheTemaAction({ temaId: tema.id })
+                      if (!resultado.ok) setErro(resultado.erro)
+                      setEmCurso(null)
                     })
                   }}
                 >
