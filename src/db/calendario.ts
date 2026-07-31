@@ -32,3 +32,21 @@ export async function duracaoTotalPorDia(db: Db, cursoId: string): Promise<Durac
     .groupBy(dias.id, dias.ordem)
     .orderBy(asc(dias.ordem))
 }
+
+/**
+ * Os blocos de um dia, na ordem.
+ *
+ * É o que a régua do dia desenha: as larguras SÃO as durações (ADR 0003 §7), e
+ * por isso a consulta devolve os minutos, não uma proporção já calculada — o
+ * cálculo é de apresentação e a régua é quem sabe fazê-lo.
+ */
+export async function blocosDoDia(
+  db: Db,
+  diaId: string,
+): Promise<{ tipo: string; duracaoMinutos: number }[]> {
+  return db
+    .select({ tipo: blocos.tipo, duracaoMinutos: blocos.duracaoMinutos })
+    .from(blocos)
+    .where(eq(blocos.diaId, diaId))
+    .orderBy(asc(blocos.ordem))
+}

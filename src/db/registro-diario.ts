@@ -13,6 +13,7 @@ import {
   obstaculos,
   registrosDiarios,
   turmas,
+  usuarios,
 } from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
@@ -478,6 +479,7 @@ export async function lancamentoDoDia(
 ): Promise<
   {
     alunoId: string
+    nome: string
     grupoId: string | null
     valor: number | null
     descritor: string | null
@@ -487,12 +489,17 @@ export async function lancamentoDoDia(
   return db
     .select({
       alunoId: alunos.id,
+      // O nome vem junto porque a tela é uma lista de PESSOAS. Um identificador
+      // não diz a quem o instrutor deve olhar, e ele está lançando de pé,
+      // circulando pela sala.
+      nome: usuarios.nome,
       grupoId: alunos.grupoId,
       valor: niveisDeAvaliacao.valor,
       descritor: niveisDeAvaliacao.descritor,
       superado: niveisDeAvaliacao.contaComoSuperacao,
     })
     .from(alunos)
+    .innerJoin(usuarios, eq(usuarios.id, alunos.usuarioId))
     .leftJoin(
       registrosDiarios,
       and(eq(registrosDiarios.alunoId, alunos.id), eq(registrosDiarios.diaId, diaId)),
