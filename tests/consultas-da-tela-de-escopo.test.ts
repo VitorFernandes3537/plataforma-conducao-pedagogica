@@ -166,6 +166,19 @@ describe('consultas da tela de escopo', () => {
     expect(linhas[2]?.obrigatorio).toBe(false)
   })
 
+  it('traducao_lista_os_papeis_antes_de_existir_rascunho', async () => {
+    const { curso } = await cenario()
+    await comEstrutura(curso.id)
+
+    // É o estado da primeira abertura da tela: ninguém gravou nada, e o
+    // rascunho ainda não existe. A tabela precisa aparecer inteira mesmo assim,
+    // senão a página teria que criar o rascunho ao ser lida.
+    const linhas = await traducaoDoEscopo(banco.db, null, curso.id)
+
+    expect(linhas.map((l) => l.nome)).toEqual(['Cliente', 'Atendimento', 'Apoio'])
+    expect(linhas.every((l) => l.nomeNoNegocio === null)).toBe(true)
+  })
+
   it('gravar_traducao_e_idempotente_por_papel', async () => {
     const { curso, formulario, grupo } = await cenario()
     const papeis = await comEstrutura(curso.id)

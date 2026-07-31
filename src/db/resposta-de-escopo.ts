@@ -1,7 +1,11 @@
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
-import { estadosEditaveisPeloGrupo, estadosQueLevamA } from '@/domain/escopo'
+import {
+  estadosEditaveisPeloGrupo,
+  estadosQueLevamA,
+  type EstadoDoEscopo,
+} from '@/domain/escopo'
 
 import * as schema from './schema'
 import {
@@ -27,7 +31,17 @@ export type RespostaDoGrupo = {
   id: string
   grupoId: string
   formularioId: string
+  /** Onde o escopo está na máquina de estados. É ele que abre e fecha a edição. */
+  estado: EstadoDoEscopo
   submetidoEm: Date | null
+  /**
+   * O que o instrutor mandou corrigir, quando devolveu.
+   *
+   * Vem junto porque devolver sem o motivo à vista gastaria de novo os minutos
+   * que a fila tem por grupo (Doc 2 §4.5) — o motivo é obrigatório na escrita, e
+   * seria desperdiçado se a tela do grupo não o mostrasse.
+   */
+  motivoDaDevolucao: string | null
   respostas: readonly { perguntaId: string; ordem: number; texto: string }[]
 }
 
@@ -102,7 +116,9 @@ export async function respostaDoGrupo(db: Db, grupoId: string): Promise<Resposta
     id: escopo.id,
     grupoId: escopo.grupoId,
     formularioId: escopo.formularioId,
+    estado: escopo.estado,
     submetidoEm: escopo.submetidoEm,
+    motivoDaDevolucao: escopo.motivoDaDevolucao,
     respostas,
   }
 }
@@ -209,12 +225,22 @@ export type LinhaDaTraducao = {
  * Traz o papel OPCIONAL junto. Ele não invalida o escopo se ficar de fora
  * (`obrigatorio` é coluna, não convenção), mas escondê-lo tiraria do grupo a
  * chance de preenchê-lo — e a tabela é o índice de navegação do código dele.
+ *
+ * Aceita escopo **inexistente**, e isso é o caso normal na primeira abertura da
+ * tela: o rascunho só nasce quando alguém grava algo. A alternativa seria criar
+ * o rascunho ao renderizar a página, e uma requisição de leitura que escreve no
+ * banco é o tipo de efeito que reaparece como linha fantasma quando o navegador
+ * faz prefetch.
  */
 export async function traducaoDoEscopo(
   db: Db,
-  respostaDeEscopoId: string,
+  respostaDeEscopoId: string | null,
   cursoId: string,
 ): Promise<LinhaDaTraducao[]> {
+  const daResposta = respostaDeEscopoId
+    ? eq(linhasDeTraducao.respostaDeEscopoId, respostaDeEscopoId)
+    : sql`false`
+
   return db
     .select({
       papelId: papeisDaEstrutura.id,
@@ -228,10 +254,7 @@ export async function traducaoDoEscopo(
     .innerJoin(estruturas, eq(estruturas.id, papeisDaEstrutura.estruturaId))
     .leftJoin(
       linhasDeTraducao,
-      and(
-        eq(linhasDeTraducao.papelId, papeisDaEstrutura.id),
-        eq(linhasDeTraducao.respostaDeEscopoId, respostaDeEscopoId),
-      ),
+      and(eq(linhasDeTraducao.papelId, papeisDaEstrutura.id), daResposta),
     )
     .where(eq(estruturas.cursoId, cursoId))
     .orderBy(asc(papeisDaEstrutura.ordem))
