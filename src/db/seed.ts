@@ -12,7 +12,9 @@ import {
   formularios,
   grupos,
   julgamentosHumanos,
+  lacunasDoModelo,
   marcos,
+  modelosDeMudanca,
   materiaisDeReferencia,
   materiaisInterativos,
   niveisDeAvaliacao,
@@ -91,6 +93,9 @@ export const EXEMPLO = {
         enunciado: 'Quais são os estados do atendimento, na ordem em que acontecem?',
         criterioDeAceite:
           'Um estado por linha, no vocabulário do negócio. Condição que dá para calcular olhando outros dados não é estado.',
+        // O envelope do D12 deriva desta resposta (Doc 6 §4.1): quais perguntas
+        // alimentam a derivação é marca na pergunta, não constante no código.
+        alimentaIncremento: true,
         regras: [
           {
             tipo: 'contagem_de_itens' as const,
@@ -105,6 +110,7 @@ export const EXEMPLO = {
         enunciado: 'Quais mudanças de estado o sistema precisa impedir?',
         criterioDeAceite:
           'Uma por linha, no formato origem → destino, com a razão de negócio. Os dois lados têm de ser estados que você declarou.',
+        alimentaIncremento: true,
         regras: [
           {
             tipo: 'referencia_declarada' as const,
@@ -124,6 +130,35 @@ export const EXEMPLO = {
       { ordem: 2, enunciado: 'As mudanças impedidas são realmente impossíveis, e não só raras?', naOrdem: 3 },
     ],
   },
+  /**
+   * Os modelos de mudança do curso — as formas que o envelope de incremento do
+   * D12 pode tomar (Doc 6 §4). Faltavam, e sem eles a derivação do incremento
+   * não tinha o que preencher.
+   *
+   * Uma entra na versão reduzida e a outra não, para o rebaixamento de trilha
+   * ter os dois casos: "mesma estrutura, menos superfície" (Doc 5 §5.2) é o curso
+   * decidindo o que a redução poupa, não a plataforma sumindo com uma mudança.
+   */
+  modelosDeMudanca: [
+    {
+      ordem: 1,
+      rotulo: 'Um estado novo no ciclo do atendimento',
+      entraNaVersaoReduzida: true,
+      lacunas: [
+        { ordem: 1, chave: 'estado', rotulo: 'O estado que passa a existir', obrigatoria: true },
+        { ordem: 2, chave: 'gatilho', rotulo: 'O que faz o atendimento entrar nele', obrigatoria: true },
+      ],
+    },
+    {
+      ordem: 2,
+      rotulo: 'Uma nova categoria com cálculo próprio',
+      entraNaVersaoReduzida: false,
+      lacunas: [
+        { ordem: 1, chave: 'categoria', rotulo: 'A categoria que entra', obrigatoria: true },
+        { ordem: 2, chave: 'formula', rotulo: 'Como ela calcula, e por que difere das outras', obrigatoria: false },
+      ],
+    },
+  ],
   /**
    * A estrutura do curso e os papéis que a tabela de tradução cobre.
    *
@@ -427,6 +462,7 @@ async function semeiaEm(db: Db) {
         ordem: definicao.ordem,
         enunciado: definicao.enunciado,
         criterioDeAceite: definicao.criterioDeAceite,
+        alimentaIncremento: 'alimentaIncremento' in definicao && definicao.alimentaIncremento === true,
       })
       .returning()
     if (!pergunta) throw new Error('seed: pergunta não foi criada')
@@ -460,6 +496,20 @@ async function semeiaEm(db: Db) {
       perguntaId: perguntasPorOrdem.get(j.naOrdem) ?? null,
     })),
   )
+
+  // Os modelos de mudança do curso, e as lacunas de cada um. É o que a derivação
+  // do incremento preenche no D12.
+  for (const modelo of EXEMPLO.modelosDeMudanca) {
+    const { lacunas, ...cabecalho } = modelo
+    const [criado] = await db
+      .insert(modelosDeMudanca)
+      .values({ cursoId: curso.id, ...cabecalho })
+      .returning()
+    if (!criado) throw new Error('seed: modelo de mudança não foi criado')
+    await db
+      .insert(lacunasDoModelo)
+      .values(lacunas.map((l) => ({ modeloDeMudancaId: criado.id, ...l })))
+  }
 
   const [estrutura] = await db
     .insert(estruturas)
