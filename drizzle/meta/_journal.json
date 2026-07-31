@@ -155,6 +155,13 @@
       "when": 1785443563403,
       "tag": "0021_blocos_de_material",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1785460279218,
+      "tag": "0022_dia_corrente_da_turma",
+      "breakpoints": true
     }
   ]
 }

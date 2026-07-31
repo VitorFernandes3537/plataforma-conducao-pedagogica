@@ -1,0 +1,2 @@
+ALTER TABLE "turmas" ADD COLUMN "dia_corrente_id" uuid;--> statement-breakpoint
+ALTER TABLE "turmas" ADD CONSTRAINT "turmas_dia_corrente_id_dias_id_fk" FOREIGN KEY ("dia_corrente_id") REFERENCES "public"."dias"("id") ON DELETE set null ON UPDATE no action;

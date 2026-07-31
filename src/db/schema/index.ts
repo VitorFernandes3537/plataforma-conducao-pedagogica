@@ -306,6 +306,23 @@ export const turmas = pgTable('turmas', {
     .references(() => cursos.id, { onDelete: 'cascade' }),
   nome: text('nome').notNull(),
   /**
+   * O dia em que esta turma está.
+   *
+   * A plataforma não tem relógio de calendário, e não deveria ter: nenhum
+   * documento diz quando o curso roda, e `dias` guarda ordem, não data. O que
+   * existe é um ponteiro que o instrutor avança.
+   *
+   * Isso não é conveniência de implementação — é a sincronia do Doc 4 §5.2
+   * virando mecanismo. A turma inteira adianta junto ou não adianta, e o painel
+   * de superação sinaliza enquanto quem decide é o instrutor. Um relógio faria
+   * o calendário andar sozinho por cima de uma turma que ficou para trás.
+   *
+   * Nulo antes do primeiro dia começar.
+   */
+  diaCorrenteId: uuid('dia_corrente_id').references((): AnyPgColumn => dias.id, {
+    onDelete: 'set null',
+  }),
+  /**
    * Quando a agregação da turma foi fechada.
    *
    * Nulo significa aberta, e é o fato que a matriz de permissões lê: "aluno não
