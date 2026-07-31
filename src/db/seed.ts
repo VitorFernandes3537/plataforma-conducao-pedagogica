@@ -1,6 +1,9 @@
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 
 import * as schema from './schema'
+
+/** O tipo de instrumento que o eixo de prática confere. Vem do enum do schema. */
+type TipoDeInstrumento = (typeof schema.tipoDeInstrumentoEnum.enumValues)[number]
 import {
   alunos,
   bancosDeTemas,
@@ -8,8 +11,10 @@ import {
   blocosDeMaterial,
   cursos,
   dias,
+  eixos,
   estruturas,
   formularios,
+  instrumentosDoEixo,
   grupos,
   julgamentosHumanos,
   lacunasDoModelo,
@@ -22,6 +27,7 @@ import {
   papeisDaEstrutura,
   perguntasDaDefesa,
   perguntasDoFormulario,
+  reflexoesDeFechamento,
   regrasDeValidacao,
   repositorios,
   temas,
@@ -179,6 +185,61 @@ export const EXEMPLO = {
    * a defesa do D15. Duas por grupo é o de praxe, mas o banco é maior: o
    * instrutor escolhe na hora, sobre aquele código.
    */
+  /**
+   * As reflexões de fechamento (Doc 6 §5.1 e §7). Faltavam, e sem elas o
+   * percurso do aluno não tinha o que retrospectar. Ligadas ao último dia do
+   * calendário de exemplo — no curso real são D14 e D15.
+   */
+  reflexoes: [
+    {
+      naOrdemDoDia: 3,
+      enunciado: 'O que o compilador fazia por você, que agora você faz sozinho?',
+    },
+    {
+      naOrdemDoDia: 3,
+      enunciado: 'A tese do curso mudou de forma no seu trabalho? Como você a descreveria agora?',
+    },
+  ],
+  /**
+   * A rubrica: três eixos, um por fonte (Doc 6 §13 · Doc 7 §2.3). Faltava
+   * inteira, e sem ela a nota não agrega e a agregação não fecha.
+   *
+   * Os pesos somam 1 e o eixo de prática é 20% (Doc 6 §5). Quantos eixos, com
+   * que peso e lendo qual fonte é tudo configuração — o Doc 6 §13 endereça isso
+   * ao Doc 7 com todas as letras.
+   */
+  rubrica: [
+    {
+      ordem: 1,
+      nome: 'Modelagem',
+      peso: 0.4,
+      unidade: 'aluno' as const,
+      fonte: 'avaliacao_de_obstaculo' as const,
+      instrumentos: [] as { tipo: TipoDeInstrumento; peso: number }[],
+    },
+    {
+      ordem: 2,
+      nome: 'Absorção do incremento',
+      peso: 0.4,
+      unidade: 'grupo' as const,
+      fonte: 'avaliacao_de_incremento' as const,
+      instrumentos: [] as { tipo: TipoDeInstrumento; peso: number }[],
+    },
+    {
+      ordem: 3,
+      nome: 'Prática de trabalho',
+      peso: 0.2,
+      unidade: 'aluno' as const,
+      fonte: 'presenca_de_instrumentos' as const,
+      instrumentos: [
+        { tipo: 'confirmacao_de_push' as const, peso: 0.25 },
+        { tipo: 'log_de_obstaculo' as const, peso: 0.25 },
+        { tipo: 'contrato_diario' as const, peso: 0.2 },
+        { tipo: 'registro_de_critica' as const, peso: 0.2 },
+        { tipo: 'reflexao_de_fechamento' as const, peso: 0.1 },
+      ],
+    },
+  ],
   perguntasDaDefesa: [
     'Mostre onde a regra da transição mora. Se eu pedir outra transição proibida, é aqui que se mexe?',
     'Sem olhar o código: qual era o incremento que chegou, e o que ele obrigou a mudar?',
@@ -444,6 +505,30 @@ async function semeiaEm(db: Db) {
       titulo: referencia.titulo,
       url: referencia.url,
     })
+  }
+
+  // As reflexões de fechamento penduram num dia, então vêm depois dos dias.
+  await db.insert(reflexoesDeFechamento).values(
+    EXEMPLO.reflexoes.map((r, i) => {
+      const dia = diasPorOrdem.get(r.naOrdemDoDia)
+      if (!dia) throw new Error(`seed: dia ${r.naOrdemDoDia} da reflexão não existe`)
+      return { cursoId: curso.id, ordem: i + 1, enunciado: r.enunciado, diaId: dia }
+    }),
+  )
+
+  // A rubrica: cada eixo, e os instrumentos do eixo de presença.
+  for (const eixo of EXEMPLO.rubrica) {
+    const { instrumentos, ...cabecalho } = eixo
+    const [criado] = await db
+      .insert(eixos)
+      .values({ cursoId: curso.id, ...cabecalho })
+      .returning()
+    if (!criado) throw new Error('seed: eixo não foi criado')
+    if (instrumentos.length > 0) {
+      await db
+        .insert(instrumentosDoEixo)
+        .values(instrumentos.map((inst) => ({ eixoId: criado.id, ...inst })))
+    }
   }
 
   // ── O portão do D3 ──────────────────────────────────────────────────

@@ -286,6 +286,23 @@ export async function notaVisivel(
   return notaDoAluno(db, alunoId)
 }
 
+/**
+ * Quando a agregação de uma turma foi fechada, ou `null` se ainda não foi.
+ *
+ * `notaVisivel` **lança** para o aluno enquanto a agregação está aberta — é a
+ * regra do Doc 7 §3 virando exceção. A tela precisa decidir antes de chamar,
+ * para mostrar a ausência declarada em vez de um erro, e é isto que ela lê.
+ */
+export async function agregacaoFinalizadaEm(db: Db, turmaId: string): Promise<Date | null> {
+  const [turma] = await db
+    .select({ finalizadaEm: turmas.agregacaoFinalizadaEm })
+    .from(turmas)
+    .where(eq(turmas.id, turmaId))
+    .limit(1)
+
+  return turma?.finalizadaEm ?? null
+}
+
 /** Fecha a agregação de uma turma. A partir daqui o aluno vê a própria nota. */
 export async function finalizaAgregacao(
   db: Db,
