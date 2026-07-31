@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { dadosDoGrupo } from '@/db/grupo'
+import { alunosDaTurma, dadosDoGrupo } from '@/db/grupo'
 import {
   alunos,
   bancosDeTemas,
@@ -94,5 +94,36 @@ describe('dados do grupo', () => {
 
   it('grupo inexistente devolve nulo', async () => {
     expect(await dadosDoGrupo(banco.db, crypto.randomUUID())).toBeNull()
+  })
+
+  it('alunosDaTurma traz a turma inteira, com nome e em ordem de grupo', async () => {
+    const curso = await criaCurso(banco)
+    const [turma] = await banco.db
+      .insert(turmas)
+      .values({ cursoId: curso.id, nome: 'Turma' })
+      .returning()
+    const [g1] = await banco.db.insert(grupos).values({ turmaId: turma!.id }).returning()
+    const [g2] = await banco.db.insert(grupos).values({ turmaId: turma!.id }).returning()
+
+    const pessoas = await banco.db
+      .insert(usuarios)
+      .values([
+        { githubUserId: 10, githubLogin: 'ana', nome: 'Ana', papel: 'aluno' },
+        { githubUserId: 11, githubLogin: 'bruno', nome: 'Bruno', papel: 'aluno' },
+        { githubUserId: 12, githubLogin: 'carla', nome: 'Carla', papel: 'aluno' },
+      ])
+      .returning()
+    await banco.db.insert(alunos).values([
+      { turmaId: turma!.id, usuarioId: pessoas[0]!.id, grupoId: g1!.id, posicaoNoGrupo: 1 },
+      { turmaId: turma!.id, usuarioId: pessoas[1]!.id, grupoId: g1!.id, posicaoNoGrupo: 2 },
+      { turmaId: turma!.id, usuarioId: pessoas[2]!.id, grupoId: g2!.id, posicaoNoGrupo: 1, copiloto: true },
+    ])
+
+    const lista = await alunosDaTurma(banco.db, turma!.id)
+    expect(lista).toHaveLength(3)
+    // A turma inteira, com nome.
+    expect(lista.map((a) => a.nome).sort()).toEqual(['Ana', 'Bruno', 'Carla'])
+    // O copiloto vem marcado — a nota dele tem outra origem.
+    expect(lista.find((a) => a.nome === 'Carla')?.copiloto).toBe(true)
   })
 })

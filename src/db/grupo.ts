@@ -6,6 +6,35 @@ import { alunos, grupos, repositorios, temas, turmas, usuarios } from './schema'
 
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
+export type AlunoDaTurma = {
+  alunoId: string
+  nome: string
+  grupoId: string | null
+  copiloto: boolean
+}
+
+/**
+ * Os alunos de uma turma, com nome, em ordem de grupo e posição.
+ *
+ * Existe para a agregação do D15, que é por aluno e precisa da turma inteira —
+ * `lancamentoDoDia` traz alunos, mas amarrados a um obstáculo, e a agregação
+ * não é de um dia só. A ordem por grupo mantém quem trabalha junto junto na
+ * lista, e o `copiloto` vem porque a nota dele tem outra origem (Doc 6 §9.1).
+ */
+export async function alunosDaTurma(db: Db, turmaId: string): Promise<AlunoDaTurma[]> {
+  return db
+    .select({
+      alunoId: alunos.id,
+      nome: usuarios.nome,
+      grupoId: alunos.grupoId,
+      copiloto: alunos.copiloto,
+    })
+    .from(alunos)
+    .innerJoin(usuarios, eq(usuarios.id, alunos.usuarioId))
+    .where(eq(alunos.turmaId, turmaId))
+    .orderBy(asc(alunos.grupoId), asc(alunos.posicaoNoGrupo))
+}
+
 export type DadosDoGrupo = {
   grupoId: string
   turmaId: string
