@@ -16,3 +16,8 @@ next-env.d.ts
 
 # Capturas de tela para inspecao visual
 capturas/
+
+# Ferramenta de auditoria de interface, 3 MB de codigo de terceiro.
+# Reinstala com `npx impeccable install`; versionar so envelheceria no repo.
+.claude/skills/impeccable/
+.impeccable/

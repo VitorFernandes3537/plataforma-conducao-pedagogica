@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Ferramenta de auditoria de interface: codigo de terceiro, nao versionado.
+    // Sem isto o lint do projeto some sob 151 avisos que ninguem vai corrigir.
+    ".claude/**",
   ]),
 ]);
 
