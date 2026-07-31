@@ -7,6 +7,24 @@ import { alunos, cursos, turmas } from './schema'
 type Db = PgDatabase<PgQueryResultHKT, typeof schema>
 
 /**
+ * O curso a que a turma pertence.
+ *
+ * Existe porque `diaCorrenteDaTurma` também devolve `cursoId` e não serve aqui:
+ * ela é nula enquanto o instrutor não avançou para o primeiro dia, e há tela do
+ * aluno que precisa da configuração do curso — formulário, estrutura, banco de
+ * temas — sem depender do ponteiro ter sido movido.
+ */
+export async function cursoDaTurma(db: Db, turmaId: string): Promise<{ id: string } | null> {
+  const [linha] = await db
+    .select({ id: turmas.cursoId })
+    .from(turmas)
+    .where(eq(turmas.id, turmaId))
+    .limit(1)
+
+  return linha ?? null
+}
+
+/**
  * A pergunta condutora do curso a que a turma pertence (`D1-PERGUNTA`).
  *
  * Recebe o banco por parâmetro para poder ser testada contra PGlite sem

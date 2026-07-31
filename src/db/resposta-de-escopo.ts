@@ -190,6 +190,98 @@ export async function gravaResposta(
   })
 }
 
+export type LinhaDaTraducao = {
+  papelId: string
+  ordem: number
+  nome: string
+  obrigatorio: boolean
+  nomeNoNegocio: string | null
+  nomeNoCodigo: string | null
+}
+
+/**
+ * A tabela de tradução de um escopo, com os papéis ainda vazios inclusos.
+ *
+ * `estadoDaTraducao` responde "está completa?"; esta responde "o que há para
+ * preencher". São perguntas diferentes e a tela precisa da segunda: papel sem
+ * linha tem que aparecer como campo vazio, não sumir.
+ *
+ * Traz o papel OPCIONAL junto. Ele não invalida o escopo se ficar de fora
+ * (`obrigatorio` é coluna, não convenção), mas escondê-lo tiraria do grupo a
+ * chance de preenchê-lo — e a tabela é o índice de navegação do código dele.
+ */
+export async function traducaoDoEscopo(
+  db: Db,
+  respostaDeEscopoId: string,
+  cursoId: string,
+): Promise<LinhaDaTraducao[]> {
+  return db
+    .select({
+      papelId: papeisDaEstrutura.id,
+      ordem: papeisDaEstrutura.ordem,
+      nome: papeisDaEstrutura.nome,
+      obrigatorio: papeisDaEstrutura.obrigatorio,
+      nomeNoNegocio: linhasDeTraducao.nomeNoNegocio,
+      nomeNoCodigo: linhasDeTraducao.nomeNoCodigo,
+    })
+    .from(papeisDaEstrutura)
+    .innerJoin(estruturas, eq(estruturas.id, papeisDaEstrutura.estruturaId))
+    .leftJoin(
+      linhasDeTraducao,
+      and(
+        eq(linhasDeTraducao.papelId, papeisDaEstrutura.id),
+        eq(linhasDeTraducao.respostaDeEscopoId, respostaDeEscopoId),
+      ),
+    )
+    .where(eq(estruturas.cursoId, cursoId))
+    .orderBy(asc(papeisDaEstrutura.ordem))
+}
+
+/**
+ * Grava uma linha da tabela de tradução.
+ *
+ * Mesma janela de edição de `gravaResposta`, e pelo mesmo motivo: a tabela é
+ * parte do que o instrutor julga (Doc 2 §4.5), então reescrevê-la depois de
+ * entregar tornaria a fila um alvo móvel. A lista de estados sai do mapa de
+ * transições, nunca de uma segunda cópia.
+ *
+ * O `SELECT ... FOR UPDATE` serializa contra a decisão do instrutor pela mesma
+ * razão de lá: no D3 as duas telas estão abertas ao mesmo tempo.
+ *
+ * A plataforma **não** julga o nome. "Tradução sem nomes genéricos" é
+ * verificação declarada do formulário (Doc 2 §4.6), e quem a executa é o motor
+ * de regras sobre o dado — não um `if` escondido numa escrita.
+ */
+export async function gravaLinhaDeTraducao(
+  db: Db,
+  respostaDeEscopoId: string,
+  papelId: string,
+  nomes: { nomeNoNegocio: string; nomeNoCodigo: string },
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [escopo] = await tx
+      .select({ estado: respostasDeEscopo.estado })
+      .from(respostasDeEscopo)
+      .where(eq(respostasDeEscopo.id, respostaDeEscopoId))
+      .limit(1)
+      .for('update')
+
+    if (!escopo) throw new EscopoInvalido('escopo não encontrado')
+
+    if (!estadosEditaveisPeloGrupo().includes(escopo.estado)) {
+      throw new EscopoInvalido(`escopo ${escopo.estado}: o grupo não edita depois de entregar`)
+    }
+
+    await tx
+      .insert(linhasDeTraducao)
+      .values({ respostaDeEscopoId, papelId, ...nomes })
+      .onConflictDoUpdate({
+        target: [linhasDeTraducao.respostaDeEscopoId, linhasDeTraducao.papelId],
+        set: nomes,
+      })
+  })
+}
+
 /**
  * Campos da submissão, usados aqui e pelo portão do pré-filtro.
  *
