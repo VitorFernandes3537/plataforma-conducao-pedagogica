@@ -169,6 +169,13 @@
       "when": 1785460964390,
       "tag": "0023_criterios_do_obstaculo",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1785460965390,
+      "tag": "0024_traducao_segue_o_escopo_fechado",
+      "breakpoints": true
     }
   ]
 }

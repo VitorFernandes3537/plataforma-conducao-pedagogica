@@ -14,6 +14,7 @@ import {
   estruturas,
   formularios,
   grupos,
+  linhasDeTraducao,
   papeisDaEstrutura,
   respostasDeEscopo,
   temas,
@@ -236,6 +237,30 @@ describe('consultas da tela de escopo', () => {
         nomeNoCodigo: 'TardeDemais',
       }),
     ).rejects.toBeInstanceOf(EscopoInvalido)
+  })
+
+  it('banco_recusa_traducao_em_escopo_fechado_sem_passar_pela_aplicacao', async () => {
+    const { curso, formulario, grupo } = await cenario()
+    const papeis = await comEstrutura(curso.id)
+    const escopo = await abreRascunho(banco.db, grupo.id, formulario.id)
+
+    await banco.db
+      .update(respostasDeEscopo)
+      .set({ estado: 'submetido', submetidoEm: new Date() })
+      .where(eq(respostasDeEscopo.id, escopo.id))
+
+    // INSERT direto, sem `gravaLinhaDeTraducao`. A guarda da aplicação não está
+    // no caminho — quem recusa é o gatilho, como já acontecia com as respostas.
+    // Sem isso, a única barreira da tabela de tradução seria a aplicação, e a
+    // integridade deste projeto mora no banco.
+    await expect(
+      banco.db.insert(linhasDeTraducao).values({
+        respostaDeEscopoId: escopo.id,
+        papelId: papeis[0]!.id,
+        nomeNoNegocio: 'Pela porta dos fundos',
+        nomeNoCodigo: 'PortaDosFundos',
+      }),
+    ).rejects.toThrow()
   })
 
   it('grupo_volta_a_editar_traducao_quando_devolvido', async () => {
