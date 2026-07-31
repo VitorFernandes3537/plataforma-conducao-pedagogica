@@ -5,7 +5,7 @@ import { FechamentoDoDia } from '@/components/aluno/fechamento-do-dia'
 import { MuralDoAluno } from '@/components/aluno/mural-do-aluno'
 import { DesafioAtual } from '@/components/desafio-atual'
 import { MarcaProduto } from '@/components/marcas'
-import { AusenciaDeclarada, Cabecalho, Cartao, Etiqueta } from '@/components/ui'
+import { AusenciaDeclarada, Cabecalho, Cartao, Casca, Etiqueta } from '@/components/ui'
 import { db } from '@/db'
 import { contratoDoDia } from '@/db/contrato-diario'
 import { diaCorrenteDaTurma } from '@/db/dia-corrente'
@@ -34,13 +34,13 @@ export default async function Hoje() {
 
   if (!matricula) {
     return (
-      <main className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-12">
+      <Casca>
         <Cabecalho legenda="Hoje" titulo="Você ainda não está numa turma" />
         <AusenciaDeclarada legenda="Matrícula">
           O instrutor cadastra a turma por usuário do GitHub. Quando ele te
           incluir, esta tela passa a mostrar o dia.
         </AusenciaDeclarada>
-      </main>
+      </Casca>
     )
   }
 
@@ -48,12 +48,12 @@ export default async function Hoje() {
 
   if (!dia) {
     return (
-      <main className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-12">
+      <Casca>
         <Cabecalho legenda="Hoje" titulo="O curso ainda não começou" />
         <AusenciaDeclarada legenda="Primeiro dia">
           A turma está cadastrada e o primeiro dia ainda não foi aberto.
         </AusenciaDeclarada>
-      </main>
+      </Casca>
     )
   }
 
@@ -65,7 +65,7 @@ export default async function Hoje() {
   ])
 
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-10">
+    <Casca>
       <Cabecalho
         legenda={`Dia ${dia.ordem} de ${dia.totalDeDias}`}
         titulo={obstaculo ? 'Hoje' : 'Hoje não há obstáculo'}
@@ -141,6 +141,6 @@ export default async function Hoje() {
           )}
         </Cartao>
       </div>
-    </main>
+    </Casca>
   )
 }

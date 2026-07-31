@@ -26,7 +26,9 @@ export function AusenciaDeclarada({
 }) {
   return (
     <div className={`relative ${className}`}>
-      <section className="rounded-[var(--radius-cartao)] border border-dashed border-linha-forte px-5 py-4">
+      {/* Medida própria: ausência declarada é prosa, e prosa não atravessa um
+          monitor. A casca não a segura mais — quem tem medida é o conteúdo. */}
+      <section className="max-w-[62ch] rounded-[var(--radius-cartao)] border border-dashed border-linha-forte px-5 py-4">
         <h3 className="legenda">{legenda}</h3>
         <p className="mt-2 font-prosa text-[0.875rem] leading-snug text-tinta-fraca">{children}</p>
       </section>
@@ -58,7 +60,7 @@ export function EstadoVazio({
 }) {
   return (
     <div
-      className={`flex flex-col items-center gap-3 rounded-[var(--radius-cartao)] border border-dashed border-linha-forte px-6 py-10 text-center ${className}`}
+      className={`flex max-w-[62ch] flex-col items-center gap-3 rounded-[var(--radius-cartao)] border border-dashed border-linha-forte px-6 py-10 text-center ${className}`}
     >
       <MarcaBilhete className="h-12 w-auto text-tinta-tenue" />
       <p className="font-prosa text-base text-tinta">{titulo}</p>

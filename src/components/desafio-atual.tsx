@@ -45,7 +45,11 @@ export function DesafioAtual({ perguntaDoAluno, criterios, escopoFora, ordem }: 
         {perguntaDoAluno}
       </h2>
 
-      <div className="mt-7 grid max-w-5xl gap-x-14 gap-y-6 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      {/* Havia um `max-w-5xl` aqui, inerte: 1024px dentro de um main de 896.
+          Não segurava nada e voltaria a morder no dia em que a casca passasse
+          de 1024 — cap adormecido é pior que cap nenhum, porque ninguém o
+          procura. Quem decide a largura desta grade é a casca (ADR 0009). */}
+      <div className="mt-7 grid gap-x-14 gap-y-6 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div>
           <h3 className="legenda flex items-baseline gap-2">
             vencer é

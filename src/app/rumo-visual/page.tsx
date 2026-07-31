@@ -101,7 +101,7 @@ function Amostra({
 
 export default function DesignSystem() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-11 px-6 py-14">
+    <main className="margem flex w-full max-w-[64rem] flex-col gap-11 py-14">
       {/* ── Abertura, com as marcas na margem ────────────────────────── */}
       {/* As marcas ficam FORA da coluna de texto, na margem de verdade. A
           versão anterior as jogava por cima do parágrafo — exatamente o que a
@@ -313,9 +313,11 @@ export default function DesignSystem() {
         titulo="A régua do dia"
         regra="Uma faixa só. As larguras SÃO as durações: 75 minutos ocupam cinco vezes o espaço de 15. O decorrido não preenche caixa — antes era bloco bege sobre fundo bege, mancha suja e invisível. Agora é fio de tinta na base, com contraste de verdade em 2px."
       >
-        {/* Sangra fora do contêiner: no aplicativo ela é de largura cheia, e
-            apertá-la truncaria o rótulo de 15 min, mentindo sobre a proporção. */}
-        <div className="-mx-6 flex flex-col gap-5 lg:-mx-[max(1.5rem,calc((100vw-64rem)/2))]">
+        {/* Sangra até a borda da casca: no aplicativo ela é de largura cheia, e
+            apertá-la truncaria o rótulo de 15 min, mentindo sobre a proporção.
+            O cálculo anterior era `(100vw - 64rem) / 2`, que só fecha com a
+            casca CENTRADA — e ela deixou de ser (ADR 0009). */}
+        <div className="sangra flex flex-col gap-5">
           <ReguaDoDia
             dia={7}
             contexto="ana e bruno · barbearia"

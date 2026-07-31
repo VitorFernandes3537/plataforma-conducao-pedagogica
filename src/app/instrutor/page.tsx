@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { Cabecalho, Cartao, EstadoVazio, Etiqueta, Linha } from '@/components/ui'
+import { Cabecalho, Cartao, Casca, EstadoVazio, Etiqueta, Linha } from '@/components/ui'
 import { db } from '@/db'
 import { turmasDoInstrutor } from '@/db/dia-corrente'
 
@@ -16,7 +16,7 @@ export default async function EntradaDoInstrutor() {
   const turmas = await turmasDoInstrutor(db())
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col gap-6 px-6 py-12">
+    <Casca>
       <Cabecalho legenda="Condução" titulo="Suas turmas" />
 
       {turmas.length === 0 ? (
@@ -51,6 +51,6 @@ export default async function EntradaDoInstrutor() {
           </ul>
         </Cartao>
       )}
-    </main>
+    </Casca>
   )
 }

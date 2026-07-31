@@ -105,6 +105,39 @@ body {
   font-family: var(--font-chrome), system-ui, sans-serif;
 }
 
+/*
+  ── Margem da casca ──────────────────────────────────────────────────
+  Uma medida só, para a coluna não dançar entre uma tela e outra. Antes
+  cada página escolhia o próprio `px-6` e o próprio `max-w-*`, e havia
+  quatro larguras diferentes sem nada que as decidisse (ADR 0009).
+
+  No desktop ela é larga de propósito: a marca à mão vive na margem
+  (ADR 0003 §4.1), e margem estreita não é margem — é sangria.
+*/
+:root {
+  --margem: 1.5rem;
+}
+@media (min-width: 48rem) {
+  :root {
+    --margem: 2.5rem;
+  }
+}
+@media (min-width: 64rem) {
+  :root {
+    --margem: 5rem;
+  }
+}
+
+.margem {
+  padding-inline: var(--margem);
+}
+
+/* Sangra até a borda da casca. É como a régua atravessa de ponta a ponta
+   sem que a tela precise saber quanto vale a margem. */
+.sangra {
+  margin-inline: calc(var(--margem) * -1);
+}
+
 /* Cartão. Filete e raio, nunca sombra. */
 .cartao {
   background-color: var(--color-superficie);

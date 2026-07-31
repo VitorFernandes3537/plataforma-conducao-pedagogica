@@ -29,7 +29,7 @@ export default async function Home() {
       : { href: '/hoje', rotulo: 'Ir para o seu dia' }
 
   return (
-    <main className="flex min-h-dvh flex-col justify-center gap-12 px-8 py-20 md:px-16">
+    <main className="margem flex min-h-dvh flex-col justify-center gap-12 py-20">
       <div>
         <Logotipo tamanho="abertura" />
         <p className="mt-9 max-w-[42ch] font-prosa text-2xl leading-snug tracking-tight text-tinta">

@@ -57,7 +57,11 @@ export function Campo({
       <input
         id={id}
         aria-invalid={erro ? true : undefined}
-        className={`${BASE} ${className}`}
+        // Medida própria. `w-full` sozinho fazia o campo acompanhar a casca, e
+        // sem casca centrada ele atravessaria o monitor — 46ch é o que uma
+        // resposta de uma linha ocupa, e campo mais largo que o texto que cabe
+        // nele promete espaço que não existe.
+        className={`${BASE} max-w-[46ch] ${className}`}
         style={{ borderColor: erro ? 'var(--color-portao)' : 'var(--color-linha-forte)' }}
         {...resto}
       />
@@ -86,7 +90,10 @@ export function CampoDeProsa({
         id={id}
         rows={rows}
         aria-invalid={erro ? true : undefined}
-        className={`${BASE} font-prosa leading-relaxed ${className}`}
+        // 62ch é a medida de prosa do sistema, a mesma da pergunta condutora e
+        // do subtítulo do cabeçalho. Aqui ela é dupla: contém a leitura, e diz
+        // pelo tamanho que o que se espera é texto, não uma frase.
+        className={`${BASE} max-w-[62ch] font-prosa leading-relaxed ${className}`}
         style={{ borderColor: erro ? 'var(--color-portao)' : 'var(--color-linha-forte)' }}
         {...resto}
       />

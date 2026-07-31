@@ -6,6 +6,7 @@
 export { Anotacao, AnotacaoApontando, AnotacaoNaMargem, Circundado } from './anotacao'
 export { Botao } from './botao'
 export { Cabecalho, Destaque } from './cabecalho'
+export { Casca } from './casca'
 export { Cartao, Linha } from './cartao'
 export { Campo, CampoDeProsa } from './campo'
 export { Escala, type NotaDaEscala } from './escala'

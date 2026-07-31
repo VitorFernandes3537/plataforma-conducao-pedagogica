@@ -75,7 +75,7 @@ export default async function Entrar({
   const motivo = error ? (MOTIVO[error] ?? GENERICO) : null
 
   return (
-    <main className="flex min-h-dvh flex-col justify-center gap-10 px-8 py-20 md:px-16">
+    <main className="margem flex min-h-dvh flex-col justify-center gap-10 py-20">
       <Logotipo tamanho="abertura" />
 
       {motivo && (

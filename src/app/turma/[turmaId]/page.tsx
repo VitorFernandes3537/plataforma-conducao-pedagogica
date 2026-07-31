@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 
-import { Cabecalho, Cartao, Etiqueta } from '@/components/ui'
+import { Cabecalho, Cartao, Casca, Etiqueta } from '@/components/ui'
 import { db } from '@/db'
 import { indicePublicoDaTurma } from '@/db/indice'
 
@@ -26,7 +26,7 @@ export default async function IndicePublico({
   if (grupos.length === 0) notFound()
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col gap-6 px-6 py-16">
+    <Casca>
       <Cabecalho legenda="Índice da turma" titulo="O que esta turma construiu">
         <p className="max-w-[52ch] text-tinta-media">
           Cada projeto é público e continua no ar depois do curso.
@@ -59,7 +59,7 @@ export default async function IndicePublico({
           </li>
         ))}
       </ul>
-    </main>
+    </Casca>
   )
 }
 

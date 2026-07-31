@@ -62,7 +62,7 @@ export function MuralDoAluno({
                 </h3>
                 <ul className="mt-1.5 flex flex-col gap-1.5">
                   {grupo.itens.map((item) => (
-                    <li key={item.id} className="text-tinta-media">
+                    <li key={item.id} className="max-w-[66ch] text-tinta-media">
                       {item.texto}
                     </li>
                   ))}
