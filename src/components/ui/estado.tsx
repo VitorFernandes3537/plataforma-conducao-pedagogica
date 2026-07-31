@@ -90,10 +90,17 @@ export function Aviso({
   const cor = tom === 'portao' ? 'var(--color-portao)' : 'var(--color-destaque)'
   const fundo = tom === 'portao' ? 'var(--color-portao-tenue)' : 'var(--color-destaque-tenue)'
 
+  // O detector marca filete lateral grosso como tique de interface gerada. Aqui
+  // fica, e por dois motivos: 3px é a espessura reservada do sistema — `Cartao`
+  // usa a mesma para marcar bloqueio —, e o resto da interface é 1px de
+  // `--color-linha`. Afinar só este ponto quebraria a consistência sem ganho.
+  // impeccable-disable-next-line side-tab
+  const filete = `3px solid ${cor}`
+
   return (
     <div
       className={`rounded-[var(--radius-controle)] px-4 py-3 text-[0.875rem] leading-snug ${className}`}
-      style={{ backgroundColor: fundo, borderLeft: `3px solid ${cor}`, color: 'var(--color-tinta)' }}
+      style={{ backgroundColor: fundo, borderLeft: filete, color: 'var(--color-tinta)' }}
     >
       {children}
     </div>
