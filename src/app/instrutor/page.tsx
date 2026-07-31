@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 
 import { Cabecalho, Cartao, Casca, EstadoVazio, Etiqueta, Linha } from '@/components/ui'
 import { db } from '@/db'
 import { turmasDoInstrutor } from '@/db/dia-corrente'
+import { auth } from '@/lib/auth'
 
 /**
  * A entrada do instrutor: em que dia cada turma está.
@@ -11,9 +13,19 @@ import { turmasDoInstrutor } from '@/db/dia-corrente'
  * conduzir mais de uma turma. Com uma turma só, ela é uma linha e um clique —
  * e é assim que deve ser: o instrutor não navega, ele abre o dia e volta para a
  * sala (ADR 0003 §1).
+ *
+ * Revalida a sessão por conta própria, como toda página e toda ação (ADR 0001
+ * §3). Era a única tela da área do instrutor que não perguntava quem estava
+ * lendo, e a consequência não era só de autorização: sem tocar em API dinâmica,
+ * o Next a prerenderizava no build e servia a lista de turmas congelada no
+ * momento em que o deploy saiu. Turma cadastrada depois não aparecia até o build
+ * seguinte.
  */
 export default async function EntradaDoInstrutor() {
-  const turmas = await turmasDoInstrutor(db())
+  const sessao = await auth()
+  if (!sessao?.usuarioId) redirect('/entrar?callbackUrl=/instrutor')
+
+  const turmas = await turmasDoInstrutor(db(), sessao.usuarioId)
 
   return (
     <Casca>

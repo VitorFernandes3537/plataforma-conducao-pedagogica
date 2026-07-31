@@ -79,10 +79,23 @@ describe('Dia corrente da turma', () => {
     expect(await diaCorrenteDaTurma(banco.db, c.turma.id)).toBeNull()
     expect(await diaDoAluno(banco.db, c.usuarioAluno.id)).toBeNull()
 
-    const listagem = await turmasDoInstrutor(banco.db)
+    const listagem = await turmasDoInstrutor(banco.db, c.instrutora.id)
     expect(listagem).toHaveLength(1)
     expect(listagem[0]?.ordem).toBeNull()
     expect(listagem[0]?.totalDeDias).toBe(TOTAL_DE_DIAS)
+  })
+
+  it('listar_as_turmas_e_do_instrutor', async () => {
+    const c = await cenario()
+
+    // A listagem não filtra por dono — nenhuma tabela liga instrutor a turma, e
+    // a matriz do Doc 7 §3 dá tudo ao instrutor. Então o que protege a lista é
+    // só o papel, e o papel é lido do banco: a sessão é JWT e carrega o papel
+    // gravado no login, então rebaixar alguém não invalida o token que ele já
+    // tem. Checar só na sessão deixaria esse token listando turma até expirar.
+    await expect(
+      turmasDoInstrutor(banco.db, c.usuarioAluno.id),
+    ).rejects.toThrow(NaoAutorizado)
   })
 
   it('instrutor_avanca_um_dia_por_vez', async () => {

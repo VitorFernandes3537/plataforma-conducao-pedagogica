@@ -146,10 +146,24 @@ export async function diaDoAluno(db: Db, usuarioId: string): Promise<DiaCorrente
   return diaCorrenteDaTurma(db, matricula.turmaId)
 }
 
-/** As turmas de um curso, com o dia de cada uma. É a entrada do instrutor. */
+/**
+ * As turmas de um curso, com o dia de cada uma. É a entrada do instrutor.
+ *
+ * Devolve todas as turmas porque nenhuma tabela liga instrutor a turma, e a
+ * matriz do Doc 7 §3 diz "instrutor — tudo". O que o `instrutorId` decide não é
+ * *quais* turmas aparecem, é *se* aparecem.
+ *
+ * A checagem é aqui e lê o papel do banco, não da sessão. O token é JWT e carrega
+ * o papel gravado no login (ADR 0001 §3): rebaixar alguém no banco não invalida o
+ * token que ele já tem. Enquanto a checagem morar só na sessão, esse token
+ * continua listando as turmas até expirar.
+ */
 export async function turmasDoInstrutor(
   db: Db,
+  instrutorId: string,
 ): Promise<{ turmaId: string; nome: string; ordem: number | null; totalDeDias: number }[]> {
+  await exigeInstrutor(db, instrutorId)
+
   const linhas = await db
     .select({ turmaId: turmas.id, nome: turmas.nome, cursoId: turmas.cursoId, ordem: dias.ordem })
     .from(turmas)
