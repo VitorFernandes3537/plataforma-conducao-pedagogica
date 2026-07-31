@@ -45,7 +45,7 @@ export function MuralDoAluno({
 
   return (
     <div className="relative">
-      <MarcaBilhete className="pointer-events-none absolute -left-10 top-1 hidden lg:block" />
+      <MarcaBilhete className="pointer-events-none absolute -left-16 top-1 hidden w-12 text-tinta-tenue lg:block" />
 
       <Cartao legenda="Precisamos saber" contagem={total}>
         {total === 0 ? (

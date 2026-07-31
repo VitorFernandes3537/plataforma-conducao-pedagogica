@@ -117,7 +117,7 @@ export default async function Hoje() {
       )}
 
       <div className="relative">
-        <MarcaProduto className="pointer-events-none absolute -left-10 top-1 hidden lg:block" />
+        <MarcaProduto className="pointer-events-none absolute -left-16 top-1 hidden w-14 text-tinta-tenue lg:block" />
         <Cartao legenda="Seu repositório">
           {matricula.repositorio ? (
             <>
