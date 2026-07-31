@@ -9,6 +9,7 @@ import {
 
 import * as schema from './schema'
 import {
+  alunos,
   grupos,
   julgamentosHumanos,
   perguntasDoFormulario,
@@ -162,6 +163,16 @@ export type JulgamentoDaFila = {
 export type ItemDaFila = {
   respostaDeEscopoId: string
   grupoId: string
+  /**
+   * Quem forma o grupo, em ordem de posição.
+   *
+   * A fila é uma lista de pessoas para quem a lê. Sem os nomes a tela mostraria
+   * uuid truncado — o mesmo defeito que `lancamentoDoDia` já teve: passa no
+   * teste e falha na sala, porque o instrutor não reconhece ninguém por id.
+   *
+   * Um integrante só é caso válido, não exceção (Doc 2 §2.4.1).
+   */
+  integrantes: readonly string[]
   /** Instante da entrega vigente. É por ele que a fila ordena. */
   submetidoEm: Date
   tema: { id: string; nome: string } | null
@@ -226,6 +237,17 @@ export async function filaDoInstrutor(db: Db, turmaId: string): Promise<ItemDaFi
     .where(inArray(respostasDePergunta.respostaDeEscopoId, escopoIds))
     .orderBy(asc(perguntasDoFormulario.ordem))
 
+  const integrantes = await db
+    .select({
+      grupoId: alunos.grupoId,
+      nome: usuarios.nome,
+      posicao: alunos.posicaoNoGrupo,
+    })
+    .from(alunos)
+    .innerJoin(usuarios, eq(usuarios.id, alunos.usuarioId))
+    .where(inArray(alunos.grupoId, emEspera.map((e) => e.grupoId)))
+    .orderBy(asc(alunos.posicaoNoGrupo))
+
   const julgamentos = await db
     .select({
       formularioId: julgamentosHumanos.formularioId,
@@ -241,6 +263,7 @@ export async function filaDoInstrutor(db: Db, turmaId: string): Promise<ItemDaFi
   return emEspera.map((e) => ({
     respostaDeEscopoId: e.respostaDeEscopoId,
     grupoId: e.grupoId,
+    integrantes: integrantes.filter((i) => i.grupoId === e.grupoId).map((i) => i.nome),
     // O `where` filtra por `submetido`, e o CHECK garante a data nesse estado.
     submetidoEm: e.submetidoEm!,
     tema: e.temaId && e.temaNome ? { id: e.temaId, nome: e.temaNome } : null,
