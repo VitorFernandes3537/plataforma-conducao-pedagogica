@@ -93,3 +93,52 @@ conversa, nunca veredito — e ausência de achado não é atestado de qualidade
 
 Uma ocorrência em quatro telas também diz algo sobre a ADR 0003: ela foi
 executada com consistência.
+
+## 6. O que o detector não cobre, e onde estava o buraco de verdade
+
+Acessibilidade não é regex. A varredura determinística passa limpa por um
+sistema visual inteiro sem nunca calcular uma razão de contraste — e era ali que
+estava o problema.
+
+Sobre os pares que a interface realmente desenha, **sete dos quinze reprovavam**.
+Três eram texto:
+
+| Par | Antes | Mínimo |
+|---|---|---|
+| `tinta-fraca` sobre `recuo` | 3.97:1 | 4.5:1 |
+| `tinta-tenue` em número de 10 px na régua | 2.31:1 | 4.5:1 |
+| `tinta-tenue` em *placeholder* de campo | 2.31:1 | 4.5:1 |
+
+Os dois usos de `tinta-tenue` eram o pior caso do sistema: texto minúsculo na
+cor mais apagada da paleta. Nenhum deles precisava dela — trocaram para
+`tinta-fraca`, e a hierarquia entre o dia corrente e os outros continua de pé.
+`tinta-fraca` foi de `#7c776d` para `#736e65`, mudança que ninguém enxerga e que
+devolve o nível ao mínimo.
+
+**A paleta não foi tocada além disso**, e por regra: acento é decisão do dono do
+curso, que rejeitou direções pelo nome antes de chegar nesta.
+
+### O que ficou pendente, e é escolha dele
+
+`--color-portao` (`#dc4b1e`) dá **4.00:1** sobre papel e **3.56:1** dentro da
+própria pílula. Reprova, e é o pior lugar possível para reprovar: é a cor do
+estado que bloqueia. `#bf411a` passa em 4.53:1 no pior caso, mantendo matiz e
+saturação, mas escurece um acento escolhido a dedo.
+
+Fica registrado como `it.todo` no guarda, e não como teste vermelho: suíte
+vermelha não é lugar de guardar pergunta.
+
+### O que foi recusado
+
+`--color-linha` sobre papel dá 1.25:1. Não entra no guarda. A WCAG 1.4.11 fala
+de componente e estado, e filete de cartão não é nem um nem outro; levá-lo a 3:1
+pediria `#a09164`, uma linha verde-oliva grossa no lugar de um fio. Guarda que
+reclama do que não é problema é guarda que alguém desliga.
+
+### A conferência virou teste
+
+`tests/contraste-do-sistema-visual.test.ts` lê os tokens do próprio
+`globals.css` em vez de repetir os valores, então acompanha a paleta quando ela
+mudar. É a exceção justificada à regra de não testar interface (CLAUDE.md §7):
+contraste é aritmética sobre dois hex, não quebra quando o layout muda, e falha
+em silêncio até alguém não conseguir ler a tela.
