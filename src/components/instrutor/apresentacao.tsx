@@ -114,7 +114,10 @@ export function Apresentacao({
   const visiveis = lamina.blocos.slice(0, camadas)
 
   return (
-    <div className="flex flex-col gap-8">
+    // `flex-1` faz a apresentação encher a altura que sobra da casca, e é isso
+    // que resolve o rodapé: quando a lâmina é curta, o `mt-auto` da barra a
+    // empurra para o fundo em vez de deixá-la subir para o meio da tela.
+    <div className="flex flex-1 flex-col gap-8">
       <header className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
         <h2 className="max-w-[34ch] font-prosa text-2xl leading-tight tracking-tight text-tinta">
           {lamina.titulo}
@@ -150,9 +153,10 @@ export function Apresentacao({
 
       {/* A barra fica colada no rodapé porque quem apresenta está de pé e a
           lâmina rola: controle que sai de vista obriga a procurar o mouse no
-          meio da fala. É o único elemento fixo do sistema, e ele carrega filete
-          e papel como qualquer outra superfície. */}
-      <div className="sangra sticky bottom-0 border-t border-linha bg-papel/95 px-[var(--margem)] py-3 backdrop-blur-[2px]">
+          meio da fala. `mt-auto` a mantém no fundo mesmo quando a lâmina é curta
+          — sem ele, a barra subia para o meio da tela. É o único elemento fixo
+          do sistema, e ele carrega filete e papel como qualquer superfície. */}
+      <div className="sangra sticky bottom-0 mt-auto border-t border-linha bg-papel/95 px-[var(--margem)] py-3 backdrop-blur-[2px]">
         <div className="flex flex-wrap items-center gap-3">
           <Botao variante="acao" disabled={noFim} onClick={avanca}>
             {camadas < totalDeCamadas ? 'Revelar o próximo' : 'Próxima lâmina'}
