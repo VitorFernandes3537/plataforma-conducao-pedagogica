@@ -7,12 +7,18 @@ import {
   blocos,
   cursos,
   dias,
+  estruturas,
+  formularios,
   grupos,
+  julgamentosHumanos,
   marcos,
   materiaisDeReferencia,
   materiaisInterativos,
   niveisDeAvaliacao,
   obstaculos,
+  papeisDaEstrutura,
+  perguntasDoFormulario,
+  regrasDeValidacao,
   repositorios,
   temas,
   turmas,
@@ -43,6 +49,93 @@ export const EXEMPLO = {
     minimoDeItensImutaveis: 2,
   },
   turma: { nome: 'Turma de exemplo' },
+  /**
+   * O formulário de escopo do curso de exemplo, e o portão do D3.
+   *
+   * Faltava inteiro: sem formulário, sem pergunta, sem regra, sem estrutura e
+   * sem papel, a tela de escopo e a fila de aprovação não tinham o que abrir em
+   * desenvolvimento — e são as duas telas do marco go/no-go.
+   *
+   * **Três perguntas e três papéis, de propósito.** O curso real tem outras
+   * contagens, e um exemplo com as contagens dele convidaria a tratá-las como
+   * padrão — o mesmo motivo pelo qual o calendário daqui é curto.
+   *
+   * As quatro formas de regra aparecem uma vez cada, porque é o que faz o
+   * pré-filtro ser exercitável em desenvolvimento. Faixa, piso, referência
+   * entre perguntas e lista negra têm caminhos diferentes no motor.
+   */
+  formulario: {
+    nome: 'Formulário de escopo de exemplo',
+    perguntas: [
+      {
+        ordem: 1,
+        enunciado: 'Qual é o atendimento do seu domínio?',
+        criterioDeAceite:
+          'Uma frase que nomeia um evento com começo, fim e possibilidade de cancelamento. Cadastro e relatório não são atendimento.',
+        regras: [
+          { tipo: 'nao_vazio' as const, mensagem: 'Descreva o atendimento antes de entregar.' },
+          {
+            tipo: 'lista_negra' as const,
+            // Configurável por curso: quais nomes contam como genéricos depende
+            // do domínio, e uma lista em código envelheceria na primeira turma.
+            termos: ['dados', 'gerenciador', 'objeto', 'item', 'info'],
+            mensagem:
+              'Há uma palavra genérica na resposta. Nomeie o que acontece no negócio, não a estrutura de software.',
+          },
+        ],
+      },
+      {
+        ordem: 2,
+        enunciado: 'Quais são os estados do atendimento, na ordem em que acontecem?',
+        criterioDeAceite:
+          'Um estado por linha, no vocabulário do negócio. Condição que dá para calcular olhando outros dados não é estado.',
+        regras: [
+          {
+            tipo: 'contagem_de_itens' as const,
+            minimo: 2,
+            maximo: 4,
+            mensagem: 'A quantidade de estados está fora da faixa que este curso aceita.',
+          },
+        ],
+      },
+      {
+        ordem: 3,
+        enunciado: 'Quais mudanças de estado o sistema precisa impedir?',
+        criterioDeAceite:
+          'Uma por linha, no formato origem → destino, com a razão de negócio. Os dois lados têm de ser estados que você declarou.',
+        regras: [
+          {
+            tipo: 'referencia_declarada' as const,
+            referenciaAOrdem: 2,
+            mensagem:
+              'Alguma mudança cita um estado que você não declarou. Use só os estados da pergunta anterior.',
+          },
+        ],
+      },
+    ],
+    /**
+     * O que só um humano decide (Doc 2 §4.6). É a lista que o instrutor percorre
+     * na fila, e ela é dado porque quantos existem depende do formulário.
+     */
+    julgamentos: [
+      { ordem: 1, enunciado: 'A resposta descreve um evento, e não um cadastro?', naOrdem: 1 },
+      { ordem: 2, enunciado: 'As mudanças impedidas são realmente impossíveis, e não só raras?', naOrdem: 3 },
+    ],
+  },
+  /**
+   * A estrutura do curso e os papéis que a tabela de tradução cobre.
+   *
+   * Um deles é opcional, para desenvolvimento ter os dois casos: papel opcional
+   * pode ficar de fora sem invalidar o escopo.
+   */
+  estrutura: {
+    nome: 'Estrutura de exemplo',
+    papeis: [
+      { ordem: 1, nome: 'Quem solicita', obrigatorio: true },
+      { ordem: 2, nome: 'O atendimento', obrigatorio: true },
+      { ordem: 3, nome: 'Recurso escasso', obrigatorio: false },
+    ],
+  },
   instrutor: { githubUserId: 1000, githubLogin: 'instrutor-exemplo', nome: 'Instrutor' },
   // Rótulos de dificuldade são dado, não enum. Um deles é de trilha desafio
   // e por isso carrega briefing — sem ele o banco rejeita a linha.
@@ -221,6 +314,66 @@ async function semeiaEm(db: Db) {
       url: referencia.url,
     })
   }
+
+  // ── O portão do D3 ──────────────────────────────────────────────────
+  const [formulario] = await db
+    .insert(formularios)
+    .values({ cursoId: curso.id, nome: EXEMPLO.formulario.nome })
+    .returning()
+  if (!formulario) throw new Error('seed: formulário não foi criado')
+
+  const perguntasPorOrdem = new Map<number, string>()
+  for (const definicao of EXEMPLO.formulario.perguntas) {
+    const [pergunta] = await db
+      .insert(perguntasDoFormulario)
+      .values({
+        formularioId: formulario.id,
+        ordem: definicao.ordem,
+        enunciado: definicao.enunciado,
+        criterioDeAceite: definicao.criterioDeAceite,
+      })
+      .returning()
+    if (!pergunta) throw new Error('seed: pergunta não foi criada')
+    perguntasPorOrdem.set(definicao.ordem, pergunta.id)
+  }
+
+  // Em segunda passada: `referencia_declarada` aponta para outra pergunta, e
+  // ela precisa já existir.
+  for (const definicao of EXEMPLO.formulario.perguntas) {
+    const perguntaId = perguntasPorOrdem.get(definicao.ordem)!
+    for (const regra of definicao.regras) {
+      const referencia =
+        'referenciaAOrdem' in regra ? perguntasPorOrdem.get(regra.referenciaAOrdem) : undefined
+      await db.insert(regrasDeValidacao).values({
+        perguntaId,
+        tipo: regra.tipo,
+        minimo: 'minimo' in regra ? regra.minimo : null,
+        maximo: 'maximo' in regra ? regra.maximo : null,
+        perguntaDeReferenciaId: referencia ?? null,
+        termos: 'termos' in regra ? [...regra.termos] : null,
+        mensagem: regra.mensagem,
+      })
+    }
+  }
+
+  await db.insert(julgamentosHumanos).values(
+    EXEMPLO.formulario.julgamentos.map((j) => ({
+      formularioId: formulario.id,
+      ordem: j.ordem,
+      enunciado: j.enunciado,
+      perguntaId: perguntasPorOrdem.get(j.naOrdem) ?? null,
+    })),
+  )
+
+  const [estrutura] = await db
+    .insert(estruturas)
+    .values({ cursoId: curso.id, nome: EXEMPLO.estrutura.nome })
+    .returning()
+  if (!estrutura) throw new Error('seed: estrutura não foi criada')
+
+  await db
+    .insert(papeisDaEstrutura)
+    .values(EXEMPLO.estrutura.papeis.map((p) => ({ estruturaId: estrutura.id, ...p })))
 
   const [bancoDeTemas] = await db
     .insert(bancosDeTemas)
