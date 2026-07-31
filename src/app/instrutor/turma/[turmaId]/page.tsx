@@ -97,7 +97,7 @@ export default async function DiaDaTurma({ params }: { params: Promise<{ turmaId
           linha "nome … alvo" do lançamento, e o que sobrava passou a carregar os
           dois momentos do instrutor que a ADR 0006 §3 lista e nenhuma tela
           servia. */}
-      <div className="grid gap-x-8 gap-y-8 lg:grid-cols-[minmax(0,66ch)_minmax(0,34ch)] lg:items-start">
+      <div className="grid gap-x-8 gap-y-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,34ch)] lg:items-start">
         <div className="flex min-w-0 flex-col gap-8">
       <Cartao
         legenda="Superação do obstáculo"

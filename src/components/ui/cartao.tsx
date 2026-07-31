@@ -75,7 +75,9 @@ export function Linha({
 }) {
   return (
     <li
-      className={`flex items-baseline justify-between gap-4 border-b border-linha py-2.5 last:border-b-0 ${className}`}
+      // `break-inside-avoid` para a linha não ser partida ao meio quando a lista
+      // está em duas colunas — metade do nome numa coluna e o alvo na outra.
+      className={`flex break-inside-avoid items-baseline justify-between gap-4 border-b border-linha py-2.5 last:border-b-0 ${className}`}
     >
       <span className="min-w-0">{children}</span>
       {fim && <span className="shrink-0">{fim}</span>}
